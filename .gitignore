@@ -181,3 +181,8 @@ blob/
 *.iml
 *.iws
 out/
+
+# VS Code
+.vscode/
+.vs/
+*.code-workspace
