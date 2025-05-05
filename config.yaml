@@ -1,0 +1,15 @@
+storage:
+  cold_storage:
+    raw_zip:
+      type: zip
+      folders:
+        # - "blob/dataset/raw/"
+        - /home/GP/dataset/collect/cold_storage
+
+
+dataset:
+  pre-processed:
+    raw_zip_list:
+      type: txt-list
+      log:  "logs/pre-processed/raw_zip_list.log"
+      file: "blob/dataset/pre-processed/raw_zip_list.txt"

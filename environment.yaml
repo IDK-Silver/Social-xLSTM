@@ -28,3 +28,5 @@ dependencies:
       - numpy<2.0
       - xlstm
       - py7zr
+      - ruamel.yaml
+      - snakemake
