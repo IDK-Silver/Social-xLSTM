@@ -137,7 +137,7 @@ def extract_archive(
         Exception: For other unexpected errors.
     """
     if not os.path.isfile(archive_filepath):
-        raise FileNotFoundError(f"Archive file not found: {archive_filepath}")
+        raise FileNotFoundError("Archive file not found: {}".format(archive_filepath))
 
     # Create the extraction directory safely
     try:
@@ -152,7 +152,7 @@ def extract_archive(
             # Read enough bytes to identify both formats (6 bytes for 7z is longest)
             header = f.read(max(len(ZIP_MAGIC), len(SEVEN_ZIP_MAGIC)))
     except IOError as e:
-        raise IOError(f"Could not read header from file '{archive_filepath}': {e}") from e
+        raise IOError(f"Could not read header from file {archive_filepath}: {e}") from e
 
     # Dispatch based on magic number
     if header.startswith(ZIP_MAGIC):

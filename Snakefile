@@ -113,19 +113,30 @@ rule all:
 
 rule list_all_zips:
     input:
-        expand(
-            WORKFLOW_CONFIG['storage']['cold_storage']['raw_zip']['folders'],
-        )
+        WORKFLOW_CONFIG['storage']['cold_storage']['raw_zip']['folders'],
     output:
-        expand(
-            WORKFLOW_CONFIG['dataset']['pre-processed']['raw_zip_list']['file'],
-        )
+        WORKFLOW_CONFIG['dataset']['pre-processed']['raw_zip_list']['file']
     log:
         WORKFLOW_CONFIG['dataset']['pre-processed']['raw_zip_list']['log']
     shell:
-        """
+    """
         python scripts/dataset/pre-process/list_all_zips.py \
         --input_folder_list {input} \
         --output_file_path  {output} >> {log} 2>&1
-        """
-        
+    """
+
+rule unzip_and_to_json:
+    input:
+        zip_list=WORKFLOW_CONFIG['dataset']['pre-processed']['raw_zip_list']['file']
+    output:
+        status=WORKFLOW_CONFIG['dataset']['pre-processed']['unzip_to_json']['status'],
+        zip_dir=WORKFLOW_CONFIG['dataset']['pre-processed']['unzip_to_json']['folder'],
+        json_dir=WORKFLOW_CONFIG['dataset']['pre-processed']['json']['folder']
+    shell:
+    """
+        python scripts/dataset/pre-process/unzip_and_to_json.py \
+        --input_zip_list {input.zip_list} \
+        --output_folder_path {output.zip_dir} \
+        --status_file {output.status} >> {log} 2>&1
+        --json_folder_path {output.json_dir} >> {log} 2>&1
+    """

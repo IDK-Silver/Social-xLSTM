@@ -13,3 +13,18 @@ dataset:
       type: txt-list
       log:  "logs/pre-processed/raw_zip_list.log"
       file: "blob/dataset/pre-processed/raw_zip_list.txt"
+    
+    unzip_to_json:
+      type:       json
+      status:     "blob/status/unzip_to_json.json"
+      log:        "logs/pre-processed/unzip_to_json.log"
+      folder:     "blob/dataset/pre-processed/unzip_to_json.json"
+    
+    json:
+      VDLIST:
+        type:       json
+        folder:     "blob/dataset/pre-processed/json/VDLIST"
+      VDLiveList:
+        type:       json
+        folder:     "blob/dataset/pre-processed/json/VDLiveList"
+      
