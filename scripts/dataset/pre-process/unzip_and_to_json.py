@@ -149,7 +149,11 @@ def unzip_and_to_json(
         with tempfile.TemporaryDirectory() as temp_dir:
             
             # Unzip the file to temp directory
-            extract_archive(zip_file_path, temp_dir)
+            extract_archive(
+                archive_filepath=zip_file_path,
+                extract_to_dir=temp_dir,
+                flatten_single_root_folder=True
+            )
             
             # Process files from temp directory
             temp_path = Path(temp_dir)
