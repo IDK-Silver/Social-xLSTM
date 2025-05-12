@@ -130,7 +130,7 @@ def unzip_and_to_json(
     unprocessed_zip_files = [
         f 
         for f in zip_files 
-        if f not in status.processed_files
+        if str(Path(f).absolute()) not in status.processed_files
     ]
     
     print(f"Unprocessed files: {unprocessed_zip_files}")
@@ -178,7 +178,11 @@ def unzip_and_to_json(
                     dataset_type=None,
                     unknown_ignore=True,
                 )
-                
+            status.add_processed(str(
+                zip_file_path.absolute()
+            ))
+    
+    status.save_to_json(status_file_path)            
 
 def main():
     args = parse_arguments()
