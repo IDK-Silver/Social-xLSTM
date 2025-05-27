@@ -30,3 +30,4 @@ dependencies:
       - py7zr
       - ruamel.yaml
       - snakemake
+      - matplotlib

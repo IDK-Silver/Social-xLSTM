@@ -104,12 +104,12 @@ except (FileNotFoundError, ConfigurationError) as e:
 rule all:
     input:
     output:
-    log:
-        "logs/all.log"
-    shell:
-        """
-        echo "Processing data from {input} to {output}" >> {log}
-        """
+    # log:
+    #     "logs/all.log"
+    # shell:
+    #     """
+    #     echo "Processing data from {input} to {output}" >> {log}
+    #     """
 
 rule list_all_zips:
     input:
@@ -119,24 +119,24 @@ rule list_all_zips:
     log:
         WORKFLOW_CONFIG['dataset']['pre-processed']['raw_zip_list']['log']
     shell:
-    """
+        """
         python scripts/dataset/pre-process/list_all_zips.py \
         --input_folder_list {input} \
-        --output_file_path  {output} >> {log} 2>&1
-    """
+        --output_file_path {output} >> {log} 2>&1
+        """
 
 rule unzip_and_to_json:
     input:
-        zip_list=WORKFLOW_CONFIG['dataset']['pre-processed']['raw_zip_list']['file']
+        zip_list_path=WORKFLOW_CONFIG['dataset']['pre-processed']['raw_zip_list']['file']
     output:
         status=WORKFLOW_CONFIG['dataset']['pre-processed']['unzip_to_json']['status'],
-        zip_dir=WORKFLOW_CONFIG['dataset']['pre-processed']['unzip_to_json']['folder'],
-        json_dir=WORKFLOW_CONFIG['dataset']['pre-processed']['json']['folder']
+        zip_dir=WORKFLOW_CONFIG['dataset']['pre-processed']['unzip_to_json']['folder']
+    log:
+        WORKFLOW_CONFIG['dataset']['pre-processed']['unzip_to_json']['log']
     shell:
-    """
+        """
         python scripts/dataset/pre-process/unzip_and_to_json.py \
-        --input_zip_list {input.zip_list} \
+        --input_zip_list_path {input.zip_list_path} \
         --output_folder_path {output.zip_dir} \
         --status_file {output.status} >> {log} 2>&1
-        --json_folder_path {output.json_dir} >> {log} 2>&1
-    """
+        """

@@ -3,7 +3,6 @@ storage:
     raw_zip:
       type: zip
       folders:
-        # - "blob/dataset/raw/"
         - /home/GP/dataset/collect/cold_storage
 
 
@@ -18,13 +17,4 @@ dataset:
       type:       json
       status:     "blob/status/unzip_to_json.json"
       log:        "logs/pre-processed/unzip_to_json.log"
-      folder:     "blob/dataset/pre-processed/unzip_to_json.json"
-    
-    json:
-      VDLIST:
-        type:       json
-        folder:     "blob/dataset/pre-processed/json/VDLIST"
-      VDLiveList:
-        type:       json
-        folder:     "blob/dataset/pre-processed/json/VDLiveList"
-      
+      folder:     "blob/dataset/pre-processed/unzip_to_json"

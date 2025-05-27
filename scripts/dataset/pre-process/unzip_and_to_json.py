@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import List, Union
 from enum import Enum
 from dataclasses import dataclass
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Local application imports
 from social_xlstm.dataset.zip_utils import extract_archive
@@ -75,6 +76,23 @@ class Status:
         except (FileNotFoundError, json.JSONDecodeError):
             # If file doesn't exist or is invalid, return a new empty Status
             return cls()
+
+# Helper function for multithreaded XML to JSON conversion
+def _process_xml_to_json_worker(xml_file_path: Path, target_output_dir: Path):
+    """
+    Converts a single XML file to JSON.
+    Helper for multithreaded processing.
+    """
+    # Use with_suffix for robust extension replacement
+    output_json_filename = xml_file_path.with_suffix('.json').name
+    file_output_path = target_output_dir / output_json_filename
+
+    raw_xml_to_json(
+        input_file_path=xml_file_path.absolute(),
+        output_file_path=file_output_path.absolute(),
+        dataset_type=None,  # As per original logic
+        unknown_ignore=True, # As per original logic
+    )
 
 def parse_arguments():
     """
@@ -165,28 +183,34 @@ def unzip_and_to_json(
             
             # Print the structure of the temp directory for debugging
             for folder in temp_path.iterdir():
-                unconverted_files = [
+                unconverted_files.extend([
                     f for f in folder.rglob("*") 
                     if f.is_file() and f.suffix.lower() in ('.xml', '.XML')
-                ]
+                ])
             
-            for f in unconverted_files:
-                file_output_folder_prefix = zip_file_path.stem
-                file_ouptut_path = output_folder_path / file_output_folder_prefix / f.name.replace('.xml', '.json')
-                
-                file_ouptut_path.parent.mkdir(parents=True, exist_ok=True)
-                
-                raw_xml_to_json(
-                    input_file_path=f.absolute(),
-                    output_file_path=file_ouptut_path.absolute(),
-                    dataset_type=None,
-                    unknown_ignore=True,
-                )
+            with ThreadPoolExecutor() as executor:
+                    futures = []
+                    for f_xml in unconverted_files:
+                        futures.append(executor.submit(
+                            _process_xml_to_json_worker,
+                            f_xml,
+                            output_folder_path / f_xml.parent.name
+                        ))
+                    
+                    for future in as_completed(futures):
+                        try:
+                            future.result()  # Retrieve result or raise exception from thread
+                        except Exception as e:
+                            # Handle exceptions from threads, e.g., log them
+                            print(f"Error converting file in thread: {e}")
+                            # Depending on requirements, you might want to collect errors
+                            # or stop processing.
+            
             status.add_processed(str(
                 zip_file_path.absolute()
             ))
     
-    status.save_to_json(status_file_path)            
+        status.save_to_json(status_file_path)            
 
 def main():
     args = parse_arguments()
