@@ -140,3 +140,26 @@ rule unzip_and_to_json:
         --output_folder_path {output.zip_dir} \
         --status_file {output.status} >> {log} 2>&1
         """
+
+rule create_h5_file:
+    input:
+        source_dir=WORKFLOW_CONFIG['dataset']['pre-processed']['unzip_to_json']['folder']
+    output:
+        h5_file=WORKFLOW_CONFIG['dataset']['pre-processed']['h5']['file']
+    params:
+        selected_vdids=WORKFLOW_CONFIG['dataset']['pre-processed']['h5'].get('selected_vdids', None)
+    log:
+        WORKFLOW_CONFIG['dataset']['pre-processed']['h5']['log']
+    shell:
+        """
+        if [ -n "{params.selected_vdids}" ]; then
+            python scripts/dataset/pre-process/create_h5_file.py \
+            --source_dir {input.source_dir} \
+            --output_path {output.h5_file} \
+            --selected_vdids {params.selected_vdids} >> {log} 2>&1
+        else
+            python scripts/dataset/pre-process/create_h5_file.py \
+            --source_dir {input.source_dir} \
+            --output_path {output.h5_file} >> {log} 2>&1
+        fi
+        """

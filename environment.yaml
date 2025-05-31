@@ -31,3 +31,6 @@ dependencies:
       - ruamel.yaml
       - snakemake
       - matplotlib
+      - h5py
+      - pytorch-lightning
+      - scikit-learn

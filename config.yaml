@@ -18,3 +18,8 @@ dataset:
       status:     "blob/status/unzip_to_json.json"
       log:        "logs/pre-processed/unzip_to_json.log"
       folder:     "blob/dataset/pre-processed/unzip_to_json"
+
+    h5:
+      file: "blob/dataset/pre-processed/h5/traffic_features.h5"
+      log: "logs/create_h5_file.log"
+      selected_vdids: null 
