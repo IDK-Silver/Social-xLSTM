@@ -47,13 +47,23 @@ class VDInfo:
     VDList: List[VD]
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'VDInfo':
+    def from_dict(cls, data: Dict[str, Any], final_field_id_length: int = 3) -> 'VDInfo':
         update_info_data = data.get("UpdateInfo", {})
         update_info = UpdateInfo(**update_info_data)
         
         vd_list_data = data.get("VDList", [])
         vd_list = [VD.from_dict(vd_item) for vd_item in vd_list_data]
         
+        for vd in vd_list:
+            if vd.VDID:
+                # Split VDID by '-' and get the last field
+                vd_parts = vd.VDID.split('-')
+                if len(vd_parts) > 1:
+                    # Pad the last field with zeros
+                    last_field = vd_parts[-1].zfill(final_field_id_length)
+                    # Reconstruct VDID with padded last field
+                    vd.VDID = '-'.join(vd_parts[:-1] + [last_field])
+            
         return cls(UpdateInfo=update_info, VDList=vd_list)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -63,11 +73,11 @@ class VDInfo:
         }
 
     @classmethod
-    def load_from_json(cls, file_path: Path) -> 'VDInfo':
+    def load_from_json(cls, file_path: Path, final_field_id_length: int = 3) -> 'VDInfo':
         """Loads VDInfo data from a JSON file."""
         with open(file_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
-        return cls.from_dict(data)
+        return cls.from_dict(data, final_field_id_length=final_field_id_length)
 
     def save_to_json(self, file_path: Path) -> None:
         """Saves VDInfo data to a JSON file."""

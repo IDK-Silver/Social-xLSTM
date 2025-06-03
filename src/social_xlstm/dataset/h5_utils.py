@@ -256,6 +256,10 @@ class TrafficHDF5Converter:
             dtype=np.float32
         )
         
+        # Check for missing VDIDs and report count
+        missing_vdids = [vdid for vdid in target_vdids if vdid not in vd_data_map]
+        if missing_vdids:
+            print(f"Warning: {len(missing_vdids)} missing VDIDs in {dir_path.name}: {missing_vdids}")
         # Extract features for each VD
         for i, vdid in enumerate(target_vdids):
             if vdid in vd_data_map:

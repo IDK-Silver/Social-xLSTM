@@ -29,11 +29,22 @@ def parse_arguments():
         nargs="*",
         default=None
     )
+    
+    parser.add_argument(
+        "--overwrite",
+        help="Overwrite existing HDF5 file if it exists",
+        action="store_true",
+        default=False
+    )
 
     return parser.parse_args()
 
 
-def create_h5_file(source_dir: str, output_path: str, selected_vdids: Optional[List[str]] = None) -> None:
+def create_h5_file(
+    source_dir: str, output_path: str,
+    selected_vdids: Optional[List[str]] = None,
+    overwrite: bool = False
+    ) -> None:
     """
     Create HDF5 file from traffic data.
     
@@ -68,7 +79,8 @@ def create_h5_file(source_dir: str, output_path: str, selected_vdids: Optional[L
         reader = create_traffic_hdf5(
             source_dir=str(source_dir_path),
             output_path=str(output_path_path),
-            selected_vdids=selected_vdids
+            selected_vdids=selected_vdids,
+            overwrite=overwrite
         )
         
         print(f"Successfully created HDF5 file: {output_path_path}")
@@ -95,7 +107,8 @@ def main():
     create_h5_file(
         source_dir=args.source_dir,
         output_path=args.output_path,
-        selected_vdids=selected_vdids
+        selected_vdids=selected_vdids,
+        overwrite=args.overwrite
     )
 
 if __name__ == "__main__":
