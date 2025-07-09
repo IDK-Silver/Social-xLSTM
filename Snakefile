@@ -100,16 +100,6 @@ except (FileNotFoundError, ConfigurationError) as e:
           file=sys.stderr)
     sys.exit(1)
 
-# Configuration is now available as WORKFLOW_CONFIG for use in rules
-rule all:
-    input:
-    output:
-    # log:
-    #     "logs/all.log"
-    # shell:
-    #     """
-    #     echo "Processing data from {input} to {output}" >> {log}
-    #     """
 
 rule list_all_zips:
     input:
@@ -163,3 +153,82 @@ rule create_h5_file:
             --output_path {output.h5_file} >> {log} 2>&1
         fi
         """
+
+rule train_single_vd_without_social_pooling:
+    input:
+        h5_file=WORKFLOW_CONFIG['dataset']['pre-processed']['h5']['file']
+    output:
+        experiment_dir=directory(WORKFLOW_CONFIG['training']['single_vd']['experiment_dir'])
+    log:
+        WORKFLOW_CONFIG['training']['single_vd']['log']
+    params:
+        epochs=WORKFLOW_CONFIG['training']['single_vd']['epochs'],
+        batch_size=WORKFLOW_CONFIG['training']['single_vd']['batch_size'],
+        sequence_length=WORKFLOW_CONFIG['training']['single_vd']['sequence_length'],
+        model_type=WORKFLOW_CONFIG['training']['single_vd']['model_type'],
+        experiment_name=os.path.basename(WORKFLOW_CONFIG['training']['single_vd']['experiment_dir'])
+    shell:
+        """
+        python scripts/train/without_social_pooling/train_single_vd.py \
+        --data_path {input.h5_file} \
+        --epochs {params.epochs} \
+        --batch_size {params.batch_size} \
+        --sequence_length {params.sequence_length} \
+        --model_type {params.model_type} \
+        --experiment_name {params.experiment_name} >> {log} 2>&1
+        """
+
+rule train_multi_vd_without_social_pooling:
+    input:
+        h5_file=WORKFLOW_CONFIG['dataset']['pre-processed']['h5']['file']
+    output:
+        experiment_dir=directory(WORKFLOW_CONFIG['training']['multi_vd']['experiment_dir'])
+    log:
+        WORKFLOW_CONFIG['training']['multi_vd']['log']
+    params:
+        epochs=WORKFLOW_CONFIG['training']['multi_vd']['epochs'],
+        batch_size=WORKFLOW_CONFIG['training']['multi_vd']['batch_size'],
+        sequence_length=WORKFLOW_CONFIG['training']['multi_vd']['sequence_length'],
+        num_vds=WORKFLOW_CONFIG['training']['multi_vd']['num_vds'],
+        model_type=WORKFLOW_CONFIG['training']['multi_vd']['model_type'],
+        experiment_name=os.path.basename(WORKFLOW_CONFIG['training']['multi_vd']['experiment_dir'])
+    shell:
+        """
+        python scripts/train/without_social_pooling/train_multi_vd.py \
+        --data_path {input.h5_file} \
+        --epochs {params.epochs} \
+        --batch_size {params.batch_size} \
+        --sequence_length {params.sequence_length} \
+        --num_vds {params.num_vds} \
+        --model_type {params.model_type} \
+        --experiment_name {params.experiment_name} >> {log} 2>&1
+        """
+
+rule train_independent_multi_vd_without_social_pooling:
+    input:
+        h5_file=WORKFLOW_CONFIG['dataset']['pre-processed']['h5']['file']
+    output:
+        experiment_dir=directory(WORKFLOW_CONFIG['training']['independent_multi_vd']['experiment_dir'])
+    log:
+        WORKFLOW_CONFIG['training']['independent_multi_vd']['log']
+    params:
+        epochs=WORKFLOW_CONFIG['training']['independent_multi_vd']['epochs'],
+        batch_size=WORKFLOW_CONFIG['training']['independent_multi_vd']['batch_size'],
+        sequence_length=WORKFLOW_CONFIG['training']['independent_multi_vd']['sequence_length'],
+        num_vds=WORKFLOW_CONFIG['training']['independent_multi_vd']['num_vds'],
+        target_vd_index=WORKFLOW_CONFIG['training']['independent_multi_vd']['target_vd_index'],
+        model_type=WORKFLOW_CONFIG['training']['independent_multi_vd']['model_type'],
+        experiment_name=os.path.basename(WORKFLOW_CONFIG['training']['independent_multi_vd']['experiment_dir'])
+    shell:
+        """
+        python scripts/train/without_social_pooling/train_independent_multi_vd.py \
+        --data_path {input.h5_file} \
+        --epochs {params.epochs} \
+        --batch_size {params.batch_size} \
+        --sequence_length {params.sequence_length} \
+        --num_vds {params.num_vds} \
+        --target_vd_index {params.target_vd_index} \
+        --model_type {params.model_type} \
+        --experiment_name {params.experiment_name} >> {log} 2>&1
+        """
+

@@ -1,0 +1,268 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{geometry}
+\usepackage{xeCJK}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+
+\geometry{margin=1in}
+\setCJKmainfont{Noto Sans CJK TC}
+
+\title{Social-xLSTM Mathematical Formulation}
+\author{Social-xLSTM Research Team}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+This document provides the complete mathematical formulation for the Social-xLSTM model, which combines Social Pooling mechanisms with extended Long Short-Term Memory (xLSTM) architectures for traffic flow prediction without requiring explicit topology information.
+
+\section{Problem Formulation}
+
+\subsection{Input Definition}
+
+For each vehicle detector (VD) node $i$ at time step $t$, the input feature vector is defined as:
+
+\begin{equation}
+\mathbf{x}_i^t = [q_i^t, p_i^t, s_i^t, \ell_i, \mathbf{t}_i]^T
+\end{equation}
+
+where:
+\begin{align}
+q_i^t &= \text{current traffic volume at node } i \text{ at time } t \\
+p_i^t &= \text{current lane occupancy at node } i \text{ at time } t \\
+s_i^t &= \text{current lane speed at node } i \text{ at time } t \\
+\ell_i &= \text{number of lanes at node } i \text{ (static)} \\
+\mathbf{t}_i &= \text{temporal features (hour, day, etc.)}
+\end{align}
+
+Each node $i$ has fixed spatial coordinates $(x_i, y_i)$ representing its geographical location.
+
+\section{Social Pooling Mechanism}
+
+\subsection{Coordinate-Driven Grid Construction}
+
+For target node $i$ at time $t$, we construct a spatial grid of size $M \times N$ centered at its coordinates $(x_i^t, y_i^t)$:
+
+\begin{equation}
+\text{Grid}_{i}^t \in \mathbb{R}^{M \times N \times d_h}
+\end{equation}
+
+where $d_h$ is the hidden state dimension.
+
+\subsection{Neighbor Assignment}
+
+For each neighbor node $j \in \mathcal{N}_i$, we compute the relative displacement:
+
+\begin{equation}
+\Delta x_{ij}^t = x_j^t - x_i^t, \quad \Delta y_{ij}^t = y_j^t - y_i^t
+\end{equation}
+
+The grid coordinates $(m, n)$ for neighbor $j$ are determined by:
+
+\begin{align}
+m &= \lfloor \frac{\Delta x_{ij}^t + R_x}{2R_x / M} \rfloor \\
+n &= \lfloor \frac{\Delta y_{ij}^t + R_y}{2R_y / N} \rfloor
+\end{align}
+
+where $R_x$ and $R_y$ are the grid radius parameters.
+
+\subsection{Social Tensor Construction}
+
+The social tensor $\mathbf{H}_i^t$ aggregates hidden states from neighbors:
+
+\begin{equation}
+\mathbf{H}_i^t(m, n, :) = \sum_{j \in \mathcal{N}_i} \mathbf{1}_{mn}[\Delta x_{ij}^t, \Delta y_{ij}^t] \cdot \mathbf{h}_j^{t-1}
+\end{equation}
+
+where $\mathbf{1}_{mn}[\cdot]$ is the indicator function for grid cell $(m,n)$, and $\mathbf{h}_j^{t-1}$ is the hidden state of neighbor $j$ from the previous time step.
+
+\subsection{Embedding and Concatenation}
+
+The social tensor is flattened and concatenated with node features:
+
+\begin{equation}
+\mathbf{e}_i^t = \phi([\mathbf{x}_i^t; \text{flatten}(\mathbf{H}_i^t)])
+\end{equation}
+
+where $\phi(\cdot)$ is a nonlinear embedding function (typically a fully connected layer).
+
+\section{Extended LSTM (xLSTM) Formulation}
+
+\subsection{Scalar-memory LSTM (sLSTM)}
+
+The sLSTM extends traditional LSTM with exponential gating and normalization:
+
+\subsubsection{Gate Computations}
+
+\begin{align}
+\tilde{i}_t &= \mathbf{W}_i \mathbf{e}_t + \mathbf{R}_i \mathbf{h}_{t-1} + \mathbf{b}_i \\
+\tilde{f}_t &= \mathbf{W}_f \mathbf{e}_t + \mathbf{R}_f \mathbf{h}_{t-1} + \mathbf{b}_f \\
+\tilde{z}_t &= \mathbf{W}_z \mathbf{e}_t + \mathbf{R}_z \mathbf{h}_{t-1} + \mathbf{b}_z \\
+\tilde{o}_t &= \mathbf{W}_o \mathbf{e}_t + \mathbf{R}_o \mathbf{h}_{t-1} + \mathbf{b}_o
+\end{align}
+
+\subsubsection{Exponential Gating}
+
+\begin{align}
+i_t &= \exp(\tilde{i}_t) \\
+f_t &= \sigma(\tilde{f}_t) \\
+z_t &= \tanh(\tilde{z}_t) \\
+o_t &= \sigma(\tilde{o}_t)
+\end{align}
+
+\subsubsection{Cell State and Hidden State}
+
+\begin{align}
+c_t &= f_t \odot c_{t-1} + i_t \odot z_t \\
+n_t &= f_t \odot n_{t-1} + i_t \\
+\tilde{h}_t &= \frac{c_t}{n_t} \\
+h_t &= o_t \odot \tilde{h}_t
+\end{align}
+
+where $n_t$ is the normalizer state to prevent overflow.
+
+\subsection{Matrix-memory LSTM (mLSTM)}
+
+The mLSTM uses matrix-valued memory for higher capacity storage:
+
+\subsubsection{Query, Key, Value Computation}
+
+\begin{align}
+\mathbf{q}_t &= \mathbf{W}_q \mathbf{e}_t \\
+\mathbf{k}_t &= \mathbf{W}_k \mathbf{e}_t \\
+\mathbf{v}_t &= \mathbf{W}_v \mathbf{e}_t
+\end{align}
+
+\subsubsection{Matrix Memory Update}
+
+\begin{align}
+\mathbf{C}_t &= \mathbf{f}_t \odot \mathbf{C}_{t-1} + \mathbf{i}_t \odot (\mathbf{v}_t \mathbf{k}_t^T) \\
+\mathbf{n}_t &= \mathbf{f}_t \odot \mathbf{n}_{t-1} + \mathbf{i}_t \odot \mathbf{k}_t
+\end{align}
+
+where $\mathbf{C}_t \in \mathbb{R}^{d \times d}$ is the matrix memory and $\mathbf{n}_t \in \mathbb{R}^d$ is the normalization vector.
+
+\subsubsection{Memory Retrieval}
+
+\begin{equation}
+\mathbf{h}_t = \mathbf{o}_t \odot \frac{\mathbf{C}_t \mathbf{q}_t}{\max(\mathbf{n}_t^T \mathbf{q}_t, 1)}
+\end{equation}
+
+\section{Hybrid xLSTM Block Stack}
+
+\subsection{Block Architecture}
+
+A Social-xLSTM block combines both sLSTM and mLSTM components:
+
+\begin{equation}
+\text{Block}(\mathbf{x}) = \text{LayerNorm}(\mathbf{x} + \text{mLSTM}(\text{sLSTM}(\mathbf{x})))
+\end{equation}
+
+\subsection{Multi-Block Stack}
+
+The complete model consists of $L$ stacked blocks:
+
+\begin{align}
+\mathbf{h}^{(0)} &= \text{Input Embedding}(\mathbf{e}_t) \\
+\mathbf{h}^{(\ell)} &= \text{Block}_\ell(\mathbf{h}^{(\ell-1)}), \quad \ell = 1, \ldots, L \\
+\mathbf{y}_t &= \text{Output Layer}(\mathbf{h}^{(L)})
+\end{align}
+
+\section{Complete Social-xLSTM Algorithm}
+
+\begin{algorithm}
+\caption{Social-xLSTM Forward Pass}
+\begin{algorithmic}
+\STATE \textbf{Input:} Node features $\{\mathbf{x}_i^t\}_{i=1}^N$, coordinates $\{(x_i, y_i)\}_{i=1}^N$
+\STATE \textbf{Output:} Predictions $\{\hat{\mathbf{y}}_i^{t+1}\}_{i=1}^N$
+
+\FOR{each node $i = 1, \ldots, N$}
+    \STATE // Social Pooling
+    \STATE Construct grid $\text{Grid}_i^t$ of size $M \times N$
+    \FOR{each neighbor $j \in \mathcal{N}_i$}
+        \STATE Compute relative position $(\Delta x_{ij}^t, \Delta y_{ij}^t)$
+        \STATE Assign $\mathbf{h}_j^{t-1}$ to grid cell $(m, n)$
+    \ENDFOR
+    \STATE $\mathbf{H}_i^t \leftarrow$ aggregate grid tensor
+    \STATE $\mathbf{e}_i^t \leftarrow \phi([\mathbf{x}_i^t; \text{flatten}(\mathbf{H}_i^t)])$
+    
+    \STATE // xLSTM Processing
+    \STATE $\mathbf{h}_i^t \leftarrow \text{xLSTM-Stack}(\mathbf{e}_i^t, \mathbf{h}_i^{t-1})$
+    \STATE $\hat{\mathbf{y}}_i^{t+1} \leftarrow \text{Output-Layer}(\mathbf{h}_i^t)$
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+\section{Loss Function}
+
+For traffic flow prediction, we use a combination of regression losses:
+
+\begin{equation}
+\mathcal{L} = \alpha \mathcal{L}_{\text{MAE}} + \beta \mathcal{L}_{\text{MSE}} + \gamma \mathcal{L}_{\text{MAPE}}
+\end{equation}
+
+where:
+\begin{align}
+\mathcal{L}_{\text{MAE}} &= \frac{1}{N} \sum_{i=1}^N |\hat{y}_i - y_i| \\
+\mathcal{L}_{\text{MSE}} &= \frac{1}{N} \sum_{i=1}^N (\hat{y}_i - y_i)^2 \\
+\mathcal{L}_{\text{MAPE}} &= \frac{1}{N} \sum_{i=1}^N \left|\frac{\hat{y}_i - y_i}{y_i}\right|
+\end{align}
+
+\section{Computational Complexity}
+
+\subsection{Social Pooling Complexity}
+
+For each node $i$ with $|\mathcal{N}_i|$ neighbors:
+\begin{equation}
+\mathcal{O}(\text{Social Pooling}) = \mathcal{O}(|\mathcal{N}_i| \cdot d_h + M \cdot N \cdot d_h)
+\end{equation}
+
+\subsection{xLSTM Complexity}
+
+For a single xLSTM block:
+\begin{align}
+\mathcal{O}(\text{sLSTM}) &= \mathcal{O}(d_h^2) \\
+\mathcal{O}(\text{mLSTM}) &= \mathcal{O}(d_h^3)
+\end{align}
+
+\subsection{Total Model Complexity}
+
+For $N$ nodes, $L$ layers, and $T$ time steps:
+\begin{equation}
+\mathcal{O}(\text{Social-xLSTM}) = \mathcal{O}(N \cdot T \cdot L \cdot (|\overline{\mathcal{N}}| \cdot d_h + d_h^3))
+\end{equation}
+
+where $|\overline{\mathcal{N}}|$ is the average number of neighbors per node.
+
+\section{Hyperparameters}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+Parameter & Symbol & Typical Value \\
+\hline
+Grid size & $M \times N$ & $8 \times 8$ \\
+Grid radius & $R_x, R_y$ & 1000m \\
+Hidden dimension & $d_h$ & 128 \\
+Number of layers & $L$ & 4 \\
+Learning rate & $\alpha$ & 0.001 \\
+Loss weights & $(\alpha, \beta, \gamma)$ & $(0.4, 0.4, 0.2)$ \\
+\hline
+\end{tabular}
+\caption{Social-xLSTM Hyperparameters}
+\end{table}
+
+\section{Conclusion}
+
+The Social-xLSTM model provides a mathematically rigorous framework for traffic flow prediction without requiring explicit topology information. The combination of coordinate-driven social pooling and extended memory mechanisms enables effective modeling of spatial-temporal dependencies in traffic networks with irregular node distributions.
+
+\end{document}

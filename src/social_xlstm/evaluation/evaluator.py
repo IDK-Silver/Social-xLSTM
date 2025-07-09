@@ -154,3 +154,16 @@ class ModelEvaluator:
             })
         
         return eval_data
+    
+    def evaluate(self, targets: np.ndarray, predictions: np.ndarray) -> Dict[str, float]:
+        """
+        Evaluate model performance with given targets and predictions.
+        
+        Args:
+            targets: Ground truth values
+            predictions: Model predictions
+            
+        Returns:
+            Dictionary containing evaluation metrics
+        """
+        return self._compute_metrics(predictions, targets)

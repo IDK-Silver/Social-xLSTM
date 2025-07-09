@@ -13,7 +13,7 @@ from pathlib import Path
 
 from social_xlstm.models.lstm import TrafficLSTM
 from social_xlstm.training.recorder import TrainingRecorder
-from social_xlstm.training.trainer import Trainer, TrainingConfig
+from social_xlstm.training import SingleVDTrainer, SingleVDTrainingConfig
 
 
 @pytest.mark.integration
@@ -32,7 +32,7 @@ class TestTrainingPipeline:
         )
         
         # 2. Create training configuration
-        training_config = TrainingConfig(
+        training_config = SingleVDTrainingConfig(
             epochs=3,  # Short for testing
             batch_size=16,
             learning_rate=0.001,
@@ -48,15 +48,19 @@ class TestTrainingPipeline:
         )
         
         # 4. Mock trainer workflow
-        with patch('social_xlstm.training.trainer.Trainer') as MockTrainer:
+        with patch('social_xlstm.training.SingleVDTrainer') as MockTrainer:
             mock_trainer = MockTrainer.return_value
-            mock_trainer.train.return_value = recorder
+            mock_trainer.train.return_value = {'train_loss': [0.5], 'val_loss': [0.4]}
             mock_trainer.experiment_dir = integration_temp_dir
             
             # Simulate training
             trainer = MockTrainer(
                 model=model,
-                training_config=training_config,
+                config=SingleVDTrainingConfig(
+                    experiment_name="integration_test",
+                    save_dir=str(integration_temp_dir),
+                    epochs=1
+                ),
                 train_loader=mock_data_pipeline['train'],
                 val_loader=mock_data_pipeline['val'],
                 test_loader=mock_data_pipeline['test']
@@ -66,7 +70,7 @@ class TestTrainingPipeline:
             
             # Verify training was called
             mock_trainer.train.assert_called_once()
-            assert result == recorder
+            assert result == {'train_loss': [0.5], 'val_loss': [0.4]}
     
     def test_model_save_and_load(self, integration_temp_dir):
         """Test model saving and loading functionality."""
@@ -192,7 +196,7 @@ class TestTrainingPipeline:
         model = TrafficLSTM.create_single_vd_model(input_size=3, hidden_size=32)
         
         # 2. Create training config
-        training_config = TrainingConfig(
+        training_config = SingleVDTrainingConfig(
             epochs=2,
             batch_size=8,
             learning_rate=0.01,

@@ -22,4 +22,33 @@ dataset:
     h5:
       file: "blob/dataset/pre-processed/h5/traffic_features.h5"
       log: "logs/create_h5_file.log"
-      selected_vdids: null 
+      selected_vdids: null
+
+# Model training configuration
+training:
+  single_vd:
+    experiment_dir: "blob/experiments/single_vd_without_social_pooling"
+    log: "logs/train_single_vd_without_social_pooling.log"
+    epochs: 5
+    batch_size: 1
+    sequence_length: 5
+    model_type: "lstm"
+  
+  multi_vd:
+    experiment_dir: "blob/experiments/multi_vd_without_social_pooling"
+    log: "logs/train_multi_vd_without_social_pooling.log"
+    epochs: 5
+    batch_size: 1
+    sequence_length: 5
+    num_vds: 1
+    model_type: "lstm"
+  
+  independent_multi_vd:
+    experiment_dir: "blob/experiments/independent_multi_vd_without_social_pooling"
+    log: "logs/train_independent_multi_vd_without_social_pooling.log"
+    epochs: 5
+    batch_size: 1
+    sequence_length: 5
+    num_vds: 1
+    target_vd_index: 0
+    model_type: "lstm"
