@@ -139,18 +139,13 @@ rule create_h5_file:
     params:
         selected_vdids=WORKFLOW_CONFIG['dataset']['pre-processed']['h5'].get('selected_vdids', None),
         time_range=WORKFLOW_CONFIG['dataset']['pre-processed']['h5'].get('time_range', None),
-        overwrite=WORKFLOW_CONFIG['dataset']['pre-processed']['h5'].get('overwrite', False),
-        show_warnings=WORKFLOW_CONFIG['dataset']['pre-processed']['h5'].get('show_warnings', False)
+        overwrite=WORKFLOW_CONFIG['dataset']['pre-processed']['h5'].get('overwrite', False)
     log:
         WORKFLOW_CONFIG['dataset']['pre-processed']['h5']['log']
     shell:
         """
-        # Build command with optional parameters
-        cmd="python scripts/dataset/pre-process/create_h5_file.py"
-        cmd="$cmd --source_dir {input.source_dir}"
-        cmd="$cmd --output_path {output.h5_file}"
+        cmd="python scripts/dataset/pre-process/create_h5_file.py --source_dir {input.source_dir} --output_path {output.h5_file}"
         
-        # Add optional parameters
         if [ -n "{params.selected_vdids}" ] && [ "{params.selected_vdids}" != "None" ]; then
             cmd="$cmd --selected_vdids {params.selected_vdids}"
         fi
@@ -163,38 +158,10 @@ rule create_h5_file:
             cmd="$cmd --overwrite"
         fi
         
-        if [ "{params.show_warnings}" = "True" ]; then
-            cmd="$cmd --show_warnings"
-        fi
-        
-        # Execute command
         echo "Executing: $cmd" >> {log}
         $cmd >> {log} 2>&1
         """
 
-# Alternative rule for using the original script (for backward compatibility)
-rule create_h5_file_original:
-    input:
-        source_dir=WORKFLOW_CONFIG['dataset']['pre-processed']['unzip_to_json']['folder']
-    output:
-        h5_file="blob/dataset/pre-processed/h5/traffic_features_original.h5"
-    params:
-        selected_vdids=WORKFLOW_CONFIG['dataset']['pre-processed']['h5'].get('selected_vdids', None)
-    log:
-        "logs/create_h5_file_original.log"
-    shell:
-        """
-        if [ -n "{params.selected_vdids}" ] && [ "{params.selected_vdids}" != "None" ]; then
-            python scripts/dataset/pre-process/create_h5_file.py \
-            --source_dir {input.source_dir} \
-            --output_path {output.h5_file} \
-            --selected_vdids {params.selected_vdids} >> {log} 2>&1
-        else
-            python scripts/dataset/pre-process/create_h5_file.py \
-            --source_dir {input.source_dir} \
-            --output_path {output.h5_file} >> {log} 2>&1
-        fi
-        """
 
 rule train_single_vd_without_social_pooling:
     input:
