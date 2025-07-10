@@ -58,7 +58,7 @@ class TrafficFeatureExtractor:
     
     @staticmethod
     def aggregate_vd_features(vd_detail, feature_names: List[str]) -> List[float]:
-        """Aggregate features from all lanes of a VD."""
+        """Aggregate features from all lanes of a VD using vectorized operations."""
         from ..utils.json_utils import VDLiveDetail
         
         # Get all lanes from all LinkFlows
@@ -69,38 +69,82 @@ class TrafficFeatureExtractor:
         if not all_lanes:
             return [np.nan] * len(feature_names)
         
-        # Extract features from each lane
-        lane_features = []
-        for lane in all_lanes:
-            lane_feat = TrafficFeatureExtractor.extract_lane_features(lane)
-            lane_features.append(lane_feat)
+        # Vectorized feature extraction
+        return TrafficFeatureExtractor._vectorized_lane_aggregation(all_lanes, feature_names)
+    
+    @staticmethod
+    def _vectorized_lane_aggregation(all_lanes, feature_names: List[str]) -> List[float]:
+        """Vectorized aggregation of lane features for better performance."""
+        if not all_lanes:
+            return [np.nan] * len(feature_names)
         
-        # Aggregate features
+        # Pre-allocate arrays for all lane data
+        num_lanes = len(all_lanes)
+        speeds = np.full(num_lanes, np.nan, dtype=np.float32)
+        occupancies = np.full(num_lanes, np.nan, dtype=np.float32)
+        volumes = np.full(num_lanes, 0.0, dtype=np.float32)
+        
+        # Vectorized data extraction with error filtering
+        for i, lane in enumerate(all_lanes):
+            # Process speed with error code filtering
+            speed_val = float(lane.Speed)
+            if TrafficFeatureExtractor._is_valid_speed(speed_val):
+                speeds[i] = speed_val
+            
+            # Process occupancy with error code filtering
+            occupancy_val = float(lane.Occupancy)
+            if TrafficFeatureExtractor._is_valid_occupancy(occupancy_val):
+                occupancies[i] = occupancy_val
+            
+            # Process volume (sum all vehicle volumes in lane)
+            if lane.Vehicles:
+                lane_volume = sum(
+                    v.Volume for v in lane.Vehicles 
+                    if TrafficFeatureExtractor._is_valid_volume(v.Volume)
+                )
+                volumes[i] = float(lane_volume)
+        
+        # Vectorized feature computation
         aggregated = []
         for feature_name in feature_names:
             if feature_name == 'avg_speed':
-                speeds = [lf['speed'] for lf in lane_features if not np.isnan(lf['speed'])]
-                aggregated.append(np.mean(speeds) if speeds else np.nan)
+                valid_speeds = speeds[~np.isnan(speeds)]
+                aggregated.append(np.mean(valid_speeds) if len(valid_speeds) > 0 else np.nan)
             
             elif feature_name == 'total_volume':
-                volumes = [lf['volume'] for lf in lane_features if not np.isnan(lf['volume'])]
-                aggregated.append(np.sum(volumes) if volumes else np.nan)
+                # Sum all volumes (NaN values are already filtered out)
+                aggregated.append(np.sum(volumes))
             
             elif feature_name == 'avg_occupancy':
-                occupancies = [lf['occupancy'] for lf in lane_features if not np.isnan(lf['occupancy'])]
-                aggregated.append(np.mean(occupancies) if occupancies else np.nan)
+                valid_occupancies = occupancies[~np.isnan(occupancies)]
+                aggregated.append(np.mean(valid_occupancies) if len(valid_occupancies) > 0 else np.nan)
             
             elif feature_name == 'speed_std':
-                speeds = [lf['speed'] for lf in lane_features if not np.isnan(lf['speed'])]
-                aggregated.append(np.std(speeds) if len(speeds) > 1 else np.nan)
+                valid_speeds = speeds[~np.isnan(speeds)]
+                aggregated.append(np.std(valid_speeds) if len(valid_speeds) > 1 else np.nan)
             
             elif feature_name == 'lane_count':
-                aggregated.append(float(len(all_lanes)))
+                aggregated.append(float(num_lanes))
             
             else:
                 aggregated.append(np.nan)
         
         return aggregated
+    
+    @staticmethod
+    def _is_valid_speed(value) -> bool:
+        """Fast speed validation (0-200 km/h range)."""
+        return not (value in [-99, -1, 255] or value < 0 or value > 200 or np.isnan(value))
+    
+    @staticmethod
+    def _is_valid_occupancy(value) -> bool:
+        """Fast occupancy validation (0-100% range)."""
+        return not (value in [-99, -1, 255] or value < 0 or value > 100 or np.isnan(value))
+    
+    @staticmethod
+    def _is_valid_volume(value) -> bool:
+        """Fast volume validation (non-negative)."""
+        return not (value in [-99, -1, 255] or value < 0 or np.isnan(value))
 
 
 class TrafficHDF5Converter:
@@ -267,6 +311,138 @@ class TrafficHDF5Converter:
         self._load_vd_info(sample_dir)
         return self._available_vdids
     
+    def _batch_read_vdlive_files(self, dir_paths: List[Path]) -> List[Tuple[str, 'VDLiveList']]:
+        """Batch read VDLiveList files using existing load_from_json method."""
+        import concurrent.futures
+        from ..utils.json_utils import VDLiveList
+        
+        def read_single_vdlive(dir_path: Path) -> Tuple[str, 'VDLiveList']:
+            """Read a single VDLiveList file using standard method."""
+            vd_live_file = dir_path / "VDLiveList.json"
+            try:
+                # Use existing standard method (maintains consistency)
+                vd_live_list = VDLiveList.load_from_json(vd_live_file)
+                return dir_path.name, vd_live_list
+            except Exception as e:
+                logger.warning(f"Failed to read {vd_live_file}: {e}")
+                return dir_path.name, None
+        
+        # Batch process with threading for I/O bound operations
+        results = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=min(4, len(dir_paths))) as executor:
+            # Submit all read tasks
+            future_to_path = {
+                executor.submit(read_single_vdlive, dir_path): dir_path 
+                for dir_path in dir_paths
+            }
+            
+            # Collect results as they complete
+            for future in concurrent.futures.as_completed(future_to_path):
+                result = future.result()
+                if result[1] is not None:  # Only add successful reads
+                    results.append(result)
+        
+        return results
+    
+    def _process_vdlive_data(self, vd_live_list: 'VDLiveList', dir_name: str, target_vdids: List[str]) -> Tuple[str, np.ndarray]:
+        """Process VDLiveList data using vectorized operations for better performance."""
+        # Create mapping for quick lookup
+        vd_data_map = {vd.VDID: vd for vd in vd_live_list.LiveTrafficData}
+        
+        # Extract timestamp
+        if vd_live_list.LiveTrafficData:
+            timestamp = vd_live_list.LiveTrafficData[0].DataCollectTime
+        else:
+            timestamp = self._parse_timestamp(dir_name).isoformat()
+        
+        # Use vectorized batch processing for multiple VDs
+        features = self._vectorized_vd_batch_processing(vd_data_map, target_vdids, dir_name)
+        
+        return timestamp, features
+    
+    def _vectorized_vd_batch_processing(self, vd_data_map: Dict, target_vdids: List[str], dir_name: str) -> np.ndarray:
+        """Vectorized processing of multiple VDs for better performance."""
+        num_vds = len(target_vdids)
+        num_features = len(self.config.feature_names)
+        
+        # Pre-allocate result matrix
+        features = np.full((num_vds, num_features), np.nan, dtype=np.float32)
+        
+        # Group VDs that exist in data for batch processing
+        valid_vd_indices = []
+        valid_vd_data = []
+        
+        for i, vdid in enumerate(target_vdids):
+            if vdid in vd_data_map:
+                valid_vd_indices.append(i)
+                valid_vd_data.append(vd_data_map[vdid])
+        
+        if not valid_vd_data:
+            return features
+        
+        # Process valid VDs in batch
+        try:
+            batch_features = self._batch_extract_features(valid_vd_data, self.config.feature_names)
+            
+            # Assign results back to the full matrix
+            for idx, vd_idx in enumerate(valid_vd_indices):
+                features[vd_idx, :] = batch_features[idx, :]
+                
+        except Exception as e:
+            if self.verbose_warnings:
+                logger.error(f"Error in batch processing for {dir_name}: {e}")
+            # Fallback to individual processing
+            for i, vdid in enumerate(target_vdids):
+                if vdid in vd_data_map:
+                    try:
+                        vd_features = self.extractor.aggregate_vd_features(
+                            vd_data_map[vdid], 
+                            self.config.feature_names
+                        )
+                        features[i, :] = np.array(vd_features, dtype=np.float32)
+                    except Exception as inner_e:
+                        if self.verbose_warnings:
+                            logger.error(f"Error processing VDID {vdid} in {dir_name}: {inner_e}")
+                        continue
+        
+        return features
+    
+    def _batch_extract_features(self, vd_data_list: List, feature_names: List[str]) -> np.ndarray:
+        """Extract features from multiple VDs in batch for maximum performance."""
+        num_vds = len(vd_data_list)
+        num_features = len(feature_names)
+        
+        # Pre-allocate result matrix
+        batch_features = np.full((num_vds, num_features), np.nan, dtype=np.float32)
+        
+        # Pre-compute all lane data for all VDs
+        all_lanes_data = []
+        vd_lane_counts = []
+        
+        for vd_detail in vd_data_list:
+            # Get all lanes from all LinkFlows for this VD
+            vd_lanes = []
+            for link_flow in vd_detail.LinkFlows:
+                vd_lanes.extend(link_flow.Lanes)
+            all_lanes_data.append(vd_lanes)
+            vd_lane_counts.append(len(vd_lanes))
+        
+        # Process each VD's lanes with vectorized operations
+        for vd_idx, lanes in enumerate(all_lanes_data):
+            if not lanes:
+                continue
+            
+            try:
+                # Use the optimized vectorized aggregation
+                vd_features = TrafficFeatureExtractor._vectorized_lane_aggregation(lanes, feature_names)
+                batch_features[vd_idx, :] = np.array(vd_features, dtype=np.float32)
+            except Exception as e:
+                if self.verbose_warnings:
+                    logger.warning(f"Error processing VD {vd_idx} lanes: {e}")
+                continue
+        
+        return batch_features
+    
     def _process_timestep(self, dir_path: Path, target_vdids: List[str]) -> Tuple[str, np.ndarray]:
         """Process a single timestep directory."""
         vd_live_file = dir_path / "VDLiveList.json"
@@ -288,9 +464,6 @@ class TrafficHDF5Converter:
             dtype=np.float32
         )
         
-        # Track missing VDIDs
-        missing_count = 0
-        
         # Only report detailed missing VDIDs in verbose mode
         if self.verbose_warnings:
             missing_vdids = [vdid for vdid in target_vdids if vdid not in vd_data_map]
@@ -304,7 +477,6 @@ class TrafficHDF5Converter:
                 else:
                     msg += f": {shown_vdids}"
                 logger.warning(msg)
-                missing_count = len(missing_vdids)
         
         # Extract features for each VD
         for i, vdid in enumerate(target_vdids):
@@ -419,28 +591,60 @@ class TrafficHDF5Converter:
                 h5file, target_vdids, vd_info, len(time_dirs)
             )
             
-            # Process each timestep with progress bar
-            progress_iter = tqdm(time_dirs, desc="Processing timesteps", disable=not self.show_progress)
+            # Process timesteps with batch optimization
+            batch_size = min(20, len(time_dirs))  # Adjust batch size based on data size
             successful_count = 0
             
-            for i, (timestamp_dt, dir_path) in enumerate(progress_iter):
-                try:
-                    timestamp_str, features = self._process_timestep(dir_path, target_vdids)
+            # Progress bar for batches
+            dir_paths_only = [dir_path for _, dir_path in time_dirs]
+            
+            with tqdm(total=len(time_dirs), desc="Processing timesteps", disable=not self.show_progress) as progress_bar:
+                # Process in batches
+                for batch_start in range(0, len(dir_paths_only), batch_size):
+                    batch_end = min(batch_start + batch_size, len(dir_paths_only))
+                    batch_paths = dir_paths_only[batch_start:batch_end]
                     
-                    timestamps_ds[i] = timestamp_str
-                    features_ds[i, :, :] = features
-                    successful_count += 1
-                    
-                    # Update progress description
-                    if self.show_progress:
-                        progress_iter.set_postfix({
-                            'success': successful_count,
-                            'failed': i + 1 - successful_count
-                        })
+                    try:
+                        # Batch read VDLiveList files using standard methods
+                        batch_vdlive_data = self._batch_read_vdlive_files(batch_paths)
                         
-                except Exception as e:
-                    logger.error(f"Error processing {dir_path.name}: {e}")
-                    continue
+                        # Process each file in the batch
+                        for dir_name, vd_live_list in batch_vdlive_data:
+                            try:
+                                # Find the corresponding index
+                                dir_index = None
+                                for j, (_, path) in enumerate(time_dirs):
+                                    if path.name == dir_name:
+                                        dir_index = j
+                                        break
+                                
+                                if dir_index is None:
+                                    continue
+                                
+                                # Process using standard VDLiveList object
+                                timestamp_str, features = self._process_vdlive_data(vd_live_list, dir_name, target_vdids)
+                                
+                                timestamps_ds[dir_index] = timestamp_str
+                                features_ds[dir_index, :, :] = features
+                                successful_count += 1
+                                
+                            except Exception as e:
+                                logger.error(f"Error processing {dir_name}: {e}")
+                                continue
+                        
+                        # Update progress
+                        progress_bar.update(len(batch_paths))
+                        if self.show_progress:
+                            progress_bar.set_postfix({
+                                'success': successful_count,
+                                'failed': progress_bar.n - successful_count,
+                                'batch': f"{batch_start//batch_size + 1}/{(len(dir_paths_only) + batch_size - 1)//batch_size}"
+                            })
+                            
+                    except Exception as e:
+                        logger.error(f"Error processing batch starting at {batch_start}: {e}")
+                        progress_bar.update(len(batch_paths))
+                        continue
         
         logger.info(f"Conversion completed. Processed {successful_count}/{len(time_dirs)} timesteps.")
         logger.info(f"Output saved to {self.config.output_path}")
