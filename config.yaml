@@ -23,6 +23,12 @@ dataset:
       file: "blob/dataset/pre-processed/h5/traffic_features.h5"
       log: "logs/create_h5_file.log"
       selected_vdids: null
+      # Optional: Time range for conversion (format: ["YYYY-MM-DD_HH-MM-SS", "YYYY-MM-DD_HH-MM-SS"])
+      # 1 hour for testing
+      time_range: ["2025-03-18_00-00-00", "2025-03-18_01-00-00"]
+      # Performance options for improved converter
+      overwrite: true
+      show_warnings: false  # Set to true for debugging
 
 # Model training configuration
 training:

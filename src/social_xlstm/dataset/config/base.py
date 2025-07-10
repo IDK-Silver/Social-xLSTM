@@ -50,6 +50,11 @@ class TrafficHDF5Config:
     overwrite: bool = False  # Add overwrite flag
     check_consistency: bool = True  # Add consistency check flag
     
+    # Performance options
+    show_progress: bool = True  # Show progress bar during conversion
+    verbose_warnings: bool = False  # Show detailed warnings (can be noisy)
+    max_missing_report: int = 10  # Maximum number of missing VDIDs to report per timestep
+    
     def __post_init__(self):
         self.source_dir = Path(self.source_dir)
         self.output_path = Path(self.output_path)

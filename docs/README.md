@@ -37,6 +37,18 @@
   - 進階配置和超參數調優
   - 實際範例和常見問題解答
 
+### 📊 資料格式與品質（**NEW!**）
+- **`data_format.md`** - **交通資料格式完整說明**
+  - JSON 資料結構詳解 (VDList/VDLiveList)
+  - 資料路徑解析 (LinkFlows → Lanes)
+  - 錯誤碼定義與處理 (-99, 255 等)
+  - 特徵定義與計算方式
+- **`data_quality.md`** - **資料品質檢查指南**
+  - 品質標準與指標
+  - 常見問題與解決方案
+  - 自動化檢查工具使用
+  - 品質改善建議
+
 ### reports（報告文檔）
 - **`project_status.md`** - 專案狀態報告（健康狀況、進度、風險評估）
 - **`project_changelog.md`** - 專案變更記錄
@@ -50,8 +62,9 @@
 
 ### 新手入門
 1. 首先閱讀 → [`overview/project_overview.md`](overview/project_overview.md)
-2. 了解實現 → [`implementation/modules.md`](implementation/modules.md)
-3. 開始訓練 → [`guides/trainer_usage_guide.md`](guides/trainer_usage_guide.md)
+2. **了解資料** → [`data_format.md`](data_format.md) ← **建議先看**
+3. 了解實現 → [`implementation/modules.md`](implementation/modules.md)
+4. 開始訓練 → [`guides/trainer_usage_guide.md`](guides/trainer_usage_guide.md)
 
 ### 研究開發
 1. 數學基礎 → [`technical/mathematical_formulation.tex`](technical/mathematical_formulation.tex)

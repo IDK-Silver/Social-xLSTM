@@ -5,10 +5,14 @@ import numpy as np
 import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Any
+from tqdm import tqdm
+import logging
 
 from ..config import TrafficHDF5Config
 from .h5_reader import TrafficHDF5Reader
 from ..utils.json_utils import VDInfo, VDLiveList
+
+logger = logging.getLogger(__name__)
 
 
 class TrafficFeatureExtractor:
@@ -19,11 +23,36 @@ class TrafficFeatureExtractor:
         """Extract features from a single lane."""
         from ..utils.json_utils import LaneData
         
-        total_volume = sum(vehicle.Volume for vehicle in lane.Vehicles) if lane.Vehicles else 0
+        # Filter out error codes and invalid values
+        def is_valid_value(value, min_val=0, max_val=None):
+            """Check if value is valid (not error code or out of range)."""
+            if value is None or np.isnan(value):
+                return False
+            # Common error codes in traffic data: -99, -1, 255, etc.
+            if value in [-99, -1, 255]:
+                return False
+            if value < min_val:
+                return False
+            if max_val is not None and value > max_val:
+                return False
+            return True
+        
+        # Process speed (reasonable range: 0-200 km/h)
+        speed = float(lane.Speed) if is_valid_value(lane.Speed, 0, 200) else np.nan
+        
+        # Process occupancy (reasonable range: 0-100%)
+        occupancy = float(lane.Occupancy) if is_valid_value(lane.Occupancy, 0, 100) else np.nan
+        
+        # Process volume (filter out negative volumes from error codes)
+        if lane.Vehicles:
+            valid_volumes = [v.Volume for v in lane.Vehicles if is_valid_value(v.Volume, 0)]
+            total_volume = sum(valid_volumes) if valid_volumes else 0
+        else:
+            total_volume = 0
         
         return {
-            'speed': float(lane.Speed) if not np.isnan(lane.Speed) else np.nan,
-            'occupancy': float(lane.Occupancy) if not np.isnan(lane.Occupancy) else np.nan,
+            'speed': speed,
+            'occupancy': occupancy,
             'volume': float(total_volume)
         }
     
@@ -32,12 +61,17 @@ class TrafficFeatureExtractor:
         """Aggregate features from all lanes of a VD."""
         from ..utils.json_utils import VDLiveDetail
         
-        if not vd_detail.Lanes:
+        # Get all lanes from all LinkFlows
+        all_lanes = []
+        for link_flow in vd_detail.LinkFlows:
+            all_lanes.extend(link_flow.Lanes)
+        
+        if not all_lanes:
             return [np.nan] * len(feature_names)
         
         # Extract features from each lane
         lane_features = []
-        for lane in vd_detail.Lanes:
+        for lane in all_lanes:
             lane_feat = TrafficFeatureExtractor.extract_lane_features(lane)
             lane_features.append(lane_feat)
         
@@ -61,7 +95,7 @@ class TrafficFeatureExtractor:
                 aggregated.append(np.std(speeds) if len(speeds) > 1 else np.nan)
             
             elif feature_name == 'lane_count':
-                aggregated.append(float(len(vd_detail.Lanes)))
+                aggregated.append(float(len(all_lanes)))
             
             else:
                 aggregated.append(np.nan)
@@ -79,6 +113,11 @@ class TrafficHDF5Converter:
         # Cache for VD information
         self._vd_info_cache: Optional[Dict[str, Any]] = None
         self._available_vdids: Optional[List[str]] = None
+        
+        # Performance options
+        self.show_progress = getattr(config, 'show_progress', True)
+        self.verbose_warnings = getattr(config, 'verbose_warnings', False)
+        self.max_missing_report = getattr(config, 'max_missing_report', 10)
     
     def _check_existing_file(self) -> bool:
         """Check if output file exists and validate configuration consistency."""
@@ -171,7 +210,8 @@ class TrafficHDF5Converter:
             
             timestamp = self._parse_timestamp(dir_path.name)
             if timestamp is None:
-                print(f"Skipping directory with invalid timestamp format: {dir_path.name}")
+                if self.verbose_warnings:
+                    logger.warning(f"Skipping directory with invalid timestamp format: {dir_path.name}")
                 continue
             
             # Filter by time range if specified
@@ -189,8 +229,8 @@ class TrafficHDF5Converter:
             
             if vd_list_file.exists() and vd_live_file.exists():
                 time_dirs.append((timestamp, dir_path))
-            else:
-                print(f"Skipping directory missing required JSON files: {dir_path.name}")
+            elif self.verbose_warnings:
+                logger.warning(f"Skipping directory missing required JSON files: {dir_path.name}")
     
         return sorted(time_dirs, key=lambda x: x[0])
     
@@ -248,10 +288,23 @@ class TrafficHDF5Converter:
             dtype=np.float32
         )
         
-        # Check for missing VDIDs and report count
-        missing_vdids = [vdid for vdid in target_vdids if vdid not in vd_data_map]
-        if missing_vdids:
-            print(f"Warning: {len(missing_vdids)} missing VDIDs in {dir_path.name}: {missing_vdids}")
+        # Track missing VDIDs
+        missing_count = 0
+        
+        # Only report detailed missing VDIDs in verbose mode
+        if self.verbose_warnings:
+            missing_vdids = [vdid for vdid in target_vdids if vdid not in vd_data_map]
+            if missing_vdids:
+                # Limit the number of VDIDs shown
+                shown_vdids = missing_vdids[:self.max_missing_report]
+                extra = len(missing_vdids) - len(shown_vdids)
+                msg = f"Warning: {len(missing_vdids)} missing VDIDs in {dir_path.name}"
+                if extra > 0:
+                    msg += f": {shown_vdids} ... and {extra} more"
+                else:
+                    msg += f": {shown_vdids}"
+                logger.warning(msg)
+                missing_count = len(missing_vdids)
         
         # Extract features for each VD
         for i, vdid in enumerate(target_vdids):
@@ -264,7 +317,8 @@ class TrafficHDF5Converter:
                     vd_features_array = np.array(vd_features, dtype=np.float32)
                     features[i, :] = vd_features_array
                 except Exception as e:
-                    print(f"Error processing VDID {vdid} in {dir_path.name}: {e}")
+                    if self.verbose_warnings:
+                        logger.error(f"Error processing VDID {vdid} in {dir_path.name}: {e}")
                     continue
         
         return timestamp, features
@@ -340,21 +394,21 @@ class TrafficHDF5Converter:
             else:
                 print(f"Overwriting existing HDF5 file: {self.config.output_path}")
         
-        print(f"Starting conversion from {self.config.source_dir} to {self.config.output_path}")
+        logger.info(f"Starting conversion from {self.config.source_dir} to {self.config.output_path}")
         
         # Get sorted time directories
         time_dirs = self._get_sorted_time_directories()
         if not time_dirs:
             raise ValueError("No valid time directories found")
         
-        print(f"Found {len(time_dirs)} time directories")
+        logger.info(f"Found {len(time_dirs)} time directories")
         
         # Load VD information and determine target VDIDs
         sample_dir = time_dirs[0][1]
         vd_info = self._load_vd_info(sample_dir)
         target_vdids = self._get_target_vdids(sample_dir)
         
-        print(f"Processing {len(target_vdids)} VDs with {len(self.config.feature_names)} features")
+        logger.info(f"Processing {len(target_vdids)} VDs with {len(self.config.feature_names)} features")
         
         # Create output directory
         self.config.output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -365,19 +419,28 @@ class TrafficHDF5Converter:
                 h5file, target_vdids, vd_info, len(time_dirs)
             )
             
-            # Process each timestep
-            for i, (timestamp_dt, dir_path) in enumerate(time_dirs):
+            # Process each timestep with progress bar
+            progress_iter = tqdm(time_dirs, desc="Processing timesteps", disable=not self.show_progress)
+            successful_count = 0
+            
+            for i, (timestamp_dt, dir_path) in enumerate(progress_iter):
                 try:
                     timestamp_str, features = self._process_timestep(dir_path, target_vdids)
                     
                     timestamps_ds[i] = timestamp_str
                     features_ds[i, :, :] = features
+                    successful_count += 1
                     
-                    if (i + 1) % 100 == 0:
-                        print(f"Processed {i + 1}/{len(time_dirs)} timesteps")
+                    # Update progress description
+                    if self.show_progress:
+                        progress_iter.set_postfix({
+                            'success': successful_count,
+                            'failed': i + 1 - successful_count
+                        })
                         
                 except Exception as e:
-                    print(f"Error processing {dir_path.name}: {e}")
+                    logger.error(f"Error processing {dir_path.name}: {e}")
                     continue
         
-        print(f"Conversion completed. Output saved to {self.config.output_path}")
+        logger.info(f"Conversion completed. Processed {successful_count}/{len(time_dirs)} timesteps.")
+        logger.info(f"Output saved to {self.config.output_path}")

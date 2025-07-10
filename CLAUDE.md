@@ -392,3 +392,177 @@ ls docs/adr/
 # 閱讀特定 ADR
 cat docs/adr/0002-lstm-implementation-unification.md
 ```
+
+## 🔧 檔案修改原則
+
+**重要**: 在改進或修改程式碼時，請遵循以下原則：
+
+### 1. **優先修改現有檔案**
+- 如果要改進的檔案已存在於 Git 紀錄中，**直接修改該檔案**
+- **不要創建新的** "improved"、"new"、"v2" 或類似版本的檔案
+- 避免檔案碎片化和版本混亂
+
+### 2. **修改前檢查 Git 狀態**
+```bash
+# 檢查檔案是否已被修改
+git status --porcelain filename.py
+
+# 如果檔案有未提交的變更，詢問使用者
+```
+
+### 3. **詢問使用者確認**
+如果檔案已被修改過（通過 `git status` 檢查），先詢問使用者：
+- 說明將要進行的修改內容
+- 詢問是否要繼續修改
+- 提供選項：覆蓋、合併、或取消
+
+### 4. **範例對比**
+```bash
+# ❌ 錯誤做法 - 創建新檔案
+create_h5_file_improved.py      # 當 create_h5_file.py 已存在
+train_model_v2.py              # 當 train_model.py 已存在
+config_new.yaml               # 當 config.yaml 已存在
+
+# ✅ 正確做法 - 直接修改現有檔案
+create_h5_file.py             # 直接改進現有實現
+train_model.py               # 直接升級現有功能
+config.yaml                  # 直接更新配置
+```
+
+### 5. **例外情況**
+只有在以下情況才創建新檔案：
+- **使用者明確要求**創建新檔案
+- **需要保留原始版本**作為備份或參考
+- **進行 A/B 測試**需要兩個版本並存
+- **實驗性功能**需要獨立測試
+
+### 6. **Git 工作流程**
+```bash
+# 修改前檢查
+git status path/to/file.py
+
+# 如果有未提交變更，先了解內容
+git diff path/to/file.py
+
+# 進行修改後，檢查差異
+git diff path/to/file.py
+
+# 確認修改正確後提交
+git add path/to/file.py
+git commit -m "Improve file.py: add feature X"
+```
+
+這個原則確保：
+- **代碼庫整潔**：避免重複和混亂的檔案
+- **版本控制清晰**：修改歷史易於追蹤
+- **團隊協作順暢**：避免檔案衝突和混淆
+
+## 🧪 開發方法論
+
+### TDD (Test-Driven Development) 原則
+
+**適用於核心功能開發**（如 Social Pooling、xLSTM 整合）：
+
+#### TDD 循環
+```
+Red (紅) → Green (綠) → Refactor (重構)
+```
+
+1. **Red**: 寫一個失敗的測試
+2. **Green**: 實現最少代碼讓測試通過
+3. **Refactor**: 在測試通過的基礎上改進代碼結構
+
+#### 實施指導
+- **測試優先**：先寫測試再寫實現
+- **小步迭代**：每次只實現一個小功能
+- **有意義的測試名稱**：描述行為而非實現（如 `test_social_pooling_aggregates_nearby_vds`）
+- **最少實現**：只寫通過測試所需的最少代碼
+
+### Tidy First 重構原則
+
+**分離兩種變更類型**：
+
+#### 1. 結構性變更（Structural Changes）
+- 重命名變數、函數、類別
+- 提取方法、移動代碼
+- 調整代碼組織結構
+- **不改變行為**，只改變代碼結構
+
+#### 2. 行為性變更（Behavioral Changes）
+- 新增功能
+- 修改現有功能邏輯
+- 修復 bug
+- **改變系統行為**
+
+#### 最佳實踐
+```bash
+# 先進行結構性變更
+git commit -m "Refactor: extract social pooling calculation method"
+
+# 再進行行為性變更
+git commit -m "Add: implement weighted distance calculation in social pooling"
+```
+
+### 程式碼品質標準
+
+#### 核心原則
+- **消除重複**：DRY (Don't Repeat Yourself)
+- **表達意圖**：清楚的命名和結構
+- **單一職責**：每個函數/類別只做一件事
+- **顯式依賴**：明確表示依賴關係
+- **最簡解決方案**：能運作的最簡單實現
+
+#### 重構指導
+- **只在測試通過時重構**（Green 階段）
+- **一次只做一種重構**
+- **每次重構後運行測試**
+- **優先移除重複和提高清晰度**
+
+### 提交規範
+
+#### 提交條件
+✅ **只在以下情況提交**：
+- 所有測試通過
+- 無編譯/linter 警告
+- 變更代表單一邏輯單元
+- 提交訊息清楚說明變更類型
+
+#### 提交訊息格式
+```bash
+# 結構性變更
+git commit -m "Refactor: extract coordinate transformation utility"
+
+# 行為性變更
+git commit -m "Add: implement Social Pooling spatial aggregation"
+
+# 測試
+git commit -m "Test: add unit tests for Social Pooling algorithm"
+```
+
+### 開發工作流程
+
+#### 新功能開發
+1. **寫失敗測試**：定義小部分功能的測試
+2. **最少實現**：寫最少代碼讓測試通過
+3. **運行測試**：確認綠燈
+4. **結構改進**：必要時進行 Tidy First 重構
+5. **提交結構變更**：單獨提交重構
+6. **下一個測試**：為下一個功能增量寫測試
+7. **重複循環**：直到功能完成
+8. **提交行為變更**：單獨提交功能實現
+
+#### 實際應用建議
+
+**高嚴格度適用場景**：
+- Social Pooling 算法實現
+- xLSTM 模型整合
+- 核心數據處理邏輯
+- 評估指標計算
+
+**彈性處理場景**：
+- 配置文件調整
+- 快速原型驗證
+- 文檔更新
+- 實驗腳本
+
+**記住**：方法論是工具，要根據專案實際需求靈活應用，確保效率和品質的平衡。
