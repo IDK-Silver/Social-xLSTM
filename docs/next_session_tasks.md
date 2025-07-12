@@ -69,6 +69,29 @@ src/social_xlstm/dataset/
 
 基於 ADR-0100 和 ADR-0101 決策，Dataset 重構已完成，現在應專注於核心功能開發：
 
+### 0. 緊急修復問題 🚨
+
+#### ❌ 多VD訓練錯誤
+**狀態**: 需要修復
+**問題**: 發現了 docs/technical/known_errors.md 中記錄的張量形狀不匹配問題
+- **錯誤**: RuntimeError: The size of tensor a (15) must match the size of tensor b (5)
+- **原因**: 模型輸出 [4, 1, 15] vs 目標 [4, 1, 3, 5] 形狀不匹配
+- **位置**: Multi-VD 訓練時的損失函數計算
+
+#### ❌ 訓練歷史記錄缺失  
+**狀態**: 需要修復
+**問題**: 訓練完成後缺少重要的記錄文件
+- **缺少檔案**: 
+  - `best_model.pt` - 最佳模型權重 (日誌說有保存但實際沒有)
+  - `training_history.json` - 訓練歷史記錄
+  - `test_evaluation.json` - 測試評估結果
+- **根因**: 
+  - 沒有驗證數據 (VAL dataset: 0 samples)，無法觸發 `save_best_only`
+  - `checkpoint_interval=10` 但只訓練 2 epochs，未觸發定期保存
+  - 訓練結束後沒有強制保存最終模型
+
+**修復優先級**: P0 (緊急) - 影響訓練系統基本功能
+
 ### 1. Social Pooling 算法實現 (ADR-0100)
 **狀態**: 待實施
 **目標**: 實現座標驅動的社交池化算法
@@ -220,7 +243,34 @@ class SocialPoolingLayer(nn.Module):
 
 ---
 
-## 🎯 當前 Session 完成摘要 (2025-01-09)
+## 🎯 當前 Session 完成摘要 (2025-07-12)
+
+### 配置系統重組 ✅
+1. **配置結構重組**: 移動配置文件到 cfgs/snakemake/ 層次結構
+2. **自動化路徑管理**: 解決手動資料夾建立問題，實現自動路徑創建
+3. **開發/生產分離**: default.yaml (生產) 與 dev.yaml (開發) 配置分離
+4. **文檔完善**: 創建 cfgs/README.md 說明配置使用方式
+
+### 發現的關鍵問題 🚨
+1. **多VD訓練錯誤**: 張量形狀不匹配 (docs/technical/known_errors.md 中已記錄)
+2. **模型保存機制缺陷**: 
+   - 無驗證數據時不保存最佳模型
+   - checkpoint_interval 設定過大
+   - 缺少訓練結束強制保存
+3. **訓練歷史記錄缺失**: 缺少 training_history.json 和 test_evaluation.json
+
+### 配置結構
+```
+cfgs/
+├── README.md           # 配置說明文檔
+└── snakemake/         # Snakemake 工作流程配置
+    ├── default.yaml   # 預設/生產環境配置
+    └── dev.yaml       # 開發環境配置
+```
+
+---
+
+## 🎯 之前 Session 完成摘要 (2025-01-09)
 
 ### 新增功能
 1. **LSTM 基準測試系統**: 完整的無 Social 機制 LSTM 基準測試
