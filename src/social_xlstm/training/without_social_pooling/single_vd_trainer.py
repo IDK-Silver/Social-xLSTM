@@ -29,6 +29,7 @@ class SingleVDTrainingConfig(TrainingConfig):
     # Single VD specific parameters
     prediction_steps: int = 1  # Number of time steps to predict
     feature_indices: Optional[list] = None  # Specific features to use (None = all)
+    select_vd_id: Optional[str] = None  # VD ID to select for training (None = first VD)
     
     # Override defaults optimized for single VD
     batch_size: int = 32
@@ -75,10 +76,12 @@ class SingleVDTrainer(BaseTrainer):
         # Single VD specific setup
         self.prediction_steps = config.prediction_steps
         self.feature_indices = config.feature_indices
+        self.select_vd_id = config.select_vd_id
         
         logger.info(f"Single VD Trainer initialized:")
         logger.info(f"  Prediction steps: {self.prediction_steps}")
         logger.info(f"  Feature selection: {self.feature_indices}")
+        logger.info(f"  Selected VD ID: {self.select_vd_id}")
     
     def prepare_batch(self, batch: Dict[str, torch.Tensor]) -> Tuple[torch.Tensor, torch.Tensor]:
         """
@@ -98,10 +101,54 @@ class SingleVDTrainer(BaseTrainer):
         inputs = batch['input_seq']  # [batch_size, seq_len, num_vds, num_features]
         targets = batch['target_seq']  # [batch_size, pred_len, num_vds, num_features]
         
-        # For single VD, we typically use the first VD or a specific VD
-        # Here we use the first VD (index 0)
-        inputs = inputs[:, :, 0, :]  # [batch_size, seq_len, num_features]
-        targets = targets[:, :, 0, :]  # [batch_size, pred_len, num_features]
+        # Determine which VD to use
+        vd_idx = 0  # Default to first VD
+        
+        # If specific VD ID is requested, find its index
+        if self.select_vd_id and 'vdids' in batch:
+            vdids = batch['vdids']
+            
+            if isinstance(vdids, list) and len(vdids) > 0:
+                # Handle two possible formats:
+                # Format 1: [['VD1', 'VD2'], ['VD1', 'VD2']] - correct format
+                # Format 2: [['VD1', 'VD1'], ['VD2', 'VD2']] - pytorch collate format
+                
+                if isinstance(vdids[0], list):
+                    first_sample_vdids = vdids[0]
+                    
+                    # Check if this looks like the correct format (all samples have same VDs)
+                    if len(vdids) > 1 and len(vdids[0]) == len(vdids[1]):
+                        # Check if it's pytorch collate format by seeing if VDs are repeated across samples
+                        is_pytorch_format = all(
+                            vdids[i][0] == vdids[i][1] if len(vdids[i]) >= 2 else True
+                            for i in range(len(vdids))
+                        )
+                        
+                        if is_pytorch_format and len(vdids) > 1:
+                            # Reconstruct the correct VD list: take first element from each sublist
+                            sample_vdids = [vdids[i][0] for i in range(len(vdids))]
+                            logger.debug(f"Detected pytorch collate format, reconstructed VD list: {sample_vdids}")
+                        else:
+                            # Use the first sample's VD list
+                            sample_vdids = first_sample_vdids
+                    else:
+                        sample_vdids = first_sample_vdids
+                else:
+                    sample_vdids = vdids
+                
+                if isinstance(sample_vdids, list) and self.select_vd_id in sample_vdids:
+                    vd_idx = sample_vdids.index(self.select_vd_id)
+                    logger.debug(f"Using VD {self.select_vd_id} at VD dimension index {vd_idx}")
+                else:
+                    logger.warning(f"VD ID {self.select_vd_id} not found in VD list {sample_vdids}, using first VD")
+                    vd_idx = 0
+            else:
+                logger.warning(f"Invalid vdids format: {vdids}, using first VD")
+                vd_idx = 0
+        
+        # Select the specific VD
+        inputs = inputs[:, :, vd_idx, :]  # [batch_size, seq_len, num_features]
+        targets = targets[:, :, vd_idx, :]  # [batch_size, pred_len, num_features]
         
         # Select only the required prediction steps
         targets = targets[:, :self.prediction_steps, :]  # [batch_size, prediction_steps, num_features]

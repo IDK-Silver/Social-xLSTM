@@ -209,11 +209,18 @@ def create_data_module(args, logger):
         sys.exit(1)
     
     try:
+        # Prepare selected VD IDs if specified for single VD training
+        selected_vdids = None
+        if hasattr(args, 'select_vd_id') and args.select_vd_id:
+            selected_vdids = [args.select_vd_id]
+            logger.info(f"  Selected VD ID: {args.select_vd_id}")
+        
         # Create data configuration
         data_config = TrafficDatasetConfig(
             hdf5_path=args.data_path,
             sequence_length=args.sequence_length,
             batch_size=args.batch_size,
+            selected_vdids=selected_vdids,
             train_ratio=0.7,
             val_ratio=0.15,
             test_ratio=0.15,

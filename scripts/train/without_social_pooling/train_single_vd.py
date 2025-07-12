@@ -40,6 +40,10 @@ def parse_args():
     
     # Single VD specific parameters (if any)
     # Currently no single VD specific parameters
+    parser.add_argument(
+        '--select_vd_id', type=str, default=None,
+        help="VD ID to select for training (None = first VD)"
+    )
     
     return parser.parse_args()
 
@@ -116,7 +120,8 @@ def main():
             
             # Single VD specific
             prediction_steps=1,
-            feature_indices=None
+            feature_indices=None,
+            select_vd_id=args.select_vd_id
         )
         
         # Print training configuration

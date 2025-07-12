@@ -175,16 +175,18 @@ rule train_single_vd_without_social_pooling:
         batch_size=WORKFLOW_CONFIG['training']['single_vd']['batch_size'],
         sequence_length=WORKFLOW_CONFIG['training']['single_vd']['sequence_length'],
         model_type=WORKFLOW_CONFIG['training']['single_vd']['model_type'],
-        experiment_name=os.path.basename(WORKFLOW_CONFIG['training']['single_vd']['experiment_dir'])
+        experiment_name=os.path.basename(WORKFLOW_CONFIG['training']['single_vd']['experiment_dir']),
+        select_vd_id=WORKFLOW_CONFIG['training']['single_vd'].get('select_vd_id', None)
     shell:
         """
-        python scripts/train/without_social_pooling/train_single_vd.py \
-        --data_path {input.h5_file} \
-        --epochs {params.epochs} \
-        --batch_size {params.batch_size} \
-        --sequence_length {params.sequence_length} \
-        --model_type {params.model_type} \
-        --experiment_name {params.experiment_name} >> {log} 2>&1
+        cmd="python scripts/train/without_social_pooling/train_single_vd.py --data_path {input.h5_file} --epochs {params.epochs} --batch_size {params.batch_size} --sequence_length {params.sequence_length} --model_type {params.model_type} --experiment_name {params.experiment_name}"
+        
+        if [ -n "{params.select_vd_id}" ] && [ "{params.select_vd_id}" != "None" ]; then
+            cmd="$cmd --select_vd_id {params.select_vd_id}"
+        fi
+        
+        echo "Executing: $cmd" >> {log}
+        $cmd >> {log} 2>&1
         """
 
 rule train_multi_vd_without_social_pooling:
