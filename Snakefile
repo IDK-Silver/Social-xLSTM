@@ -89,10 +89,16 @@ def read_yaml_config(config_path='config.yaml'):
         logger.error(f"Unexpected error reading '{config_path}': {exc}")
         raise ConfigurationError(f"Failed to read '{config_path}'") from exc
 
-# Load configuration
+# Load configuration - supports specifying config file via --configfile
+# Check if configfile was provided via command line
+if 'configfile' in config:
+    CONFIG_FILE = config['configfile']
+else:
+    CONFIG_FILE = 'cfgs/snakemake/default.yaml'
+
 try:
-    WORKFLOW_CONFIG = read_yaml_config('config.yaml')
-    logger.info("Workflow configuration loaded successfully, ready to start execution.")
+    WORKFLOW_CONFIG = read_yaml_config(CONFIG_FILE)
+    logger.info(f"Workflow configuration loaded from '{CONFIG_FILE}', ready to start execution.")
     
 except (FileNotFoundError, ConfigurationError) as e:
     logger.critical(f"Failed to load configuration. Check log file '{LOG_FILENAME}' for details.")
@@ -163,6 +169,7 @@ rule create_h5_file:
         """
 
 
+
 rule train_single_vd_without_social_pooling:
     input:
         h5_file=WORKFLOW_CONFIG['dataset']['pre-processed']['h5']['file']
@@ -179,7 +186,7 @@ rule train_single_vd_without_social_pooling:
         select_vd_id=WORKFLOW_CONFIG['training']['single_vd'].get('select_vd_id', None)
     shell:
         """
-        cmd="python scripts/train/without_social_pooling/train_single_vd.py --data_path {input.h5_file} --epochs {params.epochs} --batch_size {params.batch_size} --sequence_length {params.sequence_length} --model_type {params.model_type} --experiment_name {params.experiment_name}"
+        cmd="python scripts/train/without_social_pooling/train_single_vd.py --data_path {input.h5_file} --epochs {params.epochs} --batch_size {params.batch_size} --sequence_length {params.sequence_length} --model_type {params.model_type} --experiment_name {params.experiment_name} --save_dir $(dirname {output.experiment_dir})"
         
         if [ -n "{params.select_vd_id}" ] && [ "{params.select_vd_id}" != "None" ]; then
             cmd="$cmd --select_vd_id {params.select_vd_id}"
@@ -212,7 +219,8 @@ rule train_multi_vd_without_social_pooling:
         --sequence_length {params.sequence_length} \
         --num_vds {params.num_vds} \
         --model_type {params.model_type} \
-        --experiment_name {params.experiment_name} >> {log} 2>&1
+        --experiment_name {params.experiment_name} \
+        --save_dir $(dirname {output.experiment_dir}) >> {log} 2>&1
         """
 
 rule train_independent_multi_vd_without_social_pooling:

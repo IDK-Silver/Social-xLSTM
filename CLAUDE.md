@@ -145,6 +145,9 @@ python scripts/utils/claude_init.py --quick  # 快速模式
 # Run complete data pipeline using Snakemake
 snakemake --cores 4
 
+# Use development configuration
+snakemake --config configfile=cfgs/config.dev.yaml --cores 4
+
 # Run individual preprocessing steps
 python scripts/dataset/pre-process/list_all_zips.py --input_folder_list <folders> --output_file_path <output>
 python scripts/dataset/pre-process/unzip_and_to_json.py --input_zip_list_path <input> --output_folder_path <output> --status_file <status>
