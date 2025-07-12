@@ -17,6 +17,9 @@ from social_xlstm.training.without_social_pooling.single_vd_trainer import (
 )
 
 
+@pytest.mark.unit
+
+
 class TestVDSelection:
     """Test VD ID selection functionality."""
     

@@ -17,6 +17,7 @@ from social_xlstm.training.without_social_pooling.single_vd_trainer import (
 )
 
 
+@pytest.mark.integration
 @pytest.mark.skipif(
     not Path("blob/dataset/pre-processed/h5/traffic_features.h5").exists(),
     reason="Real data file not available"
