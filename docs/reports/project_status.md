@@ -49,10 +49,15 @@ Social-xLSTM 專案已完成主要架構清理工作，數據處理管線完整�
 ## 🚧 開發中功能
 
 ### Social-xLSTM 核心實現
-- [ ] 座標驅動社交池化層
-- [x] Hybrid xLSTM（sLSTM + mLSTM）架構 - TrafficXLSTM 已實現
+- [ ] 座標驅動社交池化層 (Social Pooling)
+- [x] **完整的 xLSTM 架構** (已實現)
+  - [x] TrafficXLSTM 類 (src/social_xlstm/models/xlstm.py)
+  - [x] sLSTM + mLSTM 混合架構 (6 blocks)
+  - [x] Multi-VD 支援 (4D 輸入處理)
+  - [x] 完整配置系統 (TrafficXLSTMConfig)
 - [x] 指數門控機制 - xlstm 庫提供
-- [ ] 完整的 Social-xLSTM 模型骨架（Social Pooling + xLSTM 整合）
+- [ ] Social Pooling 實現
+- [ ] Social-xLSTM 整合模型
 
 ### 訓練與評估
 - [x] **完整的多模式訓練系統** (2025-07-13 新增)
@@ -64,7 +69,12 @@ Social-xLSTM 專案已完成主要架構清理工作，數據處理管線完整�
   - [x] 評估指標演變 (metric_evolution.png)  
   - [x] 進階分析圖表 (advanced_metrics.png)
 - [x] **訓練指標說明文檔** (understanding_training_metrics.md)
-- [ ] 與 LSTM 基準的性能比較
+- [x] **完整的 xLSTM 實現** (2025-07-13 完成)
+  - [x] TrafficXLSTM 模型 (654,883 參數)
+  - [x] sLSTM + mLSTM 混合架構
+  - [x] Multi-VD xLSTM 支援
+  - [x] 獨立配置系統
+- [ ] xLSTM vs LSTM 性能比較
 - [ ] 超參數調優系統
 
 ## 🔴 需要解決的問題
@@ -74,11 +84,12 @@ Social-xLSTM 專案已完成主要架構清理工作，數據處理管線完整�
 - **狀態**: 進行中，主要架構清理已完成
 - **預計解決**: 1 週內完成剩餘清理工作
 
-### 核心功能開發
-- **需要**: Social Pooling 算法實現
-- **狀態**: 技術決策已完成（ADR-0100, ADR-0101），待開發
-- **預計開始**: 架構清理完成後立即開始
-- **預計解決**: 與 LSTM 統一同步進行
+### 核心功能開發 - 優先級更新
+- **xLSTM 實現**: ✅ 已完成 (TrafficXLSTM 模型)
+- **Social Pooling 算法**: 🔥 **當前最高優先級**
+  - 狀態: 技術決策已完成（ADR-0100），待開發
+  - 基礎: 座標系統已就緒
+  - 目標: Social-xLSTM 整合模型完成
 
 ### 測試覆蓋率
 - **現狀**: 估計 < 30%
@@ -112,9 +123,12 @@ Social-xLSTM 專案已完成主要架構清理工作，數據處理管線完整�
   - [x] 三種訓練模式實現完成
   - [x] 完整的評估與視覺化系統
   - [x] 訓練指標解讀文檔
+- [x] **完整的 xLSTM 實現**
+  - [x] TrafficXLSTM 模型實現
+  - [x] ADR-0501 決策實施完成
+  - [x] Multi-VD xLSTM 支援
 - [ ] 實現 Social Pooling 核心算法
-- [ ] 創建 Social-xLSTM 模型骨架
-- [ ] 完成 xLSTM 整合
+- [ ] 創建 Social-xLSTM 整合模型
 
 ### 第三週（驗證與評估）
 - [x] **LSTM 基準模型完整驗證** (已完成)

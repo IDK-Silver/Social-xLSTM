@@ -21,12 +21,13 @@
 - [ ] 整合現有 CoordinateSystem
 - [ ] 建立 Social Pooling 單元測試
 
-### 3. xLSTM 基礎架構建立 🏗️
-- [ ] 創建獨立的 TrafficXLSTM 類 (src/social_xlstm/models/xlstm.py)
-- [ ] 實現 TrafficXLSTMConfig dataclass 配置系統
-- [ ] 整合 xlstm 庫的 xLSTMBlockStack
-- [ ] 實現基本的前向傳播和訓練接口
-- [ ] 建立 xLSTM 單元測試框架
+### 3. ✅ xLSTM 基礎架構建立 - 已完成
+- [x] 創建獨立的 TrafficXLSTM 類 (src/social_xlstm/models/xlstm.py)
+- [x] 實現 TrafficXLSTMConfig dataclass 配置系統
+- [x] 整合 xlstm 庫的 xLSTMBlockStack
+- [x] 實現基本的前向傳播和訓練接口
+- [x] Multi-VD 支援 (4D 輸入處理)
+- [x] 完整的模型配置和驗證
 
 ## 📋 重要任務（下週 P1）
 
