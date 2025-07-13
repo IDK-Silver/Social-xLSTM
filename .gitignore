@@ -208,3 +208,22 @@ logs/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# LaTeX build files
+*.aux
+*.log
+*.fdb_latexmk
+*.fls
+*.out
+*.toc
+*.lof
+*.lot
+*.bbl
+*.blg
+*.synctex.gz
+*.nav
+*.snm
+*.vrb
+
+# Generated PDF reports
+docs/technical/social_xlstm_comprehensive_report.pdf
