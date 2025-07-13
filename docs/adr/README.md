@@ -32,6 +32,10 @@
 ### 實施細節 (0400-0499)
 - [ADR-0400](0400-training-script-refactoring.md) - 訓練腳本重構策略 (Implemented)
 
+### 階段性總結 (0500-0599)
+- [ADR-0500](0500-lstm-baseline-completion-next-steps.md) - LSTM 基準完成與下一步規劃 (Accepted)
+- [ADR-0501](0501-xlstm-integration-strategy.md) - xLSTM 整合策略與並行訓練架構 (Proposed)
+
 ## 使用指南
 
 ### 查看 ADR 狀態
@@ -106,4 +110,4 @@ done
 
 ---
 
-最後更新: 2025-01-09
+最後更新: 2025-07-13
