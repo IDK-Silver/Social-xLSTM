@@ -100,26 +100,55 @@ class ModelEvaluator:
         pred_flat = predictions.flatten()
         target_flat = targets.flatten()
         
-        # Calculate metrics
-        mae = np.mean(np.abs(pred_flat - target_flat))
-        mse = np.mean((pred_flat - target_flat) ** 2)
+        # Remove NaN values first (critical fix for data quality issues)
+        valid_mask = ~(np.isnan(pred_flat) | np.isnan(target_flat))
+        
+        if not np.any(valid_mask):
+            # All values are NaN - return default metrics
+            return {
+                'mae': float('nan'),
+                'mse': float('nan'),
+                'rmse': float('nan'),
+                'mape': float('inf'),
+                'r2': 0.0
+            }
+        
+        # Use only valid (non-NaN) values
+        pred_valid = pred_flat[valid_mask]
+        target_valid = target_flat[valid_mask]
+        
+        # Calculate basic metrics
+        mae = np.mean(np.abs(pred_valid - target_valid))
+        mse = np.mean((pred_valid - target_valid) ** 2)
         rmse = np.sqrt(mse)
         
-        # MAPE (avoid division by zero)
-        mask = target_flat != 0
-        mape = np.mean(np.abs((pred_flat[mask] - target_flat[mask]) / target_flat[mask])) * 100 if np.any(mask) else float('inf')
+        # MAPE (avoid division by zero and NaN)
+        non_zero_mask = target_valid != 0
+        if np.any(non_zero_mask):
+            mape = np.mean(np.abs((pred_valid[non_zero_mask] - target_valid[non_zero_mask]) / target_valid[non_zero_mask])) * 100
+        else:
+            mape = float('inf')  # Use float('inf') instead of string for consistency
         
-        # R²
-        ss_res = np.sum((target_flat - pred_flat) ** 2)
-        ss_tot = np.sum((target_flat - np.mean(target_flat)) ** 2)
-        r2 = 1 - (ss_res / ss_tot) if ss_tot != 0 else 0
+        # R² (handle zero variance case properly)
+        target_mean = np.mean(target_valid)
+        ss_res = np.sum((target_valid - pred_valid) ** 2)
+        ss_tot = np.sum((target_valid - target_mean) ** 2)
+        
+        if ss_tot == 0:
+            # Zero variance in targets - R² is undefined, return 0
+            r2 = 0.0
+        elif np.isnan(ss_tot) or np.isnan(ss_res):
+            # Safeguard against remaining NaN issues
+            r2 = 0.0
+        else:
+            r2 = 1 - (ss_res / ss_tot)
         
         return {
-            'mae': mae,
-            'mse': mse,
-            'rmse': rmse,
-            'mape': mape,
-            'r2': r2
+            'mae': float(mae),
+            'mse': float(mse),
+            'rmse': float(rmse),
+            'mape': float(mape),
+            'r2': float(r2)
         }
     
     def get_evaluation_data(self) -> Dict[str, Any]:
