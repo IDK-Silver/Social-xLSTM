@@ -142,11 +142,13 @@ python scripts/utils/claude_init.py --quick  # 快速模式
 
 ### Data Processing Pipeline
 ```bash
-# Run complete data pipeline using Snakemake
-snakemake --cores 4
+# 🚨 重要：開發階段請統一使用開發配置
+# Use development configuration (RECOMMENDED for development)
+snakemake --config configfile=cfgs/snakemake/dev.yaml --cores 4
 
-# Use development configuration
-snakemake --config configfile=cfgs/config.dev.yaml --cores 4
+# 生產環境使用預設配置 (僅用於正式實驗)
+# Production configuration (for final experiments only)
+snakemake --cores 4
 
 # Run individual preprocessing steps
 python scripts/dataset/pre-process/list_all_zips.py --input_folder_list <folders> --output_file_path <output>
@@ -165,12 +167,18 @@ python scripts/train/without_social_pooling/train_single_vd.py
 # 多VD 訓練（獨立VD處理，無 Social Pooling）
 python scripts/train/without_social_pooling/train_multi_vd.py
 
-# 或使用 Snakemake 執行（推薦 - 使用 config.yaml 中的參數）
+# 🚨 開發階段使用 Snakemake + 開發配置（強烈推薦）
+snakemake --config configfile=cfgs/snakemake/dev.yaml train_single_vd_without_social_pooling
+snakemake --config configfile=cfgs/snakemake/dev.yaml train_multi_vd_without_social_pooling
+
+# 生產環境使用預設配置（僅用於正式實驗）
 snakemake train_single_vd_without_social_pooling
 snakemake train_multi_vd_without_social_pooling
 
-# 訓練參數配置在 config.yaml 的 training 區塊
-# 所有輸出都會儲存在 blob/experiments/ 目錄下
+# 訓練參數配置：
+# - 開發: cfgs/snakemake/dev.yaml (快速測試，小數據)
+# - 生產: cfgs/snakemake/default.yaml (完整實驗)
+# 開發輸出: blob/experiments/dev/ | 生產輸出: blob/experiments/
 ```
 
 ### Testing
@@ -394,6 +402,50 @@ ls docs/adr/
 
 # 閱讀特定 ADR
 cat docs/adr/0002-lstm-implementation-unification.md
+```
+
+## ⚙️ 配置管理原則
+
+**🚨 重要：開發階段統一使用 `cfgs/snakemake/dev.yaml`**
+
+### 1. **配置選擇指導**
+- **開發/測試階段**: 統一使用 `cfgs/snakemake/dev.yaml`
+  - 快速訓練 (2 epochs)
+  - 小數據集 (約1小時數據)
+  - 輸出到 `blob/experiments/dev/`
+- **生產/正式實驗**: 使用 `cfgs/snakemake/default.yaml`
+  - 完整訓練 (5+ epochs)  
+  - 完整數據集
+  - 輸出到 `blob/experiments/`
+
+### 2. **配置同步原則**
+**重要**: 新增配置選項時，**必須同時更新兩個配置檔案**：
+- `cfgs/snakemake/dev.yaml` (開發配置)
+- `cfgs/snakemake/default.yaml` (生產配置)
+
+### 3. **配置修改工作流程**
+```bash
+# 1. 修改開發配置
+vim cfgs/snakemake/dev.yaml
+
+# 2. 同步修改生產配置 (相同結構，不同參數值)
+vim cfgs/snakemake/default.yaml
+
+# 3. 更新配置文檔
+vim cfgs/README.md
+
+# 4. 測試兩種配置都能正常工作
+snakemake --config configfile=cfgs/snakemake/dev.yaml --dry-run
+snakemake --config configfile=cfgs/snakemake/default.yaml --dry-run
+```
+
+### 4. **當前開發標準命令**
+```bash
+# 訓練 (開發標準)
+snakemake --config configfile=cfgs/snakemake/dev.yaml train_single_vd_without_social_pooling
+
+# 數據處理 (開發標準) 
+snakemake --config configfile=cfgs/snakemake/dev.yaml create_h5_file
 ```
 
 ## 🔧 檔案修改原則

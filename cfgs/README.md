@@ -30,6 +30,14 @@ cfgs/
   - 開發專用目錄 (`blob/experiments/dev/`)
   - 快速反饋循環
 
+### 生產配置 (`snakemake/default.yaml`)
+- **用途**: 正式實驗、完整訓練
+- **特色**:
+  - 完整資料集
+  - 完整訓練週期 (5+ epochs)  
+  - 生產專用目錄 (`blob/experiments/default/`)
+  - 正式實驗結果
+
 ## 使用方式
 
 ### 使用生產配置
@@ -108,11 +116,11 @@ training:
 - 所有輸出到 `blob/experiments/dev/` 和 `logs/dev/`
 
 ### 生產配置特色 (`snakemake/default.yaml`)
-- `epochs: 5+` - 完整訓練
-- `batch_size: 1+` - 根據記憶體調整
-- 完整時間範圍
-- 所有可用 VDs
-- 輸出到標準實驗目錄
+- `epochs: 5` - 完整訓練
+- `batch_size: 1` - 標準批次大小
+- `time_range: null` - 使用完整資料集
+- `selected_vdids: null` - 使用所有 VD
+- 所有輸出到 `blob/experiments/default/` 和 `logs/default/`
 
 ## 相關文件
 - [CLAUDE.md](/CLAUDE.md) - 專案開發指南

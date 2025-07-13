@@ -16,20 +16,20 @@ dataset:
     # Step 1: List all ZIP files from the source directories
     raw_zip_list:
       type: txt-list  # Output format: text file with one ZIP path per line
-      log:  "logs/pre-processed/raw_zip_list.log"  # Log file for this step
+      log:  "logs/default/pre-processed/raw_zip_list.log"  # Log file for this step
       file: "blob/dataset/pre-processed/raw_zip_list.txt"  # Output file containing ZIP list
     
     # Step 2: Extract ZIP files and convert XML to JSON format
     unzip_to_json:
       type:       json  # Output format: JSON files
-      status:     "blob/status/unzip_to_json.json"  # Status tracking file for extraction progress
-      log:        "logs/pre-processed/unzip_to_json.log"  # Log file for extraction process
+      status:     "blob/status/default_unzip_to_json.json"  # Status tracking file for extraction progress
+      log:        "logs/default/pre-processed/unzip_to_json.log"  # Log file for extraction process
       folder:     "blob/dataset/pre-processed/unzip_to_json"  # Output directory for JSON files
 
     # Step 3: Create HDF5 dataset from JSON files
     h5:
-      file: "blob/dataset/pre-processed/h5/traffic_features.h5"  # Output HDF5 file path
-      log: "logs/create_h5_file.log"  # Log file for HDF5 creation
+      file: "blob/dataset/pre-processed/h5/traffic_features_default.h5"  # Output HDF5 file path
+      log: "logs/default/create_h5_file.log"  # Log file for HDF5 creation
       selected_vdids: null  # List of VD IDs to include (null = all VDs)
       time_range: null      # Time range filter in format "YYYY-MM-DD,YYYY-MM-DD" (null = all dates)
       overwrite: false      # Whether to overwrite existing HDF5 file
@@ -38,8 +38,8 @@ dataset:
 training:
   # Single VD training configuration (no spatial relationships)
   single_vd:
-    experiment_dir: "blob/experiments/single_vd_without_social_pooling"  # Output directory for experiment results
-    log: "logs/train_single_vd_without_social_pooling.log"  # Training log file
+    experiment_dir: "blob/experiments/default/single_vd_without_social_pooling"  # Output directory for experiment results
+    log: "logs/default/train_single_vd_without_social_pooling.log"  # Training log file
     epochs: 5           # Number of training epochs
     batch_size: 1       # Batch size for training
     sequence_length: 5  # Length of input time sequences
@@ -48,8 +48,8 @@ training:
   
   # Multi-VD training configuration (processes multiple VDs independently)
   multi_vd:
-    experiment_dir: "blob/experiments/multi_vd_without_social_pooling"  # Output directory for experiment results
-    log: "logs/train_multi_vd_without_social_pooling.log"  # Training log file
+    experiment_dir: "blob/experiments/default/multi_vd_without_social_pooling"  # Output directory for experiment results
+    log: "logs/default/train_multi_vd_without_social_pooling.log"  # Training log file
     epochs: 5           # Number of training epochs
     batch_size: 1       # Batch size for training
     sequence_length: 5  # Length of input time sequences
@@ -58,8 +58,8 @@ training:
   
   # Independent multi-VD training (uses multiple VDs as input, predicts single target VD)
   independent_multi_vd:
-    experiment_dir: "blob/experiments/independent_multi_vd_without_social_pooling"  # Output directory
-    log: "logs/train_independent_multi_vd_without_social_pooling.log"  # Training log file
+    experiment_dir: "blob/experiments/default/independent_multi_vd_without_social_pooling"  # Output directory
+    log: "logs/default/train_independent_multi_vd_without_social_pooling.log"  # Training log file
     epochs: 5           # Number of training epochs
     batch_size: 1       # Batch size for training
     sequence_length: 5  # Length of input time sequences

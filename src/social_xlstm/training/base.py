@@ -399,6 +399,14 @@ class BaseTrainer(ABC):
         total_time = time.time() - start_time
         logger.info(f"Training completed in {total_time:.2f} seconds")
         
+        # Save training history at the end of training
+        self._save_training_history()
+        
+        # Force save final model if no best model was saved
+        if not (self.experiment_dir / "best_model.pt").exists():
+            logger.info("No best model saved, saving final model...")
+            self.save_checkpoint(is_best=True)
+        
         return self.training_history
     
     def save_checkpoint(self, is_best: bool = False):
@@ -425,6 +433,13 @@ class BaseTrainer(ABC):
             best_path = self.experiment_dir / "best_model.pt"
             torch.save(checkpoint_data, best_path)
             logger.info(f"Saved best model checkpoint to {best_path}")
+    
+    def _save_training_history(self):
+        """Save training history to JSON file."""
+        history_path = self.experiment_dir / "training_history.json"
+        with open(history_path, 'w', encoding='utf-8') as f:
+            json.dump(self.training_history, f, indent=2)
+        logger.info(f"Saved training history to {history_path}")
     
     def evaluate_test_set(self) -> Dict[str, float]:
         """Evaluate on test set if available."""
