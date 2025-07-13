@@ -13,7 +13,7 @@ Social-xLSTM 專案已完成主要架構清理工作，數據處理管線完整�
 - [x] XML 到 JSON 轉換器
 - [x] JSON 到 HDF5 高效存儲系統
 - [x] 按地區分塊最佳化
-- [x] Snakemake 自動化工作流管理
+- [x] Snakemake 自動化工作流管理（標準化配置系統）
 
 ### 核心模組
 - [x] PyTorch Lightning 數據載入器

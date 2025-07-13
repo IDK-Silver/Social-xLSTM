@@ -94,17 +94,26 @@ python scripts/train/without_social_pooling/train_independent_multi_vd.py \
 ### 5. 使用 Snakemake 執行訓練
 
 ```bash
+# 使用預設配置
+snakemake --cores 1
+
+# 使用開發配置
+snakemake --configfile cfgs/snakemake/dev.yaml --cores 1
+
 # 單VD訓練
-snakemake train_single_vd_without_social_pooling --cores 1
+snakemake --configfile cfgs/snakemake/dev.yaml train_single_vd_without_social_pooling --cores 1
 
 # 多VD訓練
-snakemake train_multi_vd_without_social_pooling --cores 1
+snakemake --configfile cfgs/snakemake/dev.yaml train_multi_vd_without_social_pooling --cores 1
 
 # 獨立多VD訓練
-snakemake train_independent_multi_vd_without_social_pooling --cores 1
+snakemake --configfile cfgs/snakemake/dev.yaml train_independent_multi_vd_without_social_pooling --cores 1
 
 # 並行執行所有訓練
-snakemake train_single_vd_without_social_pooling train_multi_vd_without_social_pooling train_independent_multi_vd_without_social_pooling --cores 3
+snakemake --configfile cfgs/snakemake/dev.yaml train_single_vd_without_social_pooling train_multi_vd_without_social_pooling train_independent_multi_vd_without_social_pooling --cores 3
+
+# 強制重新執行（測試用）
+snakemake --configfile cfgs/snakemake/dev.yaml --forceall --cores 1
 ```
 
 ## 📋 腳本詳細說明
@@ -204,12 +213,12 @@ blob/experiments/my_experiment/
 ```bash
 # 激活環境並執行數據預處理
 conda activate social_xlstm
-snakemake --cores 4
+snakemake --configfile cfgs/snakemake/dev.yaml --cores 4
 
 # 或手動執行
 python scripts/dataset/pre-process/create_h5_file.py \
-  --source_dir blob/dataset/unzip_to_json \
-  --output_path blob/dataset/pre-processed/h5/traffic_features.h5
+  --source_dir blob/dataset/pre-processed/unzip_to_json \
+  --output_path blob/dataset/pre-processed/h5/traffic_features_dev.h5
 ```
 
 ### Q2: 記憶體不足
@@ -252,14 +261,17 @@ python scripts/train/without_social_pooling/train_single_vd.py --early_stopping_
 
 **解決方案**:
 ```bash
-# 檢查 config.yaml 配置
-cat config.yaml
+# 檢查配置文件
+cat cfgs/snakemake/dev.yaml
 
 # 單獨測試訓練腳本
 python scripts/train/without_social_pooling/train_single_vd.py --epochs 2
 
 # 查看 Snakemake 日誌
-snakemake train_single_vd_without_social_pooling --cores 1 --verbose
+snakemake --configfile cfgs/snakemake/dev.yaml train_single_vd_without_social_pooling --cores 1 --verbose
+
+# 測試乾運行
+snakemake --configfile cfgs/snakemake/dev.yaml --dry-run --cores 1
 ```
 
 ### Q6: Conda 環境問題

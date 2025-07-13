@@ -1,119 +1,26 @@
-import logging
-import sys
+from snakemake.utils import min_version
+min_version("6.0")
+
 import os
-from ruamel.yaml import YAML
-from ruamel.yaml.error import YAMLError
 
-# Logger Configuration
-LOG_FILENAME = 'logs/workflow.log'
-LOG_LEVEL = logging.INFO
+# Standard Snakemake configuration loading
+# --configfile parameter will override this default
+configfile: "cfgs/snakemake/default.yaml"
 
-# Create logs directory if it doesn't exist
-os.makedirs(os.path.dirname(LOG_FILENAME), exist_ok=True)
-
-# Initialize Logger
-logger = logging.getLogger('WorkflowLogger')
-logger.setLevel(LOG_LEVEL)
-
-# Clear existing handlers
-if logger.hasHandlers():
-    logger.handlers.clear()
-
-# Setup File Handler
-try:
-    # Changed mode from 'a' (append) to 'w' (write) to overwrite existing log file
-    file_handler = logging.FileHandler(LOG_FILENAME, mode='w', encoding='utf-8')
-    file_handler.setLevel(LOG_LEVEL)
-    
-    formatter = logging.Formatter(
-        '[%(asctime)s] %(levelname)s - %(name)s - %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
-    )
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
-    logger.propagate = False
-    
-    logger.info(f"===== New logging session started =====")
-    
-except Exception as e:
-    logging.basicConfig(level=logging.INFO, format='%(levelname)s: [FallbackLog] %(message)s')
-    logger = logging.getLogger('MyWorkflowLogger_Fallback')
-    logger.critical(f"!!! Failed to setup file logging to '{LOG_FILENAME}': {e}. Using fallback console logging. !!!")
-
-class ConfigurationError(Exception):
-    """Custom exception for configuration related errors"""
-    pass
-
-def read_yaml_config(config_path='config.yaml'):
-    """
-    Read YAML configuration while preserving format and comments.
-    
-    Args:
-        config_path (str): Path to YAML configuration file
-        
-    Returns:
-        dict: The loaded YAML configuration
-        
-    Raises:
-        FileNotFoundError: If config file is not found
-        ConfigurationError: If YAML structure is invalid or parsing fails
-    """
-    yaml_obj = YAML()
-    
-    try:
-        logger.info(f"Reading configuration from '{config_path}'...")
-        with open(config_path, 'r', encoding='utf-8') as f:
-            data = yaml_obj.load(f)
-            
-            if not isinstance(data, dict):
-                raise ConfigurationError(
-                    f"Configuration root must be a dictionary, found {type(data).__name__}"
-                )
-            
-            logger.info("Configuration loaded successfully")
-            return data
-            
-    except FileNotFoundError:
-        logger.error(f"Configuration file not found: '{config_path}'")
-        raise
-        
-    except YAMLError as yaml_err:
-        logger.error(f"YAML parsing error in '{config_path}': {yaml_err}")
-        raise ConfigurationError(f"Invalid YAML format in '{config_path}'") from yaml_err
-        
-    except ConfigurationError as cfg_err:
-        logger.error(str(cfg_err))
-        raise
-        
-    except Exception as exc:
-        logger.error(f"Unexpected error reading '{config_path}': {exc}")
-        raise ConfigurationError(f"Failed to read '{config_path}'") from exc
-
-# Load configuration - supports specifying config file via --configfile
-# Check if configfile was provided via command line
-if 'configfile' in config:
-    CONFIG_FILE = config['configfile']
-else:
-    CONFIG_FILE = 'cfgs/snakemake/default.yaml'
-
-try:
-    WORKFLOW_CONFIG = read_yaml_config(CONFIG_FILE)
-    logger.info(f"Workflow configuration loaded from '{CONFIG_FILE}', ready to start execution.")
-    
-except (FileNotFoundError, ConfigurationError) as e:
-    logger.critical(f"Failed to load configuration. Check log file '{LOG_FILENAME}' for details.")
-    print(f"CRITICAL ERROR: Failed to load configuration. Check logs in '{LOG_FILENAME}'. Exiting.", 
-          file=sys.stderr)
-    sys.exit(1)
-
+# Default target rule
+rule all:
+    input:
+        config['dataset']['pre-processed']['h5']['file'],
+        os.path.join(config['training']['single_vd']['experiment_dir'], "training_report.md"),
+        os.path.join(config['training']['single_vd']['experiment_dir'], "plots/training_curves.png")
 
 rule list_all_zips:
     input:
-        WORKFLOW_CONFIG['storage']['cold_storage']['raw_zip']['folders'],
+        config['storage']['cold_storage']['raw_zip']['folders']
     output:
-        WORKFLOW_CONFIG['dataset']['pre-processed']['raw_zip_list']['file']
+        config['dataset']['pre-processed']['raw_zip_list']['file']
     log:
-        WORKFLOW_CONFIG['dataset']['pre-processed']['raw_zip_list']['log']
+        config['dataset']['pre-processed']['raw_zip_list']['log']
     shell:
         """
         python scripts/dataset/pre-process/list_all_zips.py \
@@ -123,12 +30,12 @@ rule list_all_zips:
 
 rule unzip_and_to_json:
     input:
-        zip_list_path=WORKFLOW_CONFIG['dataset']['pre-processed']['raw_zip_list']['file']
+        zip_list_path=config['dataset']['pre-processed']['raw_zip_list']['file']
     output:
-        status=WORKFLOW_CONFIG['dataset']['pre-processed']['unzip_to_json']['status'],
-        zip_dir=WORKFLOW_CONFIG['dataset']['pre-processed']['unzip_to_json']['folder']
+        status=config['dataset']['pre-processed']['unzip_to_json']['status'],
+        zip_dir=config['dataset']['pre-processed']['unzip_to_json']['folder']
     log:
-        WORKFLOW_CONFIG['dataset']['pre-processed']['unzip_to_json']['log']
+        config['dataset']['pre-processed']['unzip_to_json']['log']
     shell:
         """
         python scripts/dataset/pre-process/unzip_and_to_json.py \
@@ -139,15 +46,15 @@ rule unzip_and_to_json:
 
 rule create_h5_file:
     input:
-        source_dir=WORKFLOW_CONFIG['dataset']['pre-processed']['unzip_to_json']['folder']
+        source_dir=config['dataset']['pre-processed']['unzip_to_json']['folder']
     output:
-        h5_file=WORKFLOW_CONFIG['dataset']['pre-processed']['h5']['file']
+        h5_file=config['dataset']['pre-processed']['h5']['file']
     params:
-        selected_vdids=WORKFLOW_CONFIG['dataset']['pre-processed']['h5'].get('selected_vdids', None),
-        time_range=WORKFLOW_CONFIG['dataset']['pre-processed']['h5'].get('time_range', None),
-        overwrite=WORKFLOW_CONFIG['dataset']['pre-processed']['h5'].get('overwrite', False)
+        selected_vdids=config['dataset']['pre-processed']['h5'].get('selected_vdids', None),
+        time_range=config['dataset']['pre-processed']['h5'].get('time_range', None),
+        overwrite=config['dataset']['pre-processed']['h5'].get('overwrite', False)
     log:
-        WORKFLOW_CONFIG['dataset']['pre-processed']['h5']['log']
+        config['dataset']['pre-processed']['h5']['log']
     shell:
         """
         cmd="python scripts/dataset/pre-process/create_h5_file.py --source_dir {input.source_dir} --output_path {output.h5_file}"
@@ -168,25 +75,25 @@ rule create_h5_file:
         $cmd >> {log} 2>&1
         """
 
-
-
 rule train_single_vd_without_social_pooling:
     input:
-        h5_file=WORKFLOW_CONFIG['dataset']['pre-processed']['h5']['file']
+        h5_file=config['dataset']['pre-processed']['h5']['file']
     output:
-        experiment_dir=directory(WORKFLOW_CONFIG['training']['single_vd']['experiment_dir'])
+        model_file=os.path.join(config['training']['single_vd']['experiment_dir'], "best_model.pt"),
+        config_file=os.path.join(config['training']['single_vd']['experiment_dir'], "config.json"),
+        training_history=os.path.join(config['training']['single_vd']['experiment_dir'], "training_history.json")
     log:
-        WORKFLOW_CONFIG['training']['single_vd']['log']
+        config['training']['single_vd']['log']
     params:
-        epochs=WORKFLOW_CONFIG['training']['single_vd']['epochs'],
-        batch_size=WORKFLOW_CONFIG['training']['single_vd']['batch_size'],
-        sequence_length=WORKFLOW_CONFIG['training']['single_vd']['sequence_length'],
-        model_type=WORKFLOW_CONFIG['training']['single_vd']['model_type'],
-        experiment_name=os.path.basename(WORKFLOW_CONFIG['training']['single_vd']['experiment_dir']),
-        select_vd_id=WORKFLOW_CONFIG['training']['single_vd'].get('select_vd_id', None)
+        epochs=config['training']['single_vd']['epochs'],
+        batch_size=config['training']['single_vd']['batch_size'],
+        sequence_length=config['training']['single_vd']['sequence_length'],
+        model_type=config['training']['single_vd']['model_type'],
+        experiment_name=os.path.basename(config['training']['single_vd']['experiment_dir']),
+        select_vd_id=config['training']['single_vd'].get('select_vd_id', None)
     shell:
         """
-        cmd="python scripts/train/without_social_pooling/train_single_vd.py --data_path {input.h5_file} --epochs {params.epochs} --batch_size {params.batch_size} --sequence_length {params.sequence_length} --model_type {params.model_type} --experiment_name {params.experiment_name} --save_dir $(dirname {output.experiment_dir})"
+        cmd="python scripts/train/without_social_pooling/train_single_vd.py --data_path {input.h5_file} --epochs {params.epochs} --batch_size {params.batch_size} --sequence_length {params.sequence_length} --model_type {params.model_type} --experiment_name {params.experiment_name} --save_dir $(dirname $(dirname {output.model_file}))"
         
         if [ -n "{params.select_vd_id}" ] && [ "{params.select_vd_id}" != "None" ]; then
             cmd="$cmd --select_vd_id {params.select_vd_id}"
@@ -198,18 +105,18 @@ rule train_single_vd_without_social_pooling:
 
 rule train_multi_vd_without_social_pooling:
     input:
-        h5_file=WORKFLOW_CONFIG['dataset']['pre-processed']['h5']['file']
+        h5_file=config['dataset']['pre-processed']['h5']['file']
     output:
-        experiment_dir=directory(WORKFLOW_CONFIG['training']['multi_vd']['experiment_dir'])
+        experiment_dir=directory(config['training']['multi_vd']['experiment_dir'])
     log:
-        WORKFLOW_CONFIG['training']['multi_vd']['log']
+        config['training']['multi_vd']['log']
     params:
-        epochs=WORKFLOW_CONFIG['training']['multi_vd']['epochs'],
-        batch_size=WORKFLOW_CONFIG['training']['multi_vd']['batch_size'],
-        sequence_length=WORKFLOW_CONFIG['training']['multi_vd']['sequence_length'],
-        num_vds=WORKFLOW_CONFIG['training']['multi_vd']['num_vds'],
-        model_type=WORKFLOW_CONFIG['training']['multi_vd']['model_type'],
-        experiment_name=os.path.basename(WORKFLOW_CONFIG['training']['multi_vd']['experiment_dir'])
+        epochs=config['training']['multi_vd']['epochs'],
+        batch_size=config['training']['multi_vd']['batch_size'],
+        sequence_length=config['training']['multi_vd']['sequence_length'],
+        num_vds=config['training']['multi_vd']['num_vds'],
+        model_type=config['training']['multi_vd']['model_type'],
+        experiment_name=os.path.basename(config['training']['multi_vd']['experiment_dir'])
     shell:
         """
         python scripts/train/without_social_pooling/train_multi_vd.py \
@@ -225,19 +132,19 @@ rule train_multi_vd_without_social_pooling:
 
 rule train_independent_multi_vd_without_social_pooling:
     input:
-        h5_file=WORKFLOW_CONFIG['dataset']['pre-processed']['h5']['file']
+        h5_file=config['dataset']['pre-processed']['h5']['file']
     output:
-        experiment_dir=directory(WORKFLOW_CONFIG['training']['independent_multi_vd']['experiment_dir'])
+        experiment_dir=directory(config['training']['independent_multi_vd']['experiment_dir'])
     log:
-        WORKFLOW_CONFIG['training']['independent_multi_vd']['log']
+        config['training']['independent_multi_vd']['log']
     params:
-        epochs=WORKFLOW_CONFIG['training']['independent_multi_vd']['epochs'],
-        batch_size=WORKFLOW_CONFIG['training']['independent_multi_vd']['batch_size'],
-        sequence_length=WORKFLOW_CONFIG['training']['independent_multi_vd']['sequence_length'],
-        num_vds=WORKFLOW_CONFIG['training']['independent_multi_vd']['num_vds'],
-        target_vd_index=WORKFLOW_CONFIG['training']['independent_multi_vd']['target_vd_index'],
-        model_type=WORKFLOW_CONFIG['training']['independent_multi_vd']['model_type'],
-        experiment_name=os.path.basename(WORKFLOW_CONFIG['training']['independent_multi_vd']['experiment_dir'])
+        epochs=config['training']['independent_multi_vd']['epochs'],
+        batch_size=config['training']['independent_multi_vd']['batch_size'],
+        sequence_length=config['training']['independent_multi_vd']['sequence_length'],
+        num_vds=config['training']['independent_multi_vd']['num_vds'],
+        target_vd_index=config['training']['independent_multi_vd']['target_vd_index'],
+        model_type=config['training']['independent_multi_vd']['model_type'],
+        experiment_name=os.path.basename(config['training']['independent_multi_vd']['experiment_dir'])
     shell:
         """
         python scripts/train/without_social_pooling/train_independent_multi_vd.py \
@@ -248,6 +155,104 @@ rule train_independent_multi_vd_without_social_pooling:
         --num_vds {params.num_vds} \
         --target_vd_index {params.target_vd_index} \
         --model_type {params.model_type} \
-        --experiment_name {params.experiment_name} >> {log} 2>&1
+        --experiment_name {params.experiment_name} \
+        --save_dir $(dirname {output.experiment_dir}) >> {log} 2>&1
         """
 
+rule generate_single_vd_report:
+    input:
+        training_history=rules.train_single_vd_without_social_pooling.output.training_history
+    output:
+        report=os.path.join(config['training']['single_vd']['experiment_dir'], "training_report.md")
+    log:
+        "logs/reports/generate_single_vd_report.log"
+    shell:
+        """
+        python scripts/utils/generate_training_report.py \
+        --experiment_dir $(dirname {input.training_history}) \
+        --output_file {output.report} \
+        --verbose >> {log} 2>&1
+        """
+
+rule generate_multi_vd_report:
+    input:
+        experiment_dir=config['training']['multi_vd']['experiment_dir'],
+        training_history=os.path.join(config['training']['multi_vd']['experiment_dir'], "training_history.json")
+    output:
+        report=os.path.join(config['training']['multi_vd']['experiment_dir'], "training_report.md")
+    log:
+        "logs/reports/generate_multi_vd_report.log"
+    shell:
+        """
+        python scripts/utils/generate_training_report.py \
+        --experiment_dir {input.experiment_dir} \
+        --output_file {output.report} \
+        --verbose >> {log} 2>&1
+        """
+
+rule generate_independent_multi_vd_report:
+    input:
+        experiment_dir=config['training']['independent_multi_vd']['experiment_dir'],
+        training_history=os.path.join(config['training']['independent_multi_vd']['experiment_dir'], "training_history.json")
+    output:
+        report=os.path.join(config['training']['independent_multi_vd']['experiment_dir'], "training_report.md")
+    log:
+        "logs/reports/generate_independent_multi_vd_report.log"
+    shell:
+        """
+        python scripts/utils/generate_training_report.py \
+        --experiment_dir {input.experiment_dir} \
+        --output_file {output.report} \
+        --verbose >> {log} 2>&1
+        """
+
+rule generate_single_vd_plots:
+    input:
+        training_history=rules.train_single_vd_without_social_pooling.output.training_history
+    output:
+        plots_dir=directory(os.path.join(config['training']['single_vd']['experiment_dir'], "plots")),
+        training_curves=os.path.join(config['training']['single_vd']['experiment_dir'], "plots", "training_curves.png"),
+        metric_evolution=os.path.join(config['training']['single_vd']['experiment_dir'], "plots", "metric_evolution.png"),
+        advanced_metrics=os.path.join(config['training']['single_vd']['experiment_dir'], "plots", "advanced_metrics.png")
+    log:
+        "logs/reports/generate_single_vd_plots.log"
+    shell:
+        """
+        python scripts/utils/generate_training_plots.py \
+        --experiment_dir $(dirname {input.training_history}) \
+        --verbose >> {log} 2>&1
+        """
+
+# Generic rules for flexible targeting
+rule generate_training_report:
+    input:
+        experiment_dir="{experiment_path}"
+    output:
+        report="{experiment_path}/training_report.md"
+    log:
+        "logs/reports/generate_training_report_{experiment_path}.log"
+    shell:
+        """
+        python scripts/utils/generate_training_report.py \
+        --experiment_dir {input.experiment_dir} \
+        --output_file {output.report} \
+        --verbose >> {log} 2>&1
+        """
+
+rule generate_training_plots:
+    input:
+        experiment_dir="{experiment_path}",
+        training_history="{experiment_path}/training_history.json"
+    output:
+        plots_dir=directory("{experiment_path}/plots"),
+        training_curves="{experiment_path}/plots/training_curves.png",
+        metric_evolution="{experiment_path}/plots/metric_evolution.png",
+        advanced_metrics="{experiment_path}/plots/advanced_metrics.png"
+    log:
+        "logs/reports/generate_training_plots_{experiment_path}.log"
+    shell:
+        """
+        python scripts/utils/generate_training_plots.py \
+        --experiment_dir {input.experiment_dir} \
+        --verbose >> {log} 2>&1
+        """

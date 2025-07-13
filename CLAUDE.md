@@ -144,7 +144,7 @@ python scripts/utils/claude_init.py --quick  # 快速模式
 ```bash
 # 🚨 重要：開發階段請統一使用開發配置
 # Use development configuration (RECOMMENDED for development)
-snakemake --config configfile=cfgs/snakemake/dev.yaml --cores 4
+snakemake --configfile cfgs/snakemake/dev.yaml --cores 4
 
 # 生產環境使用預設配置 (僅用於正式實驗)
 # Production configuration (for final experiments only)
@@ -168,8 +168,8 @@ python scripts/train/without_social_pooling/train_single_vd.py
 python scripts/train/without_social_pooling/train_multi_vd.py
 
 # 🚨 開發階段使用 Snakemake + 開發配置（強烈推薦）
-snakemake --config configfile=cfgs/snakemake/dev.yaml train_single_vd_without_social_pooling
-snakemake --config configfile=cfgs/snakemake/dev.yaml train_multi_vd_without_social_pooling
+snakemake --configfile=cfgs/snakemake/dev.yaml train_single_vd_without_social_pooling
+snakemake --configfile=cfgs/snakemake/dev.yaml train_multi_vd_without_social_pooling
 
 # 生產環境使用預設配置（僅用於正式實驗）
 snakemake train_single_vd_without_social_pooling
@@ -435,17 +435,17 @@ vim cfgs/snakemake/default.yaml
 vim cfgs/README.md
 
 # 4. 測試兩種配置都能正常工作
-snakemake --config configfile=cfgs/snakemake/dev.yaml --dry-run
-snakemake --config configfile=cfgs/snakemake/default.yaml --dry-run
+snakemake --configfile cfgs/snakemake/dev.yaml --dry-run
+snakemake --configfile cfgs/snakemake/default.yaml --dry-run
 ```
 
 ### 4. **當前開發標準命令**
 ```bash
 # 訓練 (開發標準)
-snakemake --config configfile=cfgs/snakemake/dev.yaml train_single_vd_without_social_pooling
+snakemake --configfile=cfgs/snakemake/dev.yaml train_single_vd_without_social_pooling
 
 # 數據處理 (開發標準) 
-snakemake --config configfile=cfgs/snakemake/dev.yaml create_h5_file
+snakemake --configfile=cfgs/snakemake/dev.yaml create_h5_file
 ```
 
 ## 🔧 檔案修改原則

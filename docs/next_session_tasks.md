@@ -25,6 +25,9 @@ python scripts/baseline_test.py --quick --test_type single_vd
 
 # 完整基準測試
 python scripts/baseline_test.py --test_type all
+
+# 使用 Snakemake 執行
+snakemake --configfile cfgs/snakemake/dev.yaml --cores 4
 ```
 
 ### 3. 語言處理指南 ✅

@@ -24,6 +24,7 @@ from abc import ABC, abstractmethod
 
 from ..evaluation.evaluator import ModelEvaluator
 from ..visualization.training_visualizer import TrainingVisualizer
+from .recorder import TrainingRecorder
 
 logger = logging.getLogger(__name__)
 
@@ -135,6 +136,13 @@ class BaseTrainer(ABC):
             'val_loss': [],
             'learning_rate': []
         }
+        
+        # Initialize comprehensive training recorder
+        self.recorder = TrainingRecorder(
+            experiment_name=self.config.experiment_name,
+            model_config=getattr(model, 'config', {}),
+            training_config=self.config.__dict__ if hasattr(self.config, '__dict__') else self.config
+        )
         
         # Mixed precision setup
         if self.config.mixed_precision:
@@ -360,6 +368,20 @@ class BaseTrainer(ABC):
                 self.training_history['val_loss'].append(val_metrics['val_loss'])
             self.training_history['learning_rate'].append(self.optimizer.param_groups[0]['lr'])
             
+            # Compute comprehensive evaluation metrics
+            epoch_train_metrics = self._compute_epoch_evaluation_metrics('train')
+            epoch_val_metrics = self._compute_epoch_evaluation_metrics('val') if self.val_loader else None
+            
+            # Record comprehensive epoch data
+            self.recorder.log_epoch(
+                epoch=epoch,
+                train_loss=train_metrics['train_loss'],
+                val_loss=val_metrics.get('val_loss'),
+                train_metrics=epoch_train_metrics,
+                val_metrics=epoch_val_metrics,
+                learning_rate=self.optimizer.param_groups[0]['lr']
+            )
+            
             # Logging
             log_msg = f"Epoch {epoch+1}/{self.config.epochs} - Train Loss: {train_metrics['train_loss']:.6f}"
             if 'val_loss' in val_metrics:
@@ -399,8 +421,10 @@ class BaseTrainer(ABC):
         total_time = time.time() - start_time
         logger.info(f"Training completed in {total_time:.2f} seconds")
         
-        # Save training history at the end of training
-        self._save_training_history()
+        # Save training history using TrainingRecorder
+        training_history_path = self.experiment_dir / "training_history.json"
+        self.recorder.save(training_history_path)
+        logger.info(f"Saved training history to {training_history_path}")
         
         # Force save final model if no best model was saved
         if not (self.experiment_dir / "best_model.pt").exists():
@@ -434,12 +458,66 @@ class BaseTrainer(ABC):
             torch.save(checkpoint_data, best_path)
             logger.info(f"Saved best model checkpoint to {best_path}")
     
-    def _save_training_history(self):
-        """Save training history to JSON file."""
-        history_path = self.experiment_dir / "training_history.json"
-        with open(history_path, 'w', encoding='utf-8') as f:
-            json.dump(self.training_history, f, indent=2)
-        logger.info(f"Saved training history to {history_path}")
+    
+    def _compute_epoch_evaluation_metrics(self, split: str) -> Optional[Dict[str, float]]:
+        """
+        Compute comprehensive evaluation metrics (MAE, MSE, RMSE, MAPE, R²) for a given split.
+        
+        Args:
+            split: 'train' or 'val'
+            
+        Returns:
+            Dictionary of evaluation metrics or None if split not available
+        """
+        if split == 'train':
+            data_loader = self.train_loader
+        elif split == 'val':
+            data_loader = self.val_loader
+        else:
+            logger.warning(f"Unknown split: {split}")
+            return None
+            
+        if data_loader is None:
+            return None
+            
+        # Collect predictions and targets
+        self.model.eval()
+        all_predictions = []
+        all_targets = []
+        
+        with torch.no_grad():
+            for batch in data_loader:
+                inputs, targets = self.prepare_batch(batch)
+                inputs = inputs.to(self.config.device)
+                targets = targets.to(self.config.device)
+                
+                outputs = self.forward_model(inputs)
+                
+                all_predictions.append(outputs.cpu().numpy())
+                all_targets.append(targets.cpu().numpy())
+        
+        if not all_predictions:
+            return None
+            
+        # Concatenate all predictions and targets
+        predictions = np.concatenate(all_predictions, axis=0)
+        targets = np.concatenate(all_targets, axis=0)
+        
+        # Create evaluator instance and compute metrics
+        evaluator = ModelEvaluator(
+            model=self.model,
+            train_losses=self.training_history['train_loss'],
+            val_losses=self.training_history['val_loss'],
+            config=self.config,
+            train_loader=self.train_loader,
+            val_loader=self.val_loader,
+            device=self.config.device
+        )
+        
+        # Compute comprehensive metrics using the evaluator
+        metrics = evaluator.evaluate(targets, predictions)
+        
+        return metrics
     
     def evaluate_test_set(self) -> Dict[str, float]:
         """Evaluate on test set if available."""

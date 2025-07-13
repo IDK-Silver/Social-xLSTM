@@ -24,7 +24,7 @@ python scripts/train/without_social_pooling/train_multi_vd.py
 python scripts/train/without_social_pooling/train_independent_multi_vd.py
 
 # 使用 Snakemake 執行完整流程
-snakemake --cores 4
+snakemake --configfile cfgs/snakemake/dev.yaml --cores 4
 ```
 
 ## 🧠 核心概念

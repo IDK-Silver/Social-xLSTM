@@ -41,6 +41,11 @@
   - 完整的訓練系統使用方法
   - 進階配置和超參數調優
   - 實際範例和常見問題解答
+- **`understanding_training_metrics.md`** - **機器學習訓練指標完全指南** ⭐ **NEW!**
+  - 6大核心評估指標詳解（Loss, MAE, MSE, RMSE, MAPE, R²）
+  - 圖表解讀指南（training_curves, metric_evolution, advanced_metrics）
+  - 問題診斷與解決方案（過擬合、欠擬合、數據問題）
+  - 實際案例分析和改進策略
 
 ### examples（實作範例）
 - **`multi_vd_output_parsing_examples.md`** - **Multi-VD 輸出解析實作範例** ⭐ **NEW!**

@@ -377,8 +377,20 @@ class TrainingRecorder:
             'saved_at': datetime.now().isoformat()
         }
         
+        def json_serializer(obj):
+            """Custom JSON serializer to handle special float values."""
+            import math
+            if isinstance(obj, float):
+                if obj == float('inf'):
+                    return "Infinity"
+                elif obj == float('-inf'):
+                    return "-Infinity"
+                elif math.isnan(obj):
+                    return "NaN"
+            return str(obj)
+        
         with open(path, 'w') as f:
-            json.dump(data, f, indent=2, default=str)
+            json.dump(data, f, indent=2, default=json_serializer)
         
         print(f"Training record saved to {path}")
     
