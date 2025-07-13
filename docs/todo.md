@@ -21,19 +21,30 @@
 - [ ] 整合現有 CoordinateSystem
 - [ ] 建立 Social Pooling 單元測試
 
-### 3. Social-xLSTM 模型骨架 🏗️
-- [ ] 創建 SocialTrafficXLSTM 基本結構
-- [ ] 整合 Social Pooling 層
-- [ ] 設計 Hybrid xLSTM 架構（sLSTM + mLSTM）
-- [ ] 建立模型初始化和前向傳播
+### 3. xLSTM 基礎架構建立 🏗️
+- [ ] 創建獨立的 TrafficXLSTM 類 (src/social_xlstm/models/xlstm.py)
+- [ ] 實現 TrafficXLSTMConfig dataclass 配置系統
+- [ ] 整合 xlstm 庫的 xLSTMBlockStack
+- [ ] 實現基本的前向傳播和訓練接口
+- [ ] 建立 xLSTM 單元測試框架
 
 ## 📋 重要任務（下週 P1）
 
-### 4. 完整 xLSTM 實現
-- [ ] 實現 sLSTM（標量記憶 + 指數門控）
-- [ ] 實現 mLSTM（矩陣記憶）
-- [ ] 實現 Hybrid 架構
-- [ ] 性能優化和 GPU 支援
+### 4. xLSTM 核心功能實現
+- [ ] **階段1：基礎 xLSTM 架構**（根據 ADR-0501）
+  - [ ] 實現 TrafficXLSTM 類的完整功能
+  - [ ] 配置 sLSTM blocks（位置：[1, 3]）
+  - [ ] 配置 mLSTM blocks（其餘位置）
+  - [ ] 使用 vanilla backend（穩定性優先）
+- [ ] **階段2：訓練系統整合**
+  - [ ] 創建 xLSTM 專用訓練腳本
+  - [ ] 修改 Snakefile 支援 xLSTM 訓練規則
+  - [ ] 實現 LSTM vs xLSTM 並行訓練
+  - [ ] 配置文件分離（training_xlstm 區塊）
+- [ ] **階段3：混合架構設計**
+  - [ ] sLSTM 處理時間序列（單變量）
+  - [ ] mLSTM 處理空間特徵（多變量）
+  - [ ] 設計 Social Pooling 整合點
 
 ### 5. ✅ Dataset 模組重構 - 已完成
 - [x] 重構 Dataset 模組為結構化子包
@@ -80,9 +91,20 @@
   - [x] 三種 LSTM 訓練模式驗證
   - [x] 完整的性能分析和視覺化
   - [x] 結果記錄和分析文檔
-- [ ] Social-xLSTM vs LSTM 基準比較
-- [ ] 超參數調優
-- [ ] Social-xLSTM 模型性能評估
+- [ ] **xLSTM vs LSTM 基準比較**
+  - [ ] 並行訓練框架設置
+  - [ ] 性能指標對比（MAE, R², 過擬合程度）
+  - [ ] 記憶體使用和訓練時間分析
+  - [ ] 結果可視化和報告生成
+- [ ] **xLSTM 超參數調優**
+  - [ ] num_blocks 調整（4, 6, 8）
+  - [ ] sLSTM 位置優化
+  - [ ] embedding_dim 調整
+  - [ ] dropout 率優化
+- [ ] **Social-xLSTM 完整評估**
+  - [ ] Social Pooling + xLSTM 整合效果
+  - [ ] 空間相關性改善程度
+  - [ ] 長期預測能力評估
 
 ### 9. 測試覆蓋率提升
 - [ ] 單元測試覆蓋率 > 70%
@@ -146,11 +168,19 @@
 - [x] ✅ LSTM 統一實現完成（2025-01-09）
 - [x] ✅ 訓練系統重構完成（2025-01-09）
 - [ ] 社交池化演算法原型實現
-- [ ] Social-xLSTM 模型骨架能夠載入和初始化
+- [ ] **xLSTM 基礎架構完成**
+  - [ ] TrafficXLSTM 類創建並可初始化
+  - [ ] 基本的 xLSTM 訓練腳本運行
+  - [ ] 單元測試框架建立
 
 ### 第二週結束
-- [ ] 完整的 Social-xLSTM 模型實現
-- [ ] 能夠在小數據集上訓練
+- [ ] **完整的 xLSTM 實現**（根據 ADR-0501）
+  - [ ] xLSTM 能在開發數據集上訓練
+  - [ ] LSTM vs xLSTM 並行訓練完成
+  - [ ] 初步性能比較結果
+- [ ] **Social Pooling 與 xLSTM 整合設計**
+  - [ ] 整合架構設計完成
+  - [ ] 技術可行性驗證
 - [ ] 專案結構重組完成
 
 ### 第三週結束
@@ -169,6 +199,28 @@
 2. **程式碼品質**：每次提交前確保通過 linting 和基本測試
 3. **文檔同步**：重要變更需同步更新 ADR 和相關文檔
 4. **進度回顧**：每週五進行進度回顧和優先級調整
+
+## 📐 xLSTM 實施技術細節
+
+### 架構決策（根據 ADR-0501）
+- **獨立類別**：創建 TrafficXLSTM，不擴展 TrafficLSTM
+- **配置分離**：使用 TrafficXLSTMConfig dataclass
+- **並行開發**：保持 LSTM 和 xLSTM 可獨立運行
+
+### 技術實施重點
+1. **xLSTM 區塊配置**
+   - 總共 6 個區塊（num_blocks=6）
+   - sLSTM 在位置 [1, 3]（處理時間序列）
+   - mLSTM 在其他位置（處理空間特徵）
+
+2. **後端選擇**
+   - 初期使用 vanilla backend（穩定性優先）
+   - 暫不使用 mlstm_kernels（避免依賴複雜性）
+
+3. **性能目標**
+   - 改善過擬合問題（目前 LSTM R² 為負值）
+   - 訓練/驗證指標差距 < 2倍
+   - 記憶體使用在可接受範圍內
 
 ## 🔗 相關文檔
 

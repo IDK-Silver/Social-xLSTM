@@ -370,8 +370,7 @@ rule train_xlstm_single_vd:
     output:
         model_file=os.path.join(config['training_xlstm']['single_vd']['experiment_dir'], "best_model.pt"),
         config_file=os.path.join(config['training_xlstm']['single_vd']['experiment_dir'], "config.json"),
-        training_history=os.path.join(config['training_xlstm']['single_vd']['experiment_dir'], "training_history.json"),
-        test_evaluation=os.path.join(config['training_xlstm']['single_vd']['experiment_dir'], "test_evaluation.json")
+        training_history=os.path.join(config['training_xlstm']['single_vd']['experiment_dir'], "training_history.json")
     log:
         config['training_xlstm']['single_vd']['log']
     params:
@@ -411,8 +410,7 @@ rule train_xlstm_multi_vd:
         h5_file=config['dataset']['pre-processed']['h5']['file']
     output:
         training_history=os.path.join(config['training_xlstm']['multi_vd']['experiment_dir'], "training_history.json"),
-        model_file=os.path.join(config['training_xlstm']['multi_vd']['experiment_dir'], "best_model.pt"),
-        test_evaluation=os.path.join(config['training_xlstm']['multi_vd']['experiment_dir'], "test_evaluation.json")
+        model_file=os.path.join(config['training_xlstm']['multi_vd']['experiment_dir'], "best_model.pt")
     log:
         config['training_xlstm']['multi_vd']['log']
     params:

@@ -164,7 +164,85 @@ if isinstance(self.scheduler, optim.lr_scheduler.ReduceLROnPlateau):
 4. 檢查設備配置: 確認所有張量在同一設備
 5. 降低複雜度: 減少批次大小、隱藏層大小或層數
 
-## 7. 常見解決方案速查
+## 7. 2025-07-13 新發現錯誤
+
+### 錯誤J: Double Nested Directory 問題
+```
+輸出檔案保存到錯誤位置: experiment_dir/experiment_name/ 而非 experiment_dir/
+```
+**問題**: 
+- 檔案被保存到 `blob/experiments/dev/xlstm/single_vd/single_vd/` 
+- 而不是正確的 `blob/experiments/dev/xlstm/single_vd/`
+
+**根本原因**: 
+Snakemake 規則中的路徑計算錯誤：
+```bash
+--save_dir $(dirname {output.training_history})  # 錯誤
+--experiment_name {params.experiment_name}       # 導致雙重巢狀
+```
+
+**解決方案**:
+```bash
+# 修正 Snakefile 中所有訓練規則
+--save_dir $(dirname $(dirname {output.training_history}))  # 正確
+--experiment_name {params.experiment_name}
+```
+
+### 錯誤K: xLSTM Multi-VD 輸入大小不匹配
+```
+ValueError: Expected input_size=5, got 15
+```
+**問題**:
+1. 數據載入：4D 格式 `(batch, seq, num_vds, features)` 未正確處理
+2. 特徵檢測：檢測到 5 features 而非 15 (3 VDs × 5 features)
+3. xLSTM 模型：缺乏 4D 輸入處理邏輯
+
+**根本原因**:
+```python
+# common.py 中錯誤的特徵檢測
+input_shape = sample_batch['input_seq'].shape  # 4D: [batch, seq, num_vds, features]
+flattened_features = input_shape[-1]           # 錯誤：取到 features(5) 而非 flattened(15)
+```
+
+**解決方案**:
+1. **修正數據載入邏輯** (`create_data_module`):
+```python
+# 正確處理 Multi-VD 參數
+elif hasattr(args, 'num_vds') and args.num_vds:
+    reader = TrafficHDF5Reader(args.data_path)
+    metadata = reader.get_metadata()
+    available_vds = metadata['vdids']
+    selected_vdids = available_vds[:args.num_vds]
+```
+
+2. **修正特徵檢測邏輯** (`create_model_for_multi_vd`):
+```python
+# 正確處理 4D 輸入格式
+if len(input_shape) == 4:
+    # 4D format: [batch, seq, num_vds, features_per_vd]
+    batch_size, seq_len, actual_num_vds, features_per_vd = input_shape
+    flattened_features = actual_num_vds * features_per_vd  # 正確：15
+elif len(input_shape) == 3:
+    # 3D format: [batch, seq, flattened_features]
+    batch_size, seq_len, flattened_features = input_shape
+    features_per_vd = 5
+    actual_num_vds = flattened_features // features_per_vd
+```
+
+3. **添加 xLSTM 4D 輸入處理** (`TrafficXLSTM.forward`):
+```python
+# 類似 TrafficLSTM 的 Multi-VD 處理邏輯
+if self.config.multi_vd_mode:
+    if x.dim() == 4:
+        # 4D input: [batch, seq, num_vds, features] - needs flattening
+        seq_len, num_vds, num_features = x.size(1), x.size(2), x.size(3)
+        x = x.view(batch_size, seq_len, num_vds * num_features)
+    elif x.dim() == 3:
+        # 3D input: [batch, seq, flattened_features] - already flattened
+        pass
+```
+
+## 8. 常見解決方案速查
 
 ```bash
 # 基本測試配置 (最不容易出錯)
@@ -194,9 +272,14 @@ python scripts/train/train_multi_vd.py \
 3. ✅ **數據路徑問題**: 更新訓練腳本使用有效的測試數據文件
 4. ✅ **ModelEvaluator方法缺失**: 添加 `evaluate()` 方法
 
+### 2025-07-13 重大修復記錄:
+5. ✅ **Double Nested Directory 問題**: 修正 Snakemake 輸出路徑配置
+6. ✅ **xLSTM Multi-VD 輸入處理**: 添加 4D 到 3D 輸入轉換邏輯
+
 ## 9. 更新記錄
 
 - **2025-07-08**: 初始版本 - 多VD訓練除錯過程中發現的錯誤
+- **2025-07-13**: 重大更新 - 添加 Double Nested Directory 和 xLSTM Multi-VD 輸入處理問題的詳細記錄
 - **未來更新**: 每次發現新錯誤或修復錯誤後更新此文檔
 
 ## 📚 相關文檔
