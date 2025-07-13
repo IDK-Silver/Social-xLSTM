@@ -571,9 +571,5 @@ class BaseTrainer(ABC):
         for metric_name, value in metrics.items():
             logger.info(f"  {metric_name}: {value:.6f}")
         
-        # Save evaluation results
-        eval_path = self.experiment_dir / "test_evaluation.json"
-        with open(eval_path, 'w', encoding='utf-8') as f:
-            json.dump(metrics, f, indent=2)
         
         return metrics

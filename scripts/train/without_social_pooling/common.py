@@ -191,8 +191,6 @@ def print_training_complete(logger, trainer, mode='single_vd'):
     logger.info(f"\nSaved files:")
     logger.info(f"• Model configuration: {trainer.experiment_dir}/config.json")
     logger.info(f"• Best model weights: {trainer.experiment_dir}/best_model.pt")
-    if (trainer.experiment_dir / "test_evaluation.json").exists():
-        logger.info(f"• Test evaluation: {trainer.experiment_dir}/test_evaluation.json")
 
 
 def create_data_module(args, logger):
