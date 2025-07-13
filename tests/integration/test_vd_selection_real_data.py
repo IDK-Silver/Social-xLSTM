@@ -88,7 +88,7 @@ class TestVDSelectionRealData:
             assert not torch.isnan(inputs).any()
             assert inputs.dtype == torch.float32
             
-            print(f"✅ VD {target_vd} selection test passed")
+            print(f"PASS: VD {target_vd} selection test passed")
             print(f"   Input range: [{inputs.min():.3f}, {inputs.max():.3f}]")
     
     def test_vd_selection_data_consistency(self):
@@ -135,7 +135,7 @@ class TestVDSelectionRealData:
             expected_inputs = real_batch['input_seq'][:, :, i, :]
             torch.testing.assert_close(inputs, expected_inputs, rtol=1e-5, atol=1e-8)
             
-            print(f"✅ {target_vd} data consistency verified")
+            print(f"PASS: {target_vd} data consistency verified")
         
         # Verify different VDs give different data
         vd_list = list(selected_data.keys())
@@ -146,7 +146,7 @@ class TestVDSelectionRealData:
                 
                 # Data should be different (unless by extreme coincidence)
                 assert not torch.allclose(data1, data2, rtol=1e-3)
-                print(f"✅ {vd1} ≠ {vd2} (data is different)")
+                print(f"PASS: {vd1} ≠ {vd2} (data is different)")
     
     def test_vd_selection_error_handling_real_data(self):
         """Test error handling with real data."""
@@ -186,7 +186,7 @@ class TestVDSelectionRealData:
         expected_inputs = real_batch['input_seq'][:, :, 0, :]
         torch.testing.assert_close(inputs, expected_inputs)
         
-        print("✅ Error handling test passed - graceful fallback to first VD")
+        print("PASS: Error handling test passed - graceful fallback to first VD")
 
 
 if __name__ == "__main__":

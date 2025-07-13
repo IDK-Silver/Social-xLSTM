@@ -436,13 +436,13 @@ def get_device_warnings(device, mode='single_vd'):
     
     if device == "cpu":
         if mode == 'single_vd':
-            warnings.append("⚠️  Using CPU - recommend GPU for better training speed")
+            warnings.append("WARNING: Using CPU - recommend GPU for better training speed")
         else:
-            warnings.append("⚠️  Using CPU - multi-VD training is much slower on CPU")
+            warnings.append("WARNING: Using CPU - multi-VD training is much slower on CPU")
     
     if mode == 'multi_vd' and device == "cuda":
         warnings.extend([
-            "💡 Multi-VD training memory tips:",
+            "TIPS: Multi-VD training memory tips:",
             "   • Reduce batch_size if encountering OOM",
             "   • Enable mixed_precision for better performance",
             "   • Recommend GPU with at least 8GB VRAM"

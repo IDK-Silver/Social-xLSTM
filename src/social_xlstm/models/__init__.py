@@ -3,9 +3,9 @@ Social-xLSTM Models Module
 
 This module provides different LSTM architectures for traffic prediction:
 - TrafficLSTM: Traditional LSTM implementation (~226K parameters)
-- TrafficXLSTM: Extended LSTM implementation (~655K parameters) ✅ 已實現
+- TrafficXLSTM: Extended LSTM implementation (~655K parameters) [IMPLEMENTED]
 
-🚀 快速使用:
+Quick Usage:
 ```python
 # Traditional LSTM
 from social_xlstm.models import TrafficLSTM, TrafficLSTMConfig
@@ -16,9 +16,9 @@ from social_xlstm.models import TrafficXLSTM, TrafficXLSTMConfig
 xlstm_model = TrafficXLSTM(TrafficXLSTMConfig())
 ```
 
-📚 詳細文檔:
-- LSTM 指南: docs/guides/lstm_usage_guide.md
-- xLSTM 指南: docs/guides/xlstm_usage_guide.md
+Detailed Documentation:
+- LSTM Guide: docs/guides/lstm_usage_guide.md
+- xLSTM Guide: docs/guides/xlstm_usage_guide.md
 """
 
 from .lstm import TrafficLSTM, TrafficLSTMConfig

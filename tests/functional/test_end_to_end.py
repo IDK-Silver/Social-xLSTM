@@ -188,7 +188,7 @@ class TestEndToEndWorkflows:
         # In this simulation, multi VD should be better
         assert multi_best < single_best
         
-        print("✅ Baseline experiment workflow completed successfully!")
+        print("PASS: Baseline experiment workflow completed successfully!")
     
     def test_new_metric_calculation_workflow(self, functional_temp_dir):
         """Test workflow for calculating new metrics post-training."""
@@ -284,7 +284,7 @@ class TestEndToEndWorkflows:
         # Verify custom plot was created
         assert custom_plot_path.exists()
         
-        print("✅ New metric calculation workflow completed successfully!")
+        print("PASS: New metric calculation workflow completed successfully!")
     
     @pytest.mark.slow
     def test_experiment_comparison_workflow(self, functional_temp_dir):
@@ -372,7 +372,7 @@ class TestEndToEndWorkflows:
         # Verify that larger models generally perform better
         assert results[0]['model_size'] >= results[-1]['model_size']
         
-        print("✅ Experiment comparison workflow completed successfully!")
+        print("PASS: Experiment comparison workflow completed successfully!")
         print(f"Best model: {results[0]['name']} with val_loss: {results[0]['best_val_loss']:.4f}")
         
         return results

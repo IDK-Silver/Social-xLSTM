@@ -3,7 +3,7 @@ import numpy as np
 from typing import Dict, Tuple, Optional, Any
 
 class ModelEvaluator:
-    """封裝模型評估的所有邏輯，專注於數據處理和指標計算"""
+    """Encapsulates all model evaluation logic, focusing on data processing and metrics calculation"""
     
     def __init__(self, model, train_losses, val_losses, config, train_loader, val_loader, device, vd_index=0):
         self.model = model
@@ -11,11 +11,11 @@ class ModelEvaluator:
         self.val_losses = val_losses
         self.config = config
         self.train_loader = train_loader
-        self.val_loader = val_loader  # 新增驗證集 loader
+        self.val_loader = val_loader  # Added validation loader
         self.device = device
         self.vd_index = vd_index
         
-        # 延遲計算的屬性
+        # Lazy computation attributes
         self._train_predictions = None
         self._train_targets = None
         self._train_inputs = None
@@ -26,42 +26,42 @@ class ModelEvaluator:
         self._val_metrics = None
     
     def get_train_predictions(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """獲取訓練集預測結果"""
+        """Get training set prediction results"""
         if self._train_predictions is None:
             self._compute_train_predictions()
         return self._train_predictions, self._train_targets, self._train_inputs
     
     def get_val_predictions(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """獲取驗證集預測結果"""
+        """Get validation set prediction results"""
         if self._val_predictions is None and self.val_loader is not None:
             self._compute_val_predictions()
         return self._val_predictions, self._val_targets, self._val_inputs
     
     def get_train_metrics(self) -> Dict[str, float]:
-        """獲取訓練集評估指標"""
+        """Get training set evaluation metrics"""
         if self._train_metrics is None:
             predictions, targets, _ = self.get_train_predictions()
             self._train_metrics = self._compute_metrics(predictions, targets)
         return self._train_metrics
     
     def get_val_metrics(self) -> Dict[str, float]:
-        """獲取驗證集評估指標"""
+        """Get validation set evaluation metrics"""
         if self._val_metrics is None and self.val_loader is not None:
             predictions, targets, _ = self.get_val_predictions()
             self._val_metrics = self._compute_metrics(predictions, targets)
         return self._val_metrics
     
     def _compute_train_predictions(self):
-        """計算訓練集預測結果"""
+        """Compute training set predictions"""
         self._train_predictions, self._train_targets, self._train_inputs = self._compute_predictions_for_loader(self.train_loader)
     
     def _compute_val_predictions(self):
-        """計算驗證集預測結果"""
+        """Compute validation set predictions"""
         if self.val_loader is not None:
             self._val_predictions, self._val_targets, self._val_inputs = self._compute_predictions_for_loader(self.val_loader)
     
     def _compute_predictions_for_loader(self, data_loader):
-        """通用的預測計算函數"""
+        """Generic prediction computation function"""
         self.model.eval()
         all_predictions = []
         all_targets = []
@@ -95,7 +95,7 @@ class ModelEvaluator:
         return predictions, targets, inputs
     
     def _compute_metrics(self, predictions: np.ndarray, targets: np.ndarray) -> Dict[str, float]:
-        """計算評估指標"""
+        """Compute evaluation metrics"""
         # Flatten for overall metrics
         pred_flat = predictions.flatten()
         target_flat = targets.flatten()
@@ -152,7 +152,7 @@ class ModelEvaluator:
         }
     
     def get_evaluation_data(self) -> Dict[str, Any]:
-        """獲取所有評估相關的數據，包含訓練和驗證"""
+        """Get all evaluation-related data including training and validation"""
         train_pred, train_targ, train_inp = self.get_train_predictions()
         train_metrics = self.get_train_metrics()
         
@@ -170,7 +170,7 @@ class ModelEvaluator:
             'config': self.config
         }
         
-        # 如果有驗證集，加入驗證數據
+        # If validation set exists, add validation data
         if self.val_loader is not None:
             val_pred, val_targ, val_inp = self.get_val_predictions()
             val_metrics = self.get_val_metrics()

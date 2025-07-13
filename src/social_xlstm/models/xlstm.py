@@ -4,30 +4,30 @@ Traffic xLSTM Implementation
 This module provides a production-ready xLSTM implementation for traffic prediction,
 implementing extended LSTM with sLSTM and mLSTM blocks according to ADR-0501.
 
-🎯 主要功能:
-- 混合 sLSTM + mLSTM 架構用於交通預測
-- 6 個 xLSTM 區塊，sLSTM 在位置 [1, 3]
-- 654,883 個參數，支援 GPU 加速
-- 完整的配置管理和錯誤處理
+Main Features:
+- Hybrid sLSTM + mLSTM architecture for traffic prediction
+- 6 xLSTM blocks with sLSTM at positions [1, 3]
+- 654,883 parameters with GPU acceleration support
+- Complete configuration management and error handling
 
-📊 預期改善:
-- 解決傳統 LSTM 的過擬合問題（負 R² 值）
-- 更好的長期時間依賴建模
-- 為 Social Pooling 整合做準備
+Expected Improvements:
+- Resolve traditional LSTM overfitting issues (negative R² values)
+- Better long-term temporal dependency modeling
+- Preparation for Social Pooling integration
 
-🚀 快速使用:
+Quick Usage:
 ```python
 from social_xlstm.models import TrafficXLSTM, TrafficXLSTMConfig
 
 config = TrafficXLSTMConfig()
 model = TrafficXLSTM(config)
 
-# 輸入: (batch, seq_len, features) = (4, 12, 3)
+# Input: (batch, seq_len, features) = (4, 12, 3)
 x = torch.randn(4, 12, 3)
-output = model(x)  # 輸出: (4, 1, 3)
+output = model(x)  # Output: (4, 1, 3)
 ```
 
-📚 完整文檔: docs/guides/xlstm_usage_guide.md
+Complete Documentation: docs/guides/xlstm_usage_guide.md
 
 Design Principles:
 - Independent from TrafficLSTM (ADR-0501)
