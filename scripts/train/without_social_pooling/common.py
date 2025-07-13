@@ -72,11 +72,24 @@ def add_common_arguments(parser):
                         choices=["lstm", "xlstm"],
                         help="Model type (lstm: Standard LSTM, xlstm: Extended LSTM)")
     parser.add_argument("--hidden_size", type=int, default=128,
-                        help="Hidden layer size")
+                        help="Hidden layer size (for LSTM) or embedding dim (for xLSTM)")
     parser.add_argument("--num_layers", type=int, default=2,
-                        help="Number of model layers")
+                        help="Number of LSTM layers (ignored for xLSTM)")
     parser.add_argument("--dropout", type=float, default=0.2,
                         help="Dropout ratio")
+    
+    # xLSTM specific parameters
+    parser.add_argument("--embedding_dim", type=int, default=None,
+                        help="xLSTM embedding dimension (defaults to hidden_size)")
+    parser.add_argument("--num_blocks", type=int, default=6,
+                        help="Number of xLSTM blocks")
+    parser.add_argument("--slstm_at", type=int, nargs='+', default=[1, 3],
+                        help="Positions for sLSTM blocks (e.g., --slstm_at 1 3)")
+    parser.add_argument("--context_length", type=int, default=256,
+                        help="xLSTM context length")
+    parser.add_argument("--backend", type=str, default="vanilla",
+                        choices=["vanilla", "cuda"],
+                        help="xLSTM computation backend")
     
     # Training parameters
     parser.add_argument("--epochs", type=int, default=100,
@@ -209,11 +222,29 @@ def create_data_module(args, logger):
         sys.exit(1)
     
     try:
-        # Prepare selected VD IDs if specified for single VD training
+        # Prepare selected VD IDs based on training mode
         selected_vdids = None
+        
+        # Single VD training
         if hasattr(args, 'select_vd_id') and args.select_vd_id:
             selected_vdids = [args.select_vd_id]
             logger.info(f"  Selected VD ID: {args.select_vd_id}")
+        
+        # Multi-VD training
+        elif hasattr(args, 'vd_ids') and args.vd_ids:
+            # Use specific VD IDs if provided
+            selected_vdids = [vd.strip() for vd in args.vd_ids.split(',')]
+            logger.info(f"  Selected VD IDs: {selected_vdids}")
+        elif hasattr(args, 'num_vds') and args.num_vds:
+            # Use first N VDs if num_vds is specified
+            from social_xlstm.dataset.storage.h5_reader import TrafficHDF5Reader
+            reader = TrafficHDF5Reader(args.data_path)
+            metadata = reader.get_metadata()
+            available_vds = metadata['vdids']
+            selected_vdids = available_vds[:args.num_vds]
+            logger.info(f"  Using first {args.num_vds} VDs: {selected_vdids}")
+        else:
+            logger.info("  Using all available VDs")
         
         # Create data configuration
         data_config = TrafficDatasetConfig(
@@ -257,10 +288,8 @@ def create_model_for_single_vd(args, data_module, logger):
         logger: Logger instance
     
     Returns:
-        model: TrafficLSTM model
+        model: TrafficLSTM or TrafficXLSTM model
     """
-    from social_xlstm.models.lstm import TrafficLSTM
-    
     # Get feature information
     sample_batch = next(iter(data_module.train_dataloader()))
     actual_features = sample_batch['input_seq'].shape[-1]
@@ -268,6 +297,7 @@ def create_model_for_single_vd(args, data_module, logger):
     logger.info(f"Creating single VD model with {actual_features} features")
     
     if args.model_type == "lstm":
+        from social_xlstm.models.lstm import TrafficLSTM
         model = TrafficLSTM.create_single_vd_model(
             input_size=actual_features,
             output_size=actual_features,
@@ -276,14 +306,24 @@ def create_model_for_single_vd(args, data_module, logger):
             dropout=args.dropout
         )
     elif args.model_type == "xlstm":
-        logger.warning("xLSTM model not yet implemented, using LSTM instead")
-        model = TrafficLSTM.create_single_vd_model(
+        from social_xlstm.models.xlstm import TrafficXLSTM, TrafficXLSTMConfig
+        
+        # Create xLSTM configuration
+        config = TrafficXLSTMConfig(
             input_size=actual_features,
             output_size=actual_features,
-            hidden_size=args.hidden_size,
-            num_layers=args.num_layers,
-            dropout=args.dropout
+            embedding_dim=getattr(args, 'embedding_dim', args.hidden_size),
+            num_blocks=getattr(args, 'num_blocks', 6),
+            slstm_at=getattr(args, 'slstm_at', [1, 3]),
+            dropout=args.dropout,
+            multi_vd_mode=False
         )
+        
+        model = TrafficXLSTM(config)
+        logger.info(f"xLSTM configuration:")
+        logger.info(f"  Embedding dim: {config.embedding_dim}")
+        logger.info(f"  Num blocks: {config.num_blocks}")
+        logger.info(f"  sLSTM positions: {config.slstm_at}")
     else:
         raise ValueError(f"Unsupported model type: {args.model_type}")
     
@@ -292,8 +332,14 @@ def create_model_for_single_vd(args, data_module, logger):
     logger.info(f"Model created successfully:")
     logger.info(f"  Type: {model_info['model_type']} ({args.model_type.upper()})")
     logger.info(f"  Parameters: {model_info['total_parameters']:,}")
-    logger.info(f"  Hidden size: {model_info['config']['hidden_size']}")
-    logger.info(f"  Layers: {model_info['config']['num_layers']}")
+    
+    if args.model_type == "lstm":
+        logger.info(f"  Hidden size: {model_info['config']['hidden_size']}")
+        logger.info(f"  Layers: {model_info['config']['num_layers']}")
+    elif args.model_type == "xlstm":
+        logger.info(f"  Embedding dim: {model_info['embedding_dim']}")
+        logger.info(f"  Blocks: {model_info['num_blocks']}")
+        logger.info(f"  sLSTM positions: {model_info['slstm_positions']}")
     
     return model
 
@@ -314,28 +360,54 @@ def create_model_for_multi_vd(args, data_module, logger):
     
     # Get feature information
     sample_batch = next(iter(data_module.train_dataloader()))
-    actual_features = sample_batch['input_seq'].shape[-1]
-    actual_num_vds = sample_batch['input_seq'].shape[-2]
+    input_shape = sample_batch['input_seq'].shape
     
-    logger.info(f"Creating multi VD model with {actual_features} features, {actual_num_vds} VDs")
+    # Handle both 4D and 3D input formats
+    if len(input_shape) == 4:
+        # 4D format: [batch, seq, num_vds, features_per_vd]
+        batch_size, seq_len, actual_num_vds, features_per_vd = input_shape
+        flattened_features = actual_num_vds * features_per_vd
+    elif len(input_shape) == 3:
+        # 3D format: [batch, seq, flattened_features] (already flattened)
+        batch_size, seq_len, flattened_features = input_shape
+        features_per_vd = 5  # Standard traffic features
+        actual_num_vds = flattened_features // features_per_vd
+    else:
+        raise ValueError(f"Unexpected input shape: {input_shape}")
+    
+    logger.info(f"Creating multi VD model with {flattened_features} total features, {actual_num_vds} VDs ({features_per_vd} features per VD)")
     
     if args.model_type == "lstm":
+        from social_xlstm.models.lstm import TrafficLSTM
         model = TrafficLSTM.create_multi_vd_model(
             num_vds=actual_num_vds,
-            input_size=actual_features,
+            input_size=features_per_vd,  # Per-VD features, not flattened
             hidden_size=args.hidden_size,
             num_layers=args.num_layers,
             dropout=args.dropout
         )
     elif args.model_type == "xlstm":
-        logger.warning("xLSTM model not yet implemented, using LSTM instead")
-        model = TrafficLSTM.create_multi_vd_model(
-            num_vds=actual_num_vds,
-            input_size=actual_features,
-            hidden_size=args.hidden_size,
-            num_layers=args.num_layers,
-            dropout=args.dropout
+        from social_xlstm.models.xlstm import TrafficXLSTM, TrafficXLSTMConfig
+        
+        # Create xLSTM configuration for multi-VD
+        config = TrafficXLSTMConfig(
+            input_size=flattened_features,
+            output_size=flattened_features,
+            embedding_dim=getattr(args, 'embedding_dim', args.hidden_size),
+            num_blocks=getattr(args, 'num_blocks', 6),
+            slstm_at=getattr(args, 'slstm_at', [1, 3]),
+            dropout=args.dropout,
+            multi_vd_mode=True,
+            num_vds=actual_num_vds
         )
+        
+        model = TrafficXLSTM(config)
+        logger.info(f"xLSTM configuration:")
+        logger.info(f"  Embedding dim: {config.embedding_dim}")
+        logger.info(f"  Num blocks: {config.num_blocks}")
+        logger.info(f"  sLSTM positions: {config.slstm_at}")
+        logger.info(f"  Multi-VD mode: {config.multi_vd_mode}")
+        logger.info(f"  Num VDs: {config.num_vds}")
     else:
         raise ValueError(f"Unsupported model type: {args.model_type}")
     
