@@ -107,7 +107,8 @@ rule train_multi_vd_without_social_pooling:
     input:
         h5_file=config['dataset']['pre-processed']['h5']['file']
     output:
-        experiment_dir=directory(config['training']['multi_vd']['experiment_dir'])
+        training_history=os.path.join(config['training']['multi_vd']['experiment_dir'], "training_history.json"),
+        model_file=os.path.join(config['training']['multi_vd']['experiment_dir'], "best_model.pth")
     log:
         config['training']['multi_vd']['log']
     params:
@@ -127,14 +128,15 @@ rule train_multi_vd_without_social_pooling:
         --num_vds {params.num_vds} \
         --model_type {params.model_type} \
         --experiment_name {params.experiment_name} \
-        --save_dir $(dirname {output.experiment_dir}) >> {log} 2>&1
+        --save_dir $(dirname {output.training_history}) >> {log} 2>&1
         """
 
 rule train_independent_multi_vd_without_social_pooling:
     input:
         h5_file=config['dataset']['pre-processed']['h5']['file']
     output:
-        experiment_dir=directory(config['training']['independent_multi_vd']['experiment_dir'])
+        training_history=os.path.join(config['training']['independent_multi_vd']['experiment_dir'], "training_history.json"),
+        model_file=os.path.join(config['training']['independent_multi_vd']['experiment_dir'], "best_model.pth")
     log:
         config['training']['independent_multi_vd']['log']
     params:
@@ -156,7 +158,7 @@ rule train_independent_multi_vd_without_social_pooling:
         --target_vd_index {params.target_vd_index} \
         --model_type {params.model_type} \
         --experiment_name {params.experiment_name} \
-        --save_dir $(dirname {output.experiment_dir}) >> {log} 2>&1
+        --save_dir $(dirname {output.training_history}) >> {log} 2>&1
         """
 
 rule generate_single_vd_report:
@@ -216,6 +218,40 @@ rule generate_single_vd_plots:
         advanced_metrics=os.path.join(config['training']['single_vd']['experiment_dir'], "plots", "advanced_metrics.png")
     log:
         "logs/reports/generate_single_vd_plots.log"
+    shell:
+        """
+        python scripts/utils/generate_training_plots.py \
+        --experiment_dir $(dirname {input.training_history}) \
+        --verbose >> {log} 2>&1
+        """
+
+rule generate_multi_vd_plots:
+    input:
+        training_history=rules.train_multi_vd_without_social_pooling.output.training_history
+    output:
+        plots_dir=directory(os.path.join(config['training']['multi_vd']['experiment_dir'], "plots")),
+        training_curves=os.path.join(config['training']['multi_vd']['experiment_dir'], "plots", "training_curves.png"),
+        metric_evolution=os.path.join(config['training']['multi_vd']['experiment_dir'], "plots", "metric_evolution.png"),
+        advanced_metrics=os.path.join(config['training']['multi_vd']['experiment_dir'], "plots", "advanced_metrics.png")
+    log:
+        "logs/reports/generate_multi_vd_plots.log"
+    shell:
+        """
+        python scripts/utils/generate_training_plots.py \
+        --experiment_dir $(dirname {input.training_history}) \
+        --verbose >> {log} 2>&1
+        """
+
+rule generate_independent_multi_vd_plots:
+    input:
+        training_history=rules.train_independent_multi_vd_without_social_pooling.output.training_history
+    output:
+        plots_dir=directory(os.path.join(config['training']['independent_multi_vd']['experiment_dir'], "plots")),
+        training_curves=os.path.join(config['training']['independent_multi_vd']['experiment_dir'], "plots", "training_curves.png"),
+        metric_evolution=os.path.join(config['training']['independent_multi_vd']['experiment_dir'], "plots", "metric_evolution.png"),
+        advanced_metrics=os.path.join(config['training']['independent_multi_vd']['experiment_dir'], "plots", "advanced_metrics.png")
+    log:
+        "logs/reports/generate_independent_multi_vd_plots.log"
     shell:
         """
         python scripts/utils/generate_training_plots.py \
