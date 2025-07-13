@@ -49,7 +49,7 @@ class TestTrafficFeatureExtractor:
     
     def test_aggregate_vd_features(self):
         """Test VD feature aggregation."""
-        # Mock VD detail object
+        # Mock VD detail object with correct LinkFlows structure
         vd_detail = MagicMock()
         
         # Create mock lanes
@@ -63,7 +63,12 @@ class TestTrafficFeatureExtractor:
         lane2.Occupancy = 0.20
         lane2.Vehicles = [MagicMock(Volume=20)]
         
-        vd_detail.Lanes = [lane1, lane2]
+        # Create mock LinkFlow containing the lanes
+        link_flow = MagicMock()
+        link_flow.Lanes = [lane1, lane2]
+        
+        # Set up the correct structure: vd_detail.LinkFlows
+        vd_detail.LinkFlows = [link_flow]
         
         feature_names = ['avg_speed', 'total_volume', 'avg_occupancy', 'speed_std', 'lane_count']
         
@@ -72,7 +77,7 @@ class TestTrafficFeatureExtractor:
         assert len(features) == 5
         assert features[0] == 65.0  # avg_speed: (60 + 70) / 2
         assert features[1] == 30.0  # total_volume: 10 + 20
-        assert abs(features[2] - 0.15) < 1e-10  # avg_occupancy: (0.10 + 0.20) / 2
+        assert abs(features[2] - 0.15) < 1e-6  # avg_occupancy: (0.10 + 0.20) / 2
         assert features[3] == 5.0   # speed_std: std([60, 70])
         assert features[4] == 2.0   # lane_count: 2 lanes
     

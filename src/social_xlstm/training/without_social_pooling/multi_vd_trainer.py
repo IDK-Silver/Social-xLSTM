@@ -109,27 +109,33 @@ class MultiVDTrainer(BaseTrainer):
         inputs = batch['input_seq']  # [batch_size, seq_len, num_vds, num_features]
         targets = batch['target_seq']  # [batch_size, pred_len, num_vds, num_features]
         
-        # Prepare inputs based on aggregation strategy
+        # Select only the required prediction steps first
+        targets = targets[:, :self.prediction_steps, :, :]
+        
+        # Prepare inputs and targets based on aggregation strategy
         if self.vd_aggregation == "flatten":
-            # Flatten VD and feature dimensions
+            # Flatten VD and feature dimensions for both inputs and targets
             batch_size, seq_len, num_vds, num_features = inputs.shape
             inputs = inputs.view(batch_size, seq_len, num_vds * num_features)
             
-            # Prepare targets to match
-            targets = targets.view(batch_size, targets.shape[1], num_vds * num_features)
+            # Apply same transformation to targets - key fix!
+            target_batch_size, target_seq_len, target_num_vds, target_num_features = targets.shape
+            targets = targets.view(target_batch_size, target_seq_len, target_num_vds * target_num_features)
             
         elif self.vd_aggregation == "attention":
-            # Keep 4D format for attention mechanism
-            # The model should handle attention across VDs
-            pass
+            # For attention mechanism, flatten inputs but keep targets 4D initially
+            # Then reshape targets to match model output format
+            batch_size, seq_len, num_vds, num_features = inputs.shape
+            inputs = inputs.view(batch_size, seq_len, num_vds * num_features)
+            
+            # Reshape targets to match model output (flattened format)
+            target_batch_size, target_seq_len, target_num_vds, target_num_features = targets.shape
+            targets = targets.view(target_batch_size, target_seq_len, target_num_vds * target_num_features)
             
         elif self.vd_aggregation == "pooling":
             # Average pooling across VDs
             inputs = inputs.mean(dim=2)  # [batch_size, seq_len, num_features]
             targets = targets.mean(dim=2)  # [batch_size, pred_len, num_features]
-        
-        # Select only the required prediction steps
-        targets = targets[:, :self.prediction_steps, :]
         
         return inputs, targets
     

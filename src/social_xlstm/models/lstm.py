@@ -16,7 +16,7 @@ License: MIT
 
 import torch
 import torch.nn as nn
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, Optional, Tuple
 from dataclasses import dataclass
 import logging
 
@@ -142,18 +142,26 @@ class TrafficLSTM(nn.Module):
         batch_size = x.size(0)
         
         if self.config.multi_vd_mode:
-            # Handle multi-VD input: [batch_size, seq_len, num_vds, num_features]
-            if x.dim() != 4:
-                raise ValueError(f"Multi-VD mode expects 4D input, got {x.dim()}D")
+            # Handle multi-VD input - accept both 4D and 3D (pre-flattened) formats
+            if x.dim() == 4:
+                # 4D input: [batch_size, seq_len, num_vds, num_features] - needs flattening
+                seq_len, num_vds, num_features = x.size(1), x.size(2), x.size(3)
+                x = x.view(batch_size, seq_len, num_vds * num_features)
+                logger.debug(f"Flattened 4D input to 3D: {num_vds} VDs x {num_features} features")
+                
+            elif x.dim() == 3:
+                # 3D input: [batch_size, seq_len, flattened_features] - already flattened
+                seq_len, flattened_features = x.size(1), x.size(2)
+                logger.debug(f"Using pre-flattened 3D input: {flattened_features} features")
+                
+            else:
+                raise ValueError(f"Multi-VD mode expects 4D or 3D input, got {x.dim()}D")
             
-            seq_len, num_vds, num_features = x.size(1), x.size(2), x.size(3)
-            
-            # Reshape for LSTM: [batch_size, seq_len, num_vds * num_features]
-            x = x.view(batch_size, seq_len, num_vds * num_features)
-            
-            # Update input size dynamically for multi-VD
-            if self.lstm.input_size != num_vds * num_features:
-                logger.warning(f"Input size mismatch: expected {self.lstm.input_size}, got {num_vds * num_features}")
+            # Validate input size matches model expectations
+            expected_size = self.lstm.input_size
+            actual_size = x.size(-1)
+            if expected_size != actual_size:
+                logger.warning(f"Input size mismatch: expected {expected_size}, got {actual_size}")
         
         else:
             # Handle single VD input: [batch_size, seq_len, num_features]
@@ -295,6 +303,77 @@ class TrafficLSTM(nn.Module):
             **kwargs
         )
         return cls(config)
+
+    @staticmethod
+    def parse_multi_vd_output(flat_output: torch.Tensor, 
+                             num_vds: int, 
+                             num_features: int) -> torch.Tensor:
+        """
+        Parse flattened multi-VD output back to structured format.
+        
+        This method converts the flattened output from multi-VD models back to
+        a structured 4D tensor where each VD's predictions are separated.
+        
+        Args:
+            flat_output: Flattened model output [batch_size, seq_len, num_vds * num_features]
+            num_vds: Number of VDs in the output
+            num_features: Number of features per VD
+            
+        Returns:
+            torch.Tensor: Structured output [batch_size, seq_len, num_vds, num_features]
+            
+        Example:
+            >>> flat_output = torch.randn(4, 1, 15)  # 3 VDs × 5 features
+            >>> structured = TrafficLSTM.parse_multi_vd_output(flat_output, 3, 5)
+            >>> print(structured.shape)  # torch.Size([4, 1, 3, 5])
+        """
+        batch_size, seq_len, total_features = flat_output.shape
+        
+        # Validate input dimensions
+        expected_features = num_vds * num_features
+        if total_features != expected_features:
+            raise ValueError(
+                f"Feature dimension mismatch: got {total_features}, "
+                f"expected {expected_features} (num_vds={num_vds} × num_features={num_features})"
+            )
+        
+        # Reshape to structured format
+        structured = flat_output.view(batch_size, seq_len, num_vds, num_features)
+        
+        logger.debug(f"Parsed multi-VD output: {flat_output.shape} → {structured.shape}")
+        return structured
+
+    @staticmethod  
+    def extract_vd_prediction(structured_output: torch.Tensor, 
+                             vd_index: int) -> torch.Tensor:
+        """
+        Extract specific VD prediction from structured multi-VD output.
+        
+        Args:
+            structured_output: Structured output [batch_size, seq_len, num_vds, num_features]
+            vd_index: Index of the VD to extract (0-based)
+            
+        Returns:
+            torch.Tensor: VD prediction [batch_size, seq_len, num_features]
+            
+        Example:
+            >>> structured = torch.randn(4, 1, 3, 5)  # 3 VDs
+            >>> vd_001 = TrafficLSTM.extract_vd_prediction(structured, 1)
+            >>> print(vd_001.shape)  # torch.Size([4, 1, 5])
+        """
+        _, _, num_vds, _ = structured_output.shape
+        
+        # Validate VD index
+        if vd_index < 0 or vd_index >= num_vds:
+            raise IndexError(
+                f"VD index {vd_index} out of range [0, {num_vds})"
+            )
+        
+        # Extract specific VD
+        vd_prediction = structured_output[:, :, vd_index, :]
+        
+        logger.debug(f"Extracted VD_{vd_index:03d} prediction: {vd_prediction.shape}")
+        return vd_prediction
 
 
 # Utility functions for model creation and management

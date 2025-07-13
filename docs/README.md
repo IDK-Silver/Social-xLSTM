@@ -16,6 +16,11 @@
   - 原始論文 (Alahi et al., CVPR 2016) 詳細解讀
   - 架構設計原理與實現細節
   - 數學公式推導與實驗結果分析
+- **`output_formats_and_parsing.md`** - **模型輸出格式與解析技術文檔** ⭐ **NEW!**
+  - Single VD vs Multi-VD 輸出格式說明
+  - 扁平化輸出的技術原理與設計權衡
+  - TrafficLSTM 解析方法使用指南
+  - 錯誤處理與性能優化建議
 
 ### architecture（架構設計）
 - **`social_xlstm_design.md`** - Social xLSTM 架構設計文檔
@@ -36,6 +41,13 @@
   - 完整的訓練系統使用方法
   - 進階配置和超參數調優
   - 實際範例和常見問題解答
+
+### examples（實作範例）
+- **`multi_vd_output_parsing_examples.md`** - **Multi-VD 輸出解析實作範例** ⭐ **NEW!**
+  - 基本解析和VD提取使用方法
+  - 實際應用場景：模型評估、實時預測、批次處理
+  - 進階應用：特徵分析、空間相關性分析
+  - 錯誤處理與性能優化範例
 
 ### 📊 資料格式與品質（**NEW!**）
 - **`data_format.md`** - **交通資料格式完整說明**

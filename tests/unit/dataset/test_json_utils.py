@@ -55,7 +55,10 @@ def test_vd_info_load_from_json(temp_json_dir: Path, sample_vd_info_data: dict):
     assert vd_info.UpdateInfo.UpdateTime == sample_vd_info_data["UpdateInfo"]["UpdateTime"]
     assert vd_info.UpdateInfo.UpdateInterval == sample_vd_info_data["UpdateInfo"]["UpdateInterval"]
     assert len(vd_info.VDList) == len(sample_vd_info_data["VDList"])
-    assert vd_info.VDList[0].VDID == sample_vd_info_data["VDList"][0]["VDID"]
+    # VDInfo.from_dict automatically pads VDID last field to 3 digits
+    # So "VD-11-0020-002-01" becomes "VD-11-0020-002-001"
+    expected_vdid = "VD-11-0020-002-001"  # Padded version
+    assert vd_info.VDList[0].VDID == expected_vdid
     assert vd_info.VDList[0].LaneNum == sample_vd_info_data["VDList"][0]["LaneNum"]
     assert len(vd_info.VDList[0].DetectionLinks) == len(sample_vd_info_data["VDList"][0]["DetectionLinks"])
     assert vd_info.VDList[0].DetectionLinks[0].LinkID == sample_vd_info_data["VDList"][0]["DetectionLinks"][0]["LinkID"]
