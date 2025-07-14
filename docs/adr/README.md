@@ -36,6 +36,9 @@
 - [ADR-0500](0500-lstm-baseline-completion-next-steps.md) - LSTM 基準完成與下一步規劃 (Accepted)
 - [ADR-0501](0501-xlstm-integration-strategy.md) - xLSTM 整合策略與並行訓練架構 (Proposed)
 
+### Social Pooling 架構 (0600-0699)
+- [ADR-0600](0600-social-pooling-integration-strategy.md) - Social Pooling 整合策略與雙重實現架構 (Accepted)
+
 ## 使用指南
 
 ### 查看 ADR 狀態
@@ -110,4 +113,4 @@ done
 
 ---
 
-最後更新: 2025-07-13
+最後更新: 2025-07-14

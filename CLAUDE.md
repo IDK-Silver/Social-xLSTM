@@ -197,6 +197,15 @@ pytest test/test_social_xlstm/dataset/test_json_utils.py
 ```bash
 # Plot VD (Vehicle Detector) coordinates
 python scripts/utils/plot_vd_point.py --VDListJson <json_file_path>
+
+# Generate all training plots (recommended for development)
+python scripts/utils/run_all_plots.py --config dev --timeout 120
+
+# Generate all training plots (production)
+python scripts/utils/run_all_plots.py --config default
+
+# Generate plots with specific options
+python scripts/utils/run_all_plots.py --config cfgs/snakemake/dev.yaml --cores 2 --sequential
 ```
 
 ## Code Architecture

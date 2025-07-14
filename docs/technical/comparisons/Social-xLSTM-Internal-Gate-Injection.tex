@@ -1,0 +1,769 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amsfonts,amssymb}
+\usepackage{geometry}
+\geometry{margin=1in}
+\usepackage{xeCJK}
+\setCJKmainfont{AR PL UMing TW MBE}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+
+% 設置程式碼格式
+\lstdefinestyle{pythonstyle}{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    commentstyle=\color{green!60!black},
+    stringstyle=\color{red},
+    showstringspaces=false,
+    breaklines=true,
+    tabsize=4,
+    frame=single,
+    frameround=tttt,
+    backgroundcolor=\color{gray!10}
+}
+
+% 定義定理環境
+\usepackage{amsthm}
+\newtheorem{theorem}{定理}
+\newtheorem{definition}{定義}
+
+\title{Social\,-xLSTM with Internal Gate Injection\\
+\vspace{0.4em}\Large A Comprehensive Technical Specification for Grid--Based Social Pooling Integration}
+\author{Social-xLSTM Research Team}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+本文件提供 \textbf{Social\,-xLSTM with Internal Gate Injection (IGI)} 的完整技術規格。此方法直接將 Grid--based Social Pooling 向量 $S_t^i$ 注入到 sLSTM 與 mLSTM 的所有門控計算與鍵值投影中，實現在記憶更新階段即時考慮鄰居影響的深度整合。與 post--fusion 方法相比，IGI 方法能在更細粒度上調節記憶寫入、遺忘與輸出過程，特別適用於需要即時空間交互的時空建模任務。本文詳細分析了數學公式、計算複雜度、架構設計與實現策略，為 Social-xLSTM 的高性能實現提供了理論基礎和技術指導。
+
+\textbf{關鍵詞}: Extended LSTM, Social Pooling, Gate Injection, 時空建模, 深度學習
+\end{abstract}
+
+\tableofcontents
+
+\section{Introduction}
+
+\subsection{Background and Motivation}
+
+Extended Long Short-Term Memory (xLSTM) 架構通過引入指數門控機制和矩陣記憶體，顯著提升了傳統 LSTM 的記憶容量和長期依賴建模能力。同時，Social Pooling 機制在多智能體軌跡預測中展現了優秀的空間交互建模能力。然而，如何將這兩種先進技術有效結合，仍然面臨著重要的技術挑戰。
+
+傳統的融合方法通常採用 post--fusion 策略，即在個體特徵處理完成後再進行空間聚合。這種方法雖然實現簡單，但存在以下限制：
+
+\begin{enumerate}
+\item \textbf{表達能力限制}: 社交信息無法影響記憶更新過程，僅能在最終階段發揮作用
+\item \textbf{時空解耦}: 時間和空間特徵處理相互獨立，無法實現真正的時空耦合建模
+\item \textbf{響應延遲}: 鄰居狀態變化無法即時反映在記憶演化中
+\end{enumerate}
+
+\subsection{Internal Gate Injection 方法概述}
+
+為了克服上述限制，我們提出了 Internal Gate Injection (IGI) 方法。該方法的核心思想是將 Social Pooling 得到的空間特徵直接注入到 xLSTM 的門控計算中，實現以下技術創新：
+
+\begin{itemize}
+\item \textbf{深度整合}: 社交信息參與每一步記憶更新過程
+\item \textbf{細粒度控制}: 精確調節寫入、遺忘、輸出門的社交影響
+\item \textbf{即時響應}: 鄰居變化立即反映在記憶狀態中
+\item \textbf{時空耦合}: 在記憶層面實現時間和空間的深度融合
+\end{itemize}
+
+\subsection{Technical Contributions}
+
+本技術規格的主要貢獻包括：
+
+\begin{enumerate}
+\item 提供了 IGI 方法的完整數學公式推導
+\item 詳細分析了計算複雜度和性能特徵
+\item 設計了完整的架構實現方案
+\item 提供了詳細的實現指導和優化策略
+\end{enumerate}
+
+\section{Mathematical Foundations}
+
+\subsection{Notation and Preliminaries}
+
+對於包含 $N$ 個代理的系統，在時間步 $t$，定義以下符號：
+
+\begin{align}
+x_t^i &\in \mathbb{R}^{d_{\text{in}}} &&\text{代理 } i \text{ 的輸入特徵向量} \\
+h_{t-1}^i &\in \mathbb{R}^{d_h} &&\text{代理 } i \text{ 在時間 } t-1 \text{ 的隱藏狀態（僅 sLSTM）} \\
+\mathbf{c}_i &= (x_i, y_i) &&\text{代理 } i \text{ 的空間座標} \\
+\mathcal{N}_i &= \{j : \|\mathbf{c}_j - \mathbf{c}_i\| \leq R, j \neq i\} &&\text{代理 } i \text{ 的鄰居集合} \\
+S_t^i &\in \mathbb{R}^{d_s} &&\text{代理 } i \text{ 的 Social Pooling 向量}
+\end{align}
+
+為簡化表示，下文省略上標 $i$，除非需要明確區分不同代理。
+
+\subsection{Enhanced Grid--based Social Pooling}\label{sec:pooling}
+
+Grid--based Social Pooling 機制通過空間網格將鄰居信息組織為結構化表示。給定半徑 $R$ 和網格大小 $M \times N$，構建過程如下：
+
+\subsubsection{空間網格構建}
+
+首先，將鄰居相對位置映射到網格座標：
+\begin{align}
+\Delta x_{ij} &= x_j - x_i, \quad \Delta y_{ij} = y_j - y_i \\
+m_{ij} &= \left\lfloor \frac{\Delta x_{ij} + R}{2R / M} \right\rfloor, \quad m_{ij} \in [0, M-1] \\
+n_{ij} &= \left\lfloor \frac{\Delta y_{ij} + R}{2R / N} \right\rfloor, \quad n_{ij} \in [0, N-1]
+\end{align}
+
+\subsubsection{加權聚合機制}
+
+考慮距離權重的隱藏狀態聚合：
+\begin{align}
+w_{ij} &= \exp\left(-\frac{\|\mathbf{c}_j - \mathbf{c}_i\|}{R/3}\right) \label{eq:distance_weight} \\
+H_t(m,n,:) &= \sum_{j \in \mathcal{N}_i} w_{ij} \cdot \mathbf{1}_{mn}[\Delta x_{ij}, \Delta y_{ij}] \cdot h_{t-1}^j \label{eq:grid_aggregation}
+\end{align}
+
+其中 $\mathbf{1}_{mn}[\cdot]$ 是網格指示函數：
+\begin{equation}
+\mathbf{1}_{mn}[\Delta x, \Delta y] = \begin{cases}
+1 & \text{if } (m, n) = \left(\left\lfloor \frac{\Delta x + R}{2R / M} \right\rfloor, \left\lfloor \frac{\Delta y + R}{2R / N} \right\rfloor\right) \\
+0 & \text{otherwise}
+\end{cases}
+\end{equation}
+
+\subsubsection{特徵嵌入和投影}
+
+空間網格經過兩階段處理得到最終的 Social Pooling 向量：
+\begin{align}
+\mathbf{h}_{\text{flat}} &= \operatorname{flatten}(H_t) \in \mathbb{R}^{M \times N \times d_h} \\
+S_t &= \phi_{\text{soc}}(\mathbf{h}_{\text{flat}}) = \text{ReLU}(\mathbf{W}_2 \text{ReLU}(\mathbf{W}_1 \mathbf{h}_{\text{flat}} + \mathbf{b}_1) + \mathbf{b}_2)
+\end{align}
+
+其中 $\mathbf{W}_1 \in \mathbb{R}^{d_{\text{mid}} \times (M \times N \times d_h)}$，$\mathbf{W}_2 \in \mathbb{R}^{d_s \times d_{\text{mid}}}$ 是可學習參數。
+
+\section{sLSTM with Internal Gate Injection}
+
+\subsection{Enhanced Gate Computation}
+
+標準 sLSTM 的門控計算擴展為包含 Social Pooling 信息：
+
+\begin{align}
+\tilde{i}_t &= \mathbf{W}_i^{(x)} x_t + \mathbf{R}_i h_{t-1} + \mathbf{U}_i S_t + b_i \label{eq:slstm_input_gate} \\
+\tilde{f}_t &= \mathbf{W}_f^{(x)} x_t + \mathbf{R}_f h_{t-1} + \mathbf{U}_f S_t + b_f \label{eq:slstm_forget_gate} \\
+\tilde{z}_t &= \mathbf{W}_z^{(x)} x_t + \mathbf{R}_z h_{t-1} + \mathbf{U}_z S_t + b_z \label{eq:slstm_candidate} \\
+\tilde{o}_t &= \mathbf{W}_o^{(x)} x_t + \mathbf{R}_o h_{t-1} + \mathbf{U}_o S_t + b_o \label{eq:slstm_output_gate}
+\end{align}
+
+其中：
+\begin{itemize}
+\item $\mathbf{W}_{\bullet}^{(x)} \in \mathbb{R}^{d_h \times d_{\text{in}}}$：輸入權重矩陣
+\item $\mathbf{R}_{\bullet} \in \mathbb{R}^{d_h \times d_h}$：循環權重矩陣
+\item $\mathbf{U}_{\bullet} \in \mathbb{R}^{d_h \times d_s}$：Social Pooling 權重矩陣（新增）
+\item $b_{\bullet} \in \mathbb{R}^{d_h}$：偏置向量
+\end{itemize}
+
+\subsection{Exponential Gating and Memory Update}
+
+應用 xLSTM 的指數門控機制：
+\begin{align}
+i_t &= \exp(\tilde{i}_t) \label{eq:slstm_exp_input} \\
+f_t &= \sigma(\tilde{f}_t) \label{eq:slstm_sigmoid_forget} \\
+z_t &= \tanh(\tilde{z}_t) \label{eq:slstm_tanh_candidate} \\
+o_t &= \sigma(\tilde{o}_t) \label{eq:slstm_sigmoid_output}
+\end{align}
+
+記憶狀態更新和輸出計算：
+\begin{align}
+c_t &= f_t \odot c_{t-1} + i_t \odot z_t \label{eq:slstm_cell_update} \\
+n_t &= f_t \odot n_{t-1} + i_t \label{eq:slstm_norm_update} \\
+\tilde{h}_t &= \frac{c_t}{n_t} \label{eq:slstm_normalized_hidden} \\
+h_t &= o_t \odot \tilde{h}_t \label{eq:slstm_final_hidden}
+\end{align}
+
+\subsection{Social Influence Analysis}
+
+Social Pooling 向量 $S_t$ 對 sLSTM 各個門控的影響可以分析如下：
+
+\begin{itemize}
+\item \textbf{輸入門 $i_t$}: 控制新信息（包括社交信息）的寫入強度
+\item \textbf{遺忘門 $f_t$}: 決定是否保留或遺忘與社交背景相關的記憶
+\item \textbf{候選值 $z_t$}: 直接影響寫入記憶的內容，實現社交調節
+\item \textbf{輸出門 $o_t$}: 控制社交感知記憶的輸出程度
+\end{itemize}
+
+這種設計實現了社交信息對記憶\textit{寫入}、\textit{遺忘}、\textit{輸出}全過程的細粒度調節。
+
+\section{mLSTM with Internal Gate Injection}
+
+\subsection{Query, Key, Value Computation with Social Integration}
+
+mLSTM 的查詢、鍵、值計算融入 Social Pooling 信息：
+\begin{align}
+q_t &= \mathbf{W}_q^{(x)} x_t + \mathbf{U}_q S_t + b_q \label{eq:mlstm_query} \\
+k_t &= \frac{1}{\sqrt{d_k}} \left(\mathbf{W}_k^{(x)} x_t + \mathbf{U}_k S_t\right) + b_k \label{eq:mlstm_key} \\
+v_t &= \mathbf{W}_v^{(x)} x_t + \mathbf{U}_v S_t + b_v \label{eq:mlstm_value}
+\end{align}
+
+其中 $d_k$ 是鍵向量的維度，縮放因子 $1/\sqrt{d_k}$ 用於穩定訓練過程。
+
+\subsection{Social-Aware Gate Mechanisms}
+
+mLSTM 的門控計算同樣整合社交信息：
+\begin{align}
+i_t &= \exp(\mathbf{w}_i^{\top} x_t + \mathbf{u}_i^{\top} S_t + b_i) \label{eq:mlstm_input_gate} \\
+f_t &= \sigma(\mathbf{w}_f^{\top} x_t + \mathbf{u}_f^{\top} S_t + b_f) \label{eq:mlstm_forget_gate} \\
+o_t &= \sigma(\mathbf{w}_o^{\top} x_t + \mathbf{u}_o^{\top} S_t + b_o) \label{eq:mlstm_output_gate}
+\end{align}
+
+注意 mLSTM 中的門控權重 $\mathbf{w}_{\bullet}, \mathbf{u}_{\bullet}$ 是向量而非矩陣，這是 mLSTM 架構的特點。
+
+\subsection{Matrix Memory Update and Retrieval}
+
+矩陣記憶體的更新和檢索過程：
+\begin{align}
+\mathbf{C}_t &= f_t \mathbf{C}_{t-1} + i_t v_t k_t^{\top} \label{eq:mlstm_matrix_update} \\
+\mathbf{n}_t &= f_t \mathbf{n}_{t-1} + i_t k_t \label{eq:mlstm_norm_vector_update} \\
+h_t &= o_t \odot \frac{\mathbf{C}_t q_t}{\max\{|\mathbf{n}_t^{\top} q_t|, 1\}} \label{eq:mlstm_output}
+\end{align}
+
+其中：
+\begin{itemize}
+\item $\mathbf{C}_t \in \mathbb{R}^{d_h \times d_h}$：矩陣記憶體狀態
+\item $\mathbf{n}_t \in \mathbb{R}^{d_h}$：正規化向量
+\item 分母中的 $\max$ 操作防止數值不穩定
+\end{itemize}
+
+\section{Computational Complexity Analysis}
+
+\subsection{Social Pooling Complexity}
+
+對於每個代理 $i$，Social Pooling 的計算複雜度包括：
+
+\subsubsection{鄰居發現和網格構建}
+\begin{align}
+\mathcal{O}_{\text{neighbor}} &= \mathcal{O}(|\mathcal{N}_i|) \approx \mathcal{O}(\pi R^2 \rho) \\
+\mathcal{O}_{\text{grid}} &= \mathcal{O}(|\mathcal{N}_i| \cdot d_h) \approx \mathcal{O}(\pi R^2 \rho \cdot d_h)
+\end{align}
+其中 $\rho$ 是代理密度。
+
+\subsubsection{特徵嵌入}
+\begin{equation}
+\mathcal{O}_{\text{embedding}} = \mathcal{O}(M \cdot N \cdot d_h \cdot d_{\text{mid}} + d_{\text{mid}} \cdot d_s)
+\end{equation}
+
+\subsection{sLSTM with IGI Complexity}
+
+每個時間步的 sLSTM 計算複雜度：
+
+\subsubsection{標準 sLSTM 操作}
+\begin{equation}
+\mathcal{O}_{\text{sLSTM-std}} = \mathcal{O}(d_{\text{in}} \cdot d_h + d_h^2)
+\end{equation}
+
+\subsubsection{Social Integration 開銷}
+\begin{equation}
+\mathcal{O}_{\text{sLSTM-social}} = \mathcal{O}(4 \cdot d_s \cdot d_h)
+\end{equation}
+
+\subsubsection{總計}
+\begin{equation}
+\mathcal{O}_{\text{sLSTM-IGI}} = \mathcal{O}(d_{\text{in}} \cdot d_h + d_h^2 + d_s \cdot d_h)
+\end{equation}
+
+\subsection{mLSTM with IGI Complexity}
+
+mLSTM 的矩陣運算主導了計算複雜度：
+
+\subsubsection{標準 mLSTM 操作}
+\begin{equation}
+\mathcal{O}_{\text{mLSTM-std}} = \mathcal{O}(d_{\text{in}} \cdot d_h + d_h^3)
+\end{equation}
+
+\subsubsection{Social Integration 開銷}
+\begin{equation}
+\mathcal{O}_{\text{mLSTM-social}} = \mathcal{O}(3 \cdot d_s \cdot d_h + 3 \cdot d_s)
+\end{equation}
+
+\subsubsection{總計}
+\begin{equation}
+\mathcal{O}_{\text{mLSTM-IGI}} = \mathcal{O}(d_{\text{in}} \cdot d_h + d_h^3 + d_s \cdot d_h)
+\end{equation}
+
+\subsection{整體系統複雜度}
+
+對於包含 $N$ 個代理、$L$ 層、$T$ 個時間步的系統：
+\begin{equation}
+\mathcal{O}_{\text{total}} = \mathcal{O}(N \cdot T \cdot L \cdot (\pi R^2 \rho \cdot d_h + d_h^3 + d_s \cdot d_h))
+\end{equation}
+
+\subsection{與 Post-Fusion 方法的複雜度比較}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|c|c|}
+\hline
+\textbf{操作} & \textbf{Post-Fusion} & \textbf{Internal Injection} \\
+\hline
+Social Pooling & $\mathcal{O}(|\mathcal{N}_i| \cdot d_h)$ & $\mathcal{O}(|\mathcal{N}_i| \cdot d_h)$ \\
+xLSTM 計算 & $\mathcal{O}(d_h^3)$ & $\mathcal{O}(d_h^3 + d_s \cdot d_h)$ \\
+融合計算 & $\mathcal{O}(d_h^2)$ & $\mathcal{O}(0)$ \\
+\hline
+\textbf{總計} & $\mathcal{O}(|\mathcal{N}_i| \cdot d_h + d_h^3 + d_h^2)$ & $\mathcal{O}(|\mathcal{N}_i| \cdot d_h + d_h^3 + d_s \cdot d_h)$ \\
+\hline
+\end{tabular}
+\caption{複雜度比較：Post-Fusion vs Internal Injection}
+\end{table}
+
+當 $d_s \ll d_h$ 時，Internal Injection 方法的額外開銷較小，且省去了融合層的計算。
+
+\section{Architecture Design}
+
+\subsection{Hybrid Block Structure}
+
+Social-xLSTM with IGI 採用混合區塊結構，結合 sLSTM 和 mLSTM 的優勢：
+
+\begin{algorithm}
+\caption{Social-xLSTM IGI Block}
+\label{alg:social_xlstm_block}
+\begin{algorithmic}[1]
+\REQUIRE Input sequence $\{x_t\}$, coordinates $\{\mathbf{c}_i\}$, previous hidden states $\{h_{t-1}^i\}$
+\ENSURE Updated hidden states $\{h_t^i\}$
+
+\STATE \textbf{// Phase 1: Social Pooling Computation}
+\FOR{each agent $i$}
+    \STATE Find neighbors $\mathcal{N}_i = \{j : \|\mathbf{c}_j - \mathbf{c}_i\| \leq R\}$
+    \STATE Compute grid representation $H_t^i$ using Eq.~\ref{eq:grid_aggregation}
+    \STATE Extract social features $S_t^i = \phi_{\text{soc}}(\text{flatten}(H_t^i))$
+\ENDFOR
+
+\STATE \textbf{// Phase 2: sLSTM Processing with IGI}
+\FOR{each agent $i$}
+    \STATE Compute gates using Eqs.~\ref{eq:slstm_input_gate}--\ref{eq:slstm_output_gate}
+    \STATE Apply activations using Eqs.~\ref{eq:slstm_exp_input}--\ref{eq:slstm_sigmoid_output}
+    \STATE Update cell state using Eqs.~\ref{eq:slstm_cell_update}--\ref{eq:slstm_final_hidden}
+    \STATE $h_{\text{sLSTM}}^i \leftarrow h_t^i$
+\ENDFOR
+
+\STATE \textbf{// Phase 3: mLSTM Processing with IGI}
+\FOR{each agent $i$}
+    \STATE Compute Q, K, V using Eqs.~\ref{eq:mlstm_query}--\ref{eq:mlstm_value}
+    \STATE Compute gates using Eqs.~\ref{eq:mlstm_input_gate}--\ref{eq:mlstm_output_gate}
+    \STATE Update matrix memory using Eqs.~\ref{eq:mlstm_matrix_update}--\ref{eq:mlstm_output}
+    \STATE $h_{\text{mLSTM}}^i \leftarrow h_t^i$
+\ENDFOR
+
+\STATE \textbf{// Phase 4: Residual Connection and Normalization}
+\FOR{each agent $i$}
+    \STATE $h_t^i \leftarrow \text{LayerNorm}(x_t^i + h_{\text{mLSTM}}^i)$
+\ENDFOR
+
+\RETURN $\{h_t^i\}$
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Multi-Layer Architecture}
+
+完整的 Social-xLSTM IGI 模型包含 $L$ 個堆疊區塊：
+\begin{align}
+\mathbf{h}^{(0)} &= \text{InputEmbedding}(x_t) \\
+\mathbf{h}^{(\ell)} &= \text{SocialxLSTMBlock}_{\ell}(\mathbf{h}^{(\ell-1)}, S_t), \quad \ell = 1, \ldots, L \\
+\mathbf{y}_t &= \text{OutputLayer}(\mathbf{h}^{(L)})
+\end{align}
+
+\subsection{Layer Configuration Strategy}
+
+根據實驗經驗，建議的層配置策略：
+\begin{itemize}
+\item \textbf{淺層 (1-2層)}: 使用 sLSTM 進行基礎特徵學習
+\item \textbf{中層 (3-4層)}: 交替使用 sLSTM 和 mLSTM
+\item \textbf{深層 (5-6層)}: 使用 mLSTM 進行高階抽象
+\end{itemize}
+
+\section{Implementation Strategy}
+
+\subsection{Efficient Social Pooling Implementation}
+
+\subsubsection{批次處理優化}
+
+\begin{lstlisting}[style=pythonstyle, caption={高效的 Social Pooling 實現}]
+def efficient_social_pooling(hidden_states, coordinates, radius, grid_size):
+    """
+    高效的 Social Pooling 實現
+    
+    Args:
+        hidden_states: [N, d_h] - 所有代理的隱藏狀態
+        coordinates: [N, 2] - 所有代理的座標
+        radius: float - 空間半徑
+        grid_size: (M, N) - 網格大小
+    
+    Returns:
+        social_features: [N, d_s] - Social Pooling 特徵
+    """
+    N, d_h = hidden_states.shape
+    M, N_grid = grid_size
+    
+    # 向量化距離計算
+    distances = torch.cdist(coordinates, coordinates)
+    neighbor_mask = distances <= radius
+    
+    # 向量化網格映射
+    relative_coords = coordinates.unsqueeze(1) - coordinates.unsqueeze(0)
+    grid_coords = ((relative_coords + radius) / (2 * radius) * 
+                   torch.tensor([M, N_grid])).long()
+    
+    # 構建 Social Grid
+    social_grids = []
+    for i in range(N):
+        grid = torch.zeros(M, N_grid, d_h)
+        neighbors = neighbor_mask[i].nonzero().squeeze()
+        if neighbors.numel() > 0:
+            neighbor_coords = grid_coords[i, neighbors]
+            neighbor_states = hidden_states[neighbors]
+            # 使用 scatter_add 進行高效聚合
+            grid.scatter_add_(0, neighbor_coords[:, 0:1].expand(-1, d_h).unsqueeze(1), 
+                            neighbor_states.unsqueeze(1))
+        social_grids.append(grid.flatten())
+    
+    social_grids = torch.stack(social_grids)
+    
+    # 特徵嵌入
+    social_features = social_embedding_net(social_grids)
+    return social_features
+\end{lstlisting}
+
+\subsection{Memory-Efficient IGI Implementation}
+
+\subsubsection{門控計算優化}
+
+\begin{lstlisting}[style=pythonstyle, caption={SocialInjectionsLSTM 實現}]
+class SocialInjectionsLSTM(nn.Module):
+    def __init__(self, input_dim, hidden_dim, social_dim):
+        super().__init__()
+        self.input_dim = input_dim
+        self.hidden_dim = hidden_dim
+        self.social_dim = social_dim
+        
+        # 合併輸入、循環和社交權重以減少計算
+        self.input_weights = nn.Linear(input_dim, 4 * hidden_dim)
+        self.recurrent_weights = nn.Linear(hidden_dim, 4 * hidden_dim, bias=False)
+        self.social_weights = nn.Linear(social_dim, 4 * hidden_dim, bias=False)
+        
+    def forward(self, x, h_prev, social_features):
+        # 批次計算所有門控
+        gates_input = self.input_weights(x)
+        gates_recurrent = self.recurrent_weights(h_prev)
+        gates_social = self.social_weights(social_features)
+        
+        gates = gates_input + gates_recurrent + gates_social
+        
+        # 分離各個門控
+        i_tilde, f_tilde, z_tilde, o_tilde = gates.chunk(4, dim=-1)
+        
+        # 應用激活函數
+        i = torch.exp(i_tilde)
+        f = torch.sigmoid(f_tilde)
+        z = torch.tanh(z_tilde)
+        o = torch.sigmoid(o_tilde)
+        
+        return i, f, z, o
+\end{lstlisting}
+
+\subsection{Training Strategies}
+
+\subsubsection{梯度穩定化技術}
+1. \textbf{梯度裁剪}: 限制梯度範數在合理範圍內
+   \begin{lstlisting}[style=pythonstyle]
+   torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+   \end{lstlisting}
+
+2. \textbf{學習率調度}: 使用 Cosine Annealing 或 ReduceLROnPlateau
+   \begin{lstlisting}[style=pythonstyle]
+   scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=100)
+   \end{lstlisting}
+
+3. \textbf{權重初始化}: Xavier 或 He 初始化，社交權重使用較小的初始化值
+   \begin{lstlisting}[style=pythonstyle]
+   nn.init.xavier_uniform_(self.social_weights.weight, gain=0.1)
+   \end{lstlisting}
+
+\subsubsection{正規化技術}
+1. \textbf{Dropout}: 在社交特徵上應用 dropout
+2. \textbf{Layer Normalization}: 在每個區塊後使用層歸一化
+3. \textbf{Weight Decay}: L2 正規化防止過擬合
+
+\subsection{Hyperparameter Recommendations}
+
+基於實驗經驗的超參數建議：
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{參數} & \textbf{建議值} & \textbf{說明} \\
+\hline
+$d_h$ (Hidden Dimension) & 128-256 & 平衡表達能力和計算效率 \\
+$d_s$ (Social Dimension) & $d_h / 2$ & 避免社交特徵過度主導 \\
+$R$ (Spatial Radius) & 25000m & 根據應用場景調整 \\
+$(M, N)$ (Grid Size) & $(8, 8)$ & 提供足夠的空間解析度 \\
+$L$ (Number of Layers) & 4-6 & 深度與性能的權衡 \\
+Learning Rate & 0.001 & 使用 Adam 優化器 \\
+Batch Size & 32-64 & 根據 GPU 記憶體調整 \\
+Dropout Rate & 0.1-0.2 & 防止過擬合 \\
+\hline
+\end{tabular}
+\caption{推薦的超參數設置}
+\end{table}
+
+\section{Theoretical Analysis}
+
+\subsection{Convergence Properties}
+
+\subsubsection{梯度流分析}
+IGI 方法的梯度流特性可以通過以下分析理解：
+
+設損失函數為 $\mathcal{L}$，則社交權重的梯度為：
+\begin{equation}
+\frac{\partial \mathcal{L}}{\partial \mathbf{U}_g} = \frac{\partial \mathcal{L}}{\partial \tilde{g}_t} \frac{\partial \tilde{g}_t}{\partial \mathbf{U}_g} = \frac{\partial \mathcal{L}}{\partial \tilde{g}_t} S_t^{\top}
+\end{equation}
+
+其中 $g \in \{i, f, z, o\}$ 代表不同的門控。
+
+由於 $S_t$ 包含了鄰居信息，梯度能夠同時反映個體特徵和社交背景的影響，促進更穩定的收斂。
+
+\subsubsection{穩定性條件}
+為確保訓練穩定性，需要滿足以下條件：
+
+1. \textbf{社交權重範數約束}:
+   \begin{equation}
+   \|\mathbf{U}_g\|_F \leq \alpha \|\mathbf{W}_g^{(x)}\|_F, \quad \alpha \in [0.1, 0.5]
+   \end{equation}
+
+2. \textbf{指數門控穩定性}:
+   \begin{equation}
+   \tilde{i}_t \leq \log(C), \quad C \in [10, 100]
+   \end{equation}
+
+\subsection{Expressive Power Analysis}
+
+\subsubsection{表達能力理論}
+IGI 方法的表達能力可以通過以下定理刻畫：
+
+\begin{theorem}[社交增強表達能力]
+設標準 xLSTM 的表達能力為 $\mathcal{F}_{\text{xLSTM}}$，IGI 方法的表達能力為 $\mathcal{F}_{\text{IGI}}$，則：
+\begin{equation}
+\mathcal{F}_{\text{IGI}} \supseteq \mathcal{F}_{\text{xLSTM}} \cup \mathcal{F}_{\text{Social}}
+\end{equation}
+其中 $\mathcal{F}_{\text{Social}}$ 是純社交模式的函數空間。
+\end{theorem}
+
+\begin{proof}[證明大綱]
+當社交權重 $\mathbf{U}_g = \mathbf{0}$ 時，IGI 退化為標準 xLSTM，故 $\mathcal{F}_{\text{xLSTM}} \subseteq \mathcal{F}_{\text{IGI}}$。
+當輸入權重和循環權重適當設置時，IGI 可以學習純社交模式，故 $\mathcal{F}_{\text{Social}} \subseteq \mathcal{F}_{\text{IGI}}$。
+\end{proof}
+
+\subsection{Generalization Bounds}
+
+基於 PAC-Bayes 理論，IGI 方法的泛化界限為：
+\begin{equation}
+R(\hat{h}) \leq \hat{R}(\hat{h}) + \sqrt{\frac{D_{KL}(P \| P_0) + \log(2\sqrt{N}/\delta)}{2(N-1)}}
+\end{equation}
+
+其中：
+- $R(\hat{h})$ 是真實風險
+- $\hat{R}(\hat{h})$ 是經驗風險  
+- $D_{KL}(P \| P_0)$ 是參數分佈的 KL 散度
+- $N$ 是樣本數量
+
+社交信息的引入通常能夠減小 $D_{KL}$ 項，從而改善泛化能力。
+
+\section{Detailed Comparison with Post--Fusion}
+
+\subsection{Technical Differences}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|p{3cm}|p{5cm}|p{5cm}|}
+\hline
+\textbf{方面} & \textbf{Post--Fusion} & \textbf{Internal Gate Injection} \\
+\hline
+\textbf{整合時機} & xLSTM 處理後進行特徵融合 & 門控計算時直接注入 \\
+\hline
+\textbf{社交影響深度} & 僅影響最終預測層 & 影響整個記憶更新過程 \\
+\hline
+\textbf{計算圖結構} & 順序處理：個體→社交→融合 & 並行處理：個體+社交同步 \\
+\hline
+\textbf{參數效率} & 需要額外融合層參數 & 直接擴展現有權重矩陣 \\
+\hline
+\textbf{梯度傳播} & 社交梯度需經過融合層 & 社交梯度直達門控 \\
+\hline
+\textbf{實現複雜度} & 模組化，易於調試 & 需要修改 xLSTM 內部結構 \\
+\hline
+\end{tabular}
+\caption{Post-Fusion vs Internal Gate Injection 技術差異}
+\end{table}
+
+\subsection{Performance Characteristics}
+
+\subsubsection{記憶動力學比較}
+設 $\mathbf{M}_{\text{PF}}(t)$ 和 $\mathbf{M}_{\text{IGI}}(t)$ 分別表示兩種方法在時間 $t$ 的記憶狀態，則：
+
+\textbf{Post-Fusion}:
+\begin{align}
+\mathbf{M}_{\text{PF}}(t) &= f_{\text{xLSTM}}(\mathbf{M}_{\text{PF}}(t-1), x_t) \\
+\hat{y}_t &= g_{\text{fusion}}(\mathbf{M}_{\text{PF}}(t), S_t)
+\end{align}
+
+\textbf{Internal Gate Injection}:
+\begin{align}
+\mathbf{M}_{\text{IGI}}(t) &= f_{\text{xLSTM-IGI}}(\mathbf{M}_{\text{IGI}}(t-1), x_t, S_t) \\
+\hat{y}_t &= g_{\text{output}}(\mathbf{M}_{\text{IGI}}(t))
+\end{align}
+
+IGI 方法中，社交信息 $S_t$ 直接參與記憶演化，實現更深層的時空耦合。
+
+\subsubsection{響應速度分析}
+對於鄰居狀態的突變 $\Delta h_{\text{neighbor}}$：
+
+- \textbf{Post-Fusion}: 響應延遲 1 個時間步
+- \textbf{IGI}: 即時響應，響應強度與門控值相關
+
+這使得 IGI 方法特別適合需要快速空間適應的場景。
+
+\subsection{Advantages and Limitations}
+
+\subsubsection{IGI 方法的優勢}
+1. \textbf{深度時空耦合}: 社交信息在記憶層面與時間信息深度融合
+2. \textbf{細粒度控制}: 可以精確調節不同門控的社交敏感度
+3. \textbf{即時響應}: 鄰居變化立即反映在記憶更新中
+4. \textbf{理論先進性}: 代表了更先進的多智能體建模範式
+
+\subsubsection{IGI 方法的限制}
+1. \textbf{實現複雜性}: 需要深度修改 xLSTM 內部結構
+2. \textbf{調參挑戰}: 更多的超參數需要精心調節
+3. \textbf{穩定性要求}: 對權重初始化和學習率更敏感
+4. \textbf{計算開銷}: 額外的社交權重計算
+
+\subsubsection{適用場景建議}
+\begin{itemize}
+\item \textbf{選擇 IGI}: 高性能要求、即時響應需求、研究探索
+\item \textbf{選擇 Post-Fusion}: 快速原型、穩定性優先、團隊協作開發
+\end{itemize}
+
+\section{Advanced Implementation Considerations}
+
+\subsection{Parallel Computing Optimization}
+
+\subsubsection{GPU 加速策略}
+1. \textbf{CUDA 內核優化}: 針對 Social Pooling 的自定義 CUDA 內核
+2. \textbf{記憶體合併}: 最小化 GPU 記憶體訪問延遲
+3. \textbf{混合精度訓練}: 使用 FP16 減少記憶體使用和計算時間
+
+\subsubsection{分布式訓練}
+
+\begin{lstlisting}[style=pythonstyle, caption={分布式 Social Pooling 實現}]
+def distributed_social_pooling(local_states, coordinates, world_size, rank):
+    """
+    在多 GPU 環境中實現 Social Pooling
+    """
+    # 收集所有 GPU 的座標和狀態
+    all_coordinates = [torch.zeros_like(coordinates) for _ in range(world_size)]
+    all_states = [torch.zeros_like(local_states) for _ in range(world_size)]
+    
+    dist.all_gather(all_coordinates, coordinates)
+    dist.all_gather(all_states, local_states)
+    
+    # 全局計算 Social Pooling
+    global_coordinates = torch.cat(all_coordinates, dim=0)
+    global_states = torch.cat(all_states, dim=0)
+    
+    return compute_social_pooling(global_states, global_coordinates)
+\end{lstlisting}
+
+\subsection{Memory Optimization Techniques}
+
+\subsubsection{梯度檢查點}
+使用梯度檢查點減少記憶體使用：
+\begin{lstlisting}[style=pythonstyle]
+from torch.utils.checkpoint import checkpoint
+
+def memory_efficient_forward(self, x, social_features):
+    return checkpoint(self._forward_impl, x, social_features)
+\end{lstlisting}
+
+\subsubsection{動態圖剪枝}
+在推理階段動態調整鄰居範圍：
+\begin{lstlisting}[style=pythonstyle, caption={自適應鄰居選擇}]
+def adaptive_neighbor_selection(coordinates, max_neighbors=50):
+    """
+    根據密度自適應選擇鄰居數量
+    """
+    distances = torch.cdist(coordinates, coordinates)
+    k = min(max_neighbors, len(coordinates) - 1)
+    _, neighbor_indices = torch.topk(distances, k, largest=False, dim=-1)
+    return neighbor_indices
+\end{lstlisting}
+
+\section{Future Extensions and Research Directions}
+
+\subsection{Multi-Scale Social Modeling}
+
+考慮多尺度社交建模：
+\begin{align}
+S_t^{\text{local}} &= \text{SocialPooling}(\{h_j : \|\mathbf{c}_j - \mathbf{c}_i\| \leq R_1\}) \\
+S_t^{\text{global}} &= \text{SocialPooling}(\{h_j : R_1 < \|\mathbf{c}_j - \mathbf{c}_i\| \leq R_2\}) \\
+S_t^{\text{multi}} &= \text{Fusion}(S_t^{\text{local}}, S_t^{\text{global}})
+\end{align}
+
+\subsection{Adaptive Gate Injection}
+
+根據局部密度自適應調整注入強度：
+\begin{equation}
+\tilde{g}_t = \mathbf{W}_g^{(x)} x_t + \mathbf{R}_g h_{t-1} + \alpha_t(\rho_{\text{local}}) \mathbf{U}_g S_t + b_g
+\end{equation}
+
+其中 $\alpha_t(\rho_{\text{local}})$ 是基於局部密度的自適應權重。
+
+\subsection{Causal Social Modeling}
+
+整合因果推理機制：
+\begin{equation}
+S_t^{\text{causal}} = \text{CausalMask}(S_t) \odot S_t
+\end{equation}
+
+其中 $\text{CausalMask}$ 根據因果圖過濾社交影響。
+
+\section{Conclusion}
+
+本技術規格詳細介紹了 Social-xLSTM with Internal Gate Injection 方法的完整設計。IGI 方法通過將社交信息直接注入到 xLSTM 的門控計算中，實現了比傳統 post-fusion 方法更深層的時空耦合建模。
+
+\subsection{Key Technical Contributions}
+
+1. \textbf{深度整合設計}: 首次實現社交信息在 xLSTM 記憶層面的深度整合
+2. \textbf{完整技術規格}: 提供從數學推導到實現優化的完整技術方案
+3. \textbf{理論分析框架}: 建立了收斂性、表達能力和泛化能力的理論基礎
+4. \textbf{實用實現指導}: 提供了詳細的實現策略和性能優化建議
+
+\subsection{Implementation Readiness}
+
+本規格提供的技術方案具備直接實現的條件：
+- 完整的數學公式定義
+- 詳細的算法描述
+- 具體的代碼實現建議
+- 全面的超參數指導
+
+\subsection{Research Impact}
+
+IGI 方法代表了多智能體時空建模的新範式，為以下研究領域提供了重要參考：
+- 交通流量預測
+- 人群動力學建模
+- 多機器人系統協調
+- 社交網絡分析
+
+通過本技術規格的詳細描述，研究者和工程師可以深入理解 IGI 方法的技術細節，並根據具體應用需求進行適當的實現和優化。
+
+\section*{Acknowledgments}
+
+感謝所有為 Social-xLSTM 技術發展做出貢獻的研究團隊成員。本技術規格在原有簡潔版本基礎上進行了全面擴展，旨在為學術研究和工程實現提供完整的技術指導。
+
+\end{document}
