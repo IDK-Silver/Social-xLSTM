@@ -473,25 +473,3 @@ rule train_xlstm_multi_vd:
         --save_dir $(dirname $(dirname {output.training_history})) >> {log} 2>&1
         """
 
-rule compare_lstm_xlstm:
-    input:
-        lstm_history=os.path.join(config['training_lstm']['single_vd']['experiment_dir'], "training_history.json"),
-        xlstm_history=os.path.join(config['training_xlstm']['single_vd']['experiment_dir'], "training_history.json")
-    output:
-        comparison_report=os.path.join(config['training_xlstm']['single_vd']['experiment_dir'], "lstm_vs_xlstm_comparison.json"),
-        comparison_plots=os.path.join(config['training_xlstm']['single_vd']['experiment_dir'], "plots/lstm_vs_xlstm_comparison.png")
-    log:
-        "logs/comparison/lstm_vs_xlstm_comparison.log"
-    shell:
-        """
-        python scripts/utils/compare_models.py \
-        --lstm_history {input.lstm_history} \
-        --xlstm_history {input.xlstm_history} \
-        --output_report {output.comparison_report} \
-        --output_plot {output.comparison_plots} >> {log} 2>&1
-        """
-
-
-rule compare_models:
-    input:
-        rules.compare_lstm_xlstm.output

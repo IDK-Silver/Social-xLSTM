@@ -20,9 +20,7 @@ dataset:
       log: logs/dev/create_h5_file.log
       selected_vdids:
       - VD-28-0740-000-001
-      - VD-11-0020-008-001
-      - VD-13-0660-000-002
-      time_range: 2025-03-18_00-00-00,2025-04-18_00-00-00
+      time_range: 2025-03-18_00-00-00,2025-03-18_23-59-59
       overwrite: true
     # Alternative stable dataset for overfitting validation
     h5_stable:
@@ -30,16 +28,14 @@ dataset:
       log: logs/dev/create_h5_stable_file.log
       selected_vdids:
       - VD-28-0740-000-001
-      - VD-11-0020-008-001
-      - VD-13-0660-000-002
-      time_range: 2025-03-18_00-00-00,2025-04-18_00-00-00
+      time_range: 2025-03-18_00-00-00,2025-03-18_23-59-59
       overwrite: true
 training_lstm:
   single_vd:
     experiment_dir: blob/experiments/dev/lstm/single_vd
     log: logs/dev/train_single_vd_lstm.log
-    epochs: 50
-    batch_size: 16
+    epochs: 10
+    batch_size: 32
     sequence_length: 5
     model_type: lstm
     select_vd_id: VD-28-0740-000-001
@@ -63,10 +59,10 @@ training_lstm:
   multi_vd:
     experiment_dir: blob/experiments/dev/lstm/multi_vd
     log: logs/dev/train_multi_vd_lstm.log
-    epochs: 50
-    batch_size: 16
+    epochs: 10
+    batch_size: 32
     sequence_length: 5
-    num_vds: 3
+    num_vds: 1
     model_type: lstm
     hidden_size: 32
     num_layers: 1
@@ -88,10 +84,10 @@ training_lstm:
   independent_multi_vd:
     experiment_dir: blob/experiments/dev/lstm/independent_multi_vd
     log: logs/dev/train_independent_multi_vd_lstm.log
-    epochs: 50
-    batch_size: 16
+    epochs: 10
+    batch_size: 32
     sequence_length: 5
-    num_vds: 3
+    num_vds: 1
     target_vd_index: 0
     model_type: lstm
     hidden_size: 32
@@ -115,8 +111,8 @@ training_xlstm:
   single_vd:
     experiment_dir: blob/experiments/dev/xlstm/single_vd
     log: logs/dev/train_single_vd_xlstm.log
-    epochs: 10
-    batch_size: 4
+    epochs: 5
+    batch_size: 16
     sequence_length: 5
     model_type: xlstm
     select_vd_id: VD-28-0740-000-001
@@ -145,11 +141,11 @@ training_xlstm:
   multi_vd:
     experiment_dir: blob/experiments/dev/xlstm/multi_vd
     log: logs/dev/train_multi_vd_xlstm.log
-    epochs: 10
-    batch_size: 4
+    epochs: 5
+    batch_size: 16
     sequence_length: 5
     model_type: xlstm
-    num_vds: 3
+    num_vds: 1
     embedding_dim: 64
     num_blocks: 4
     slstm_at:
