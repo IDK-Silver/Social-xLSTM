@@ -19,6 +19,163 @@ class TrafficFeatureExtractor:
     """Extracts features from traffic data structures."""
     
     @staticmethod
+    def validate_dataset_quality(dataset_path: str) -> Tuple[bool, Dict[str, Any]]:
+        """
+        Comprehensive dataset quality validation.
+        
+        Args:
+            dataset_path: Path to the H5 dataset file
+            
+        Returns:
+            Tuple of (quality_good: bool, quality_metrics: dict)
+        """
+        logger.info(f"Validating dataset quality for {dataset_path}")
+        
+        with h5py.File(dataset_path, 'r') as h5file:
+            features = h5file['data/features'][:]
+            feature_names = h5file['metadata/feature_names'][:]
+            
+            # Convert feature names to strings
+            feature_names = [name.decode() if isinstance(name, bytes) else name for name in feature_names]
+        
+        # Test 80/20 split on data
+        total_samples = len(features)
+        train_end = int(total_samples * 0.8)
+        
+        train_data = features[:train_end]
+        val_data = features[train_end:]
+        
+        logger.info(f"Dataset split - Total: {total_samples}, Train: {len(train_data)}, Val: {len(val_data)}")
+        
+        # Check distribution consistency (primary VD only)
+        quality_metrics = {}
+        
+        for feat_idx, feat_name in enumerate(feature_names[:3]):
+            train_feat = train_data[:, 0, feat_idx]  # Primary VD
+            val_feat = val_data[:, 0, feat_idx]
+            
+            # Remove invalid data
+            train_valid = train_feat[np.isfinite(train_feat) & (train_feat != 0)]
+            val_valid = val_feat[np.isfinite(val_feat) & (val_feat != 0)]
+            
+            if len(train_valid) > 10 and len(val_valid) > 10:
+                train_mean = np.mean(train_valid)
+                val_mean = np.mean(val_valid)
+                train_std = np.std(train_valid)
+                val_std = np.std(val_valid)
+                
+                mean_diff = abs(train_mean - val_mean) / train_mean if train_mean != 0 else 0
+                std_diff = abs(train_std - val_std) / train_std if train_std != 0 else 0
+                
+                quality_metrics[feat_name] = {
+                    'mean_diff': mean_diff, 
+                    'std_diff': std_diff,
+                    'train_mean': train_mean,
+                    'val_mean': val_mean,
+                    'train_std': train_std,
+                    'val_std': val_std
+                }
+                
+                # Log validation results
+                mean_ok = mean_diff <= 0.10  # 10% threshold for stable data
+                std_ok = std_diff <= 0.10
+                overall_ok = mean_ok and std_ok
+                
+                logger.info(f"Feature {feat_name}: mean_diff={mean_diff:.3f}, std_diff={std_diff:.3f}, quality={'OK' if overall_ok else 'POOR'}")
+        
+        # Overall assessment
+        all_mean_diffs = [metrics['mean_diff'] for metrics in quality_metrics.values()]
+        all_std_diffs = [metrics['std_diff'] for metrics in quality_metrics.values()]
+        
+        max_mean_diff = max(all_mean_diffs) if all_mean_diffs else 0
+        max_std_diff = max(all_std_diffs) if all_std_diffs else 0
+        
+        data_quality_good = max_mean_diff <= 0.10 and max_std_diff <= 0.10
+        
+        quality_metrics['overall'] = {
+            'max_mean_diff': max_mean_diff,
+            'max_std_diff': max_std_diff,
+            'quality_good': data_quality_good
+        }
+        
+        logger.info(f"Overall dataset quality: {'GOOD' if data_quality_good else 'NEEDS IMPROVEMENT'}")
+        
+        return data_quality_good, quality_metrics
+    
+    @staticmethod
+    def stabilize_dataset(input_h5_path: str, output_h5_path: str, start_ratio: float = 0.3) -> str:
+        """
+        Create dataset using only the stable later portion of the data.
+        
+        Based on analysis, data quality improves significantly after ~30% of the timeline.
+        This method removes the problematic early period to ensure consistent quality.
+        
+        Args:
+            input_h5_path: Path to the input H5 dataset file
+            output_h5_path: Path to save the stabilized dataset
+            start_ratio: Ratio of data to skip from the beginning (default: 0.3)
+            
+        Returns:
+            Path to the stabilized dataset file
+        """
+        logger.info(f"Creating stable dataset from {input_h5_path}")
+        
+        with h5py.File(input_h5_path, 'r') as input_file:
+            # Load original data
+            features = input_file['data/features'][:]
+            timestamps = input_file['metadata/timestamps'][:]
+            feature_names = input_file['metadata/feature_names'][:]
+            vdids = input_file['metadata/vdids'][:]
+            
+            logger.info(f"Original data shape: {features.shape}")
+            
+            # Use data from start_ratio onwards (skip problematic early period)
+            start_idx = int(len(features) * start_ratio)
+            
+            stable_features = features[start_idx:]
+            stable_timestamps = timestamps[start_idx:]
+            
+            logger.info(f"Stable data shape: {stable_features.shape}")
+            logger.info(f"Removed {start_idx} samples ({start_ratio*100:.0f}% of data)")
+            
+            # Check quality of stable data
+            logger.info("Checking stable data quality...")
+            for vd_idx in range(min(3, stable_features.shape[1])):
+                vd_name = vdids[vd_idx].decode() if isinstance(vdids[vd_idx], bytes) else vdids[vd_idx]
+                
+                for feat_idx in range(min(3, stable_features.shape[2])):
+                    feat_name = feature_names[feat_idx].decode() if isinstance(feature_names[feat_idx], bytes) else feature_names[feat_idx]
+                    feat_data = stable_features[:, vd_idx, feat_idx]
+                    
+                    valid_count = np.sum(np.isfinite(feat_data) & (feat_data != 0))
+                    quality = valid_count / len(feat_data) * 100 if len(feat_data) > 0 else 0
+                    
+                    logger.info(f"  {vd_name} - {feat_name}: {quality:.1f}% valid")
+        
+        # Save stable dataset
+        Path(output_h5_path).parent.mkdir(parents=True, exist_ok=True)
+        
+        with h5py.File(output_h5_path, 'w') as output_file:
+            # Copy structure
+            data_group = output_file.create_group('data')
+            data_group.create_dataset('features', data=stable_features)
+            
+            metadata_group = output_file.create_group('metadata')
+            metadata_group.create_dataset('feature_names', data=feature_names)
+            metadata_group.create_dataset('timestamps', data=stable_timestamps)
+            metadata_group.create_dataset('vdids', data=vdids)
+            
+            # Add cleaning info
+            cleaning_group = metadata_group.create_group('cleaning_info')
+            cleaning_group.attrs['original_samples'] = len(features)
+            cleaning_group.attrs['stable_samples'] = len(stable_features)
+            cleaning_group.attrs['start_ratio'] = start_ratio
+            cleaning_group.attrs['removed_samples'] = start_idx
+        
+        logger.info(f"Stable dataset saved to: {output_h5_path}")
+        return output_h5_path
+    
+    @staticmethod
     def extract_lane_features(lane) -> Dict[str, float]:
         """Extract features from a single lane."""
         from ..utils.json_utils import LaneData

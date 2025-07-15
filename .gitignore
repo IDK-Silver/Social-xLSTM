@@ -227,3 +227,8 @@ Thumbs.db
 
 # Generated PDF reports
 docs/technical/social_xlstm_comprehensive_report.pdf
+
+# Notebooks directory for exploratory analysis
+notebooks/
+
+.mcp.json

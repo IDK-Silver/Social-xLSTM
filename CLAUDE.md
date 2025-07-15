@@ -288,8 +288,11 @@ python scripts/utils/run_all_plots.py --config cfgs/snakemake/dev.yaml --cores 2
   - `experiments/` - 模型訓練結果和實驗輸出
   - `status/` - 處理狀態追蹤檔案
 - **logs/** - 所有日誌檔案
-- **src/** - 原始程式碼
-- **scripts/** - 執行腳本
+- **src/** - 原始程式碼 (核心套件)
+- **scripts/** - 主要執行腳本 (核心工作流程)
+- **tools/** - 開發者工具 (配置、分析、診斷、驗證)
+- **tests/** - 測試套件 (單元測試、整合測試、功能測試)
+- **notebooks/** - 探索性分析 (本地開發，已在 .gitignore 中)
 
 ### Package Structure
 - The project uses src/ layout with `social_xlstm` as the main package
@@ -456,6 +459,74 @@ snakemake --configfile=cfgs/snakemake/dev.yaml train_single_vd_without_social_po
 # 數據處理 (開發標準) 
 snakemake --configfile=cfgs/snakemake/dev.yaml create_h5_file
 ```
+
+## 🛠️ 開發者工具使用指南
+
+**重要**: 專案已重新組織，將開發者工具從 `scripts/` 移動到 `tools/` 目錄，以便更好地區分核心工作流程和開發者工具。
+
+### Tools 目錄結構
+```
+tools/
+├── config/         # 配置生成和管理工具
+├── analysis/       # 數據分析工具
+├── diagnostics/    # 診斷和檢查工具
+└── validation/     # 驗證工具
+```
+
+### 工具使用範例
+
+#### 配置工具
+```bash
+# 生成最佳化配置
+python tools/config/config_generator.py --type optimized --h5_path stable_dataset.h5
+
+# 生成開發配置
+python tools/config/config_generator.py --type development --h5_path dataset.h5
+```
+
+#### 分析工具
+```bash
+# 數據品質分析
+python tools/analysis/data_quality_analysis.py --input data.h5
+
+# 時間模式分析
+python tools/analysis/temporal_pattern_analysis.py --data_path data.h5
+
+# HDF5 數據分析
+python tools/analysis/h5_data_analysis.py --file_path data.h5
+```
+
+#### 診斷工具
+```bash
+# HDF5 結構檢查
+python tools/diagnostics/h5_structure_inspector.py --input data.h5
+
+# 數據穩定性檢查
+python tools/diagnostics/data_stability_tools.py --check stability
+
+# 系統診斷
+python tools/diagnostics/diagnostic_tools.py --system_check
+```
+
+#### 驗證工具
+```bash
+# 時間分割驗證
+python tools/validation/temporal_split_validation.py --data_path data.h5
+
+# 訓練驗證
+python tools/validation/training_validation.py --model_path model.pt
+
+# 過度擬合驗證
+python tools/validation/overfitting_validation.py --experiment_path experiments/
+```
+
+### 工具開發指南
+- **新增工具**: 根據功能分類加入相應的子目錄
+- **自包含**: 每個工具都應該可以獨立執行
+- **文檔**: 每個工具都應該有 `--help` 選項
+- **錯誤處理**: 提供清晰的錯誤訊息
+
+詳細說明請參考 [tools/README.md](tools/README.md)
 
 ## 🔧 檔案修改原則
 

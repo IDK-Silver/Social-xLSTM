@@ -1,9 +1,14 @@
 """Data preprocessing utilities for traffic data."""
 
 import numpy as np
+import yaml
+import logging
 from datetime import datetime
-from typing import List, Optional, Tuple, Union
+from pathlib import Path
+from typing import List, Optional, Tuple, Union, Dict, Any
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
+
+logger = logging.getLogger(__name__)
 
 
 class TrafficDataProcessor:
@@ -137,3 +142,300 @@ class TrafficDataProcessor:
             ])
         
         return np.array(time_features, dtype=np.float32)
+
+
+class TrafficConfigGenerator:
+    """Configuration generator for optimized traffic model training."""
+    
+    @staticmethod
+    def create_optimized_configs(stable_h5_path: str, output_dir: str = "cfgs/fixed", 
+                               vd_ids: Optional[List[str]] = None) -> List[str]:
+        """
+        Create optimized model configurations for stable dataset.
+        
+        Args:
+            stable_h5_path: Path to the stabilized H5 dataset
+            output_dir: Directory to save configuration files
+            vd_ids: List of VD IDs to use (uses defaults if None)
+            
+        Returns:
+            List of paths to saved configuration files
+        """
+        logger.info(f"Creating optimized configs for {stable_h5_path}")
+        
+        # Create output directory
+        output_path = Path(output_dir)
+        output_path.mkdir(parents=True, exist_ok=True)
+        
+        # Default VD IDs if not provided
+        if vd_ids is None:
+            vd_ids = ['VD-28-0740-000-001', 'VD-11-0020-008-001', 'VD-13-0660-000-002']
+        
+        # Base configuration template for stable data + overfitting fixes
+        base_config = {
+            'h5_file_path': stable_h5_path,
+            'select_vd_id': vd_ids[0],  # Primary VD with good quality
+            'selected_vdids': vd_ids,
+            
+            # Dataset config optimized for stable data
+            'dataset': {
+                'sequence_length': 12,
+                'prediction_length': 1,
+                'train_ratio': 0.8,
+                'val_ratio': 0.2,
+                'normalize': True,
+                'normalization_method': 'standard'
+            },
+            
+            # Training config with strong regularization
+            'training': {
+                'epochs': 50,           # Reduced from 200
+                'batch_size': 16,       # Reduced for small dataset
+                'learning_rate': 0.0005, # Reduced learning rate
+                'weight_decay': 0.01,   # Increased regularization
+                'early_stopping_patience': 8,  # Earlier stopping
+                'gradient_clip_value': 0.5,    # Stronger gradient clipping
+                'use_scheduler': True,
+                'scheduler_patience': 5
+            }
+        }
+        
+        # LSTM config (simplified)
+        lstm_config = base_config.copy()
+        lstm_config.update({
+            'model_type': 'lstm',
+            'model': {
+                'hidden_size': 32,      # Dramatically reduced from 128
+                'num_layers': 1,        # Reduced from 2
+                'dropout': 0.5,         # Increased from 0.2
+                'bidirectional': False
+            }
+        })
+        
+        # xLSTM config (simplified)
+        xlstm_config = base_config.copy()
+        xlstm_config.update({
+            'model_type': 'xlstm',
+            'model': {
+                'embedding_dim': 32,    # Reduced from 128
+                'hidden_size': 32,      # Reduced from 128
+                'num_blocks': 3,        # Reduced from 6
+                'dropout': 0.5,         # Increased regularization
+                'slstm_at': [1],        # Simplified structure
+            }
+        })
+        
+        # Save configurations
+        config_files = {
+            'lstm_fixed.yaml': lstm_config,
+            'xlstm_fixed.yaml': xlstm_config
+        }
+        
+        saved_configs = []
+        for filename, config in config_files.items():
+            config_path = output_path / filename
+            with open(config_path, 'w') as f:
+                yaml.dump(config, f, default_flow_style=False, sort_keys=False)
+            saved_configs.append(str(config_path))
+            logger.info(f"Saved configuration: {config_path}")
+        
+        logger.info(f"Created {len(saved_configs)} optimized configurations")
+        logger.info("Key optimizations applied:")
+        logger.info("  - Dataset: Using stable data (70% of original)")
+        logger.info("  - Model size: Reduced hidden_size 128→32")
+        logger.info("  - Regularization: Increased dropout 0.2→0.5")
+        logger.info("  - Training: Smaller batches, lower LR, early stopping")
+        logger.info("  - Complexity: Fewer layers/blocks")
+        
+        return saved_configs
+    
+    @staticmethod
+    def create_development_configs(h5_path: str, output_dir: str = "cfgs/dev_fixed",
+                                 vd_ids: Optional[List[str]] = None) -> List[str]:
+        """
+        Create development configurations for quick testing.
+        
+        Args:
+            h5_path: Path to the H5 dataset
+            output_dir: Directory to save configuration files
+            vd_ids: List of VD IDs to use (uses defaults if None)
+            
+        Returns:
+            List of paths to saved configuration files
+        """
+        logger.info(f"Creating development configs for {h5_path}")
+        
+        # Create output directory
+        output_path = Path(output_dir)
+        output_path.mkdir(parents=True, exist_ok=True)
+        
+        # Default VD IDs if not provided
+        if vd_ids is None:
+            vd_ids = ['VD-28-0740-000-001']
+        
+        # Base development configuration
+        base_config = {
+            'h5_file_path': h5_path,
+            'select_vd_id': vd_ids[0],
+            'selected_vdids': vd_ids,
+            
+            # Dataset config for fast development
+            'dataset': {
+                'sequence_length': 6,   # Shorter sequences
+                'prediction_length': 1,
+                'train_ratio': 0.8,
+                'val_ratio': 0.2,
+                'normalize': True,
+                'normalization_method': 'standard'
+            },
+            
+            # Training config for quick iteration
+            'training': {
+                'epochs': 5,            # Very few epochs
+                'batch_size': 32,       # Larger batches for speed
+                'learning_rate': 0.001, # Standard learning rate
+                'weight_decay': 0.01,
+                'early_stopping_patience': 3,
+                'gradient_clip_value': 1.0,
+                'use_scheduler': False
+            }
+        }
+        
+        # LSTM dev config (minimal)
+        lstm_config = base_config.copy()
+        lstm_config.update({
+            'model_type': 'lstm',
+            'model': {
+                'hidden_size': 16,      # Very small for development
+                'num_layers': 1,
+                'dropout': 0.3,
+                'bidirectional': False
+            }
+        })
+        
+        # xLSTM dev config (minimal)
+        xlstm_config = base_config.copy()
+        xlstm_config.update({
+            'model_type': 'xlstm',
+            'model': {
+                'embedding_dim': 16,    # Very small for development
+                'hidden_size': 16,
+                'num_blocks': 2,        # Minimal blocks
+                'dropout': 0.3,
+                'slstm_at': [1],
+            }
+        })
+        
+        # Save configurations
+        config_files = {
+            'lstm_dev.yaml': lstm_config,
+            'xlstm_dev.yaml': xlstm_config
+        }
+        
+        saved_configs = []
+        for filename, config in config_files.items():
+            config_path = output_path / filename
+            with open(config_path, 'w') as f:
+                yaml.dump(config, f, default_flow_style=False, sort_keys=False)
+            saved_configs.append(str(config_path))
+            logger.info(f"Saved development configuration: {config_path}")
+        
+        logger.info(f"Created {len(saved_configs)} development configurations")
+        
+        return saved_configs
+    
+    @staticmethod
+    def create_production_configs(h5_path: str, output_dir: str = "cfgs/production",
+                                vd_ids: Optional[List[str]] = None) -> List[str]:
+        """
+        Create production configurations for final experiments.
+        
+        Args:
+            h5_path: Path to the H5 dataset
+            output_dir: Directory to save configuration files
+            vd_ids: List of VD IDs to use (uses defaults if None)
+            
+        Returns:
+            List of paths to saved configuration files
+        """
+        logger.info(f"Creating production configs for {h5_path}")
+        
+        # Create output directory
+        output_path = Path(output_dir)
+        output_path.mkdir(parents=True, exist_ok=True)
+        
+        # Default VD IDs if not provided
+        if vd_ids is None:
+            vd_ids = ['VD-28-0740-000-001', 'VD-11-0020-008-001', 'VD-13-0660-000-002']
+        
+        # Base production configuration
+        base_config = {
+            'h5_file_path': h5_path,
+            'select_vd_id': vd_ids[0],
+            'selected_vdids': vd_ids,
+            
+            # Dataset config for production
+            'dataset': {
+                'sequence_length': 12,
+                'prediction_length': 1,
+                'train_ratio': 0.8,
+                'val_ratio': 0.2,
+                'normalize': True,
+                'normalization_method': 'standard'
+            },
+            
+            # Training config for production
+            'training': {
+                'epochs': 100,          # Full training
+                'batch_size': 64,       # Optimal batch size
+                'learning_rate': 0.001, # Standard learning rate
+                'weight_decay': 0.001,  # Moderate regularization
+                'early_stopping_patience': 10,
+                'gradient_clip_value': 1.0,
+                'use_scheduler': True,
+                'scheduler_patience': 7
+            }
+        }
+        
+        # LSTM production config
+        lstm_config = base_config.copy()
+        lstm_config.update({
+            'model_type': 'lstm',
+            'model': {
+                'hidden_size': 128,     # Full model size
+                'num_layers': 2,
+                'dropout': 0.2,
+                'bidirectional': False
+            }
+        })
+        
+        # xLSTM production config
+        xlstm_config = base_config.copy()
+        xlstm_config.update({
+            'model_type': 'xlstm',
+            'model': {
+                'embedding_dim': 128,   # Full model size
+                'hidden_size': 128,
+                'num_blocks': 6,        # Full blocks
+                'dropout': 0.2,
+                'slstm_at': [1, 3, 5],  # Mixed architecture
+            }
+        })
+        
+        # Save configurations
+        config_files = {
+            'lstm_production.yaml': lstm_config,
+            'xlstm_production.yaml': xlstm_config
+        }
+        
+        saved_configs = []
+        for filename, config in config_files.items():
+            config_path = output_path / filename
+            with open(config_path, 'w') as f:
+                yaml.dump(config, f, default_flow_style=False, sort_keys=False)
+            saved_configs.append(str(config_path))
+            logger.info(f"Saved production configuration: {config_path}")
+        
+        logger.info(f"Created {len(saved_configs)} production configurations")
+        
+        return saved_configs

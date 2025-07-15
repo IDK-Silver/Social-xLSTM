@@ -64,7 +64,10 @@ rule create_h5_file:
         fi
         
         if [ -n "{params.time_range}" ] && [ "{params.time_range}" != "None" ]; then
-            cmd="$cmd --time_range {params.time_range}"
+            # Split comma-separated time range into two arguments
+            time_start=$(echo "{params.time_range}" | cut -d',' -f1)
+            time_end=$(echo "{params.time_range}" | cut -d',' -f2)
+            cmd="$cmd --time_range $time_start $time_end"
         fi
         
         if [ "{params.overwrite}" = "True" ]; then
@@ -90,10 +93,15 @@ rule train_lstm_single_vd:
         sequence_length=config['training_lstm']['single_vd']['sequence_length'],
         model_type=config['training_lstm']['single_vd']['model_type'],
         experiment_name=os.path.basename(config['training_lstm']['single_vd']['experiment_dir']),
-        select_vd_id=config['training_lstm']['single_vd'].get('select_vd_id', None)
+        select_vd_id=config['training_lstm']['single_vd'].get('select_vd_id', None),
+        hidden_size=config['training_lstm']['single_vd'].get('hidden_size', 128),
+        num_layers=config['training_lstm']['single_vd'].get('num_layers', 2),
+        dropout=config['training_lstm']['single_vd'].get('dropout', 0.2),
+        learning_rate=config['training_lstm']['single_vd'].get('learning_rate', 0.001),
+        weight_decay=config['training_lstm']['single_vd'].get('weight_decay', 0.0001)
     shell:
         """
-        cmd="python scripts/train/without_social_pooling/train_single_vd.py --data_path {input.h5_file} --epochs {params.epochs} --batch_size {params.batch_size} --sequence_length {params.sequence_length} --model_type {params.model_type} --experiment_name {params.experiment_name} --save_dir $(dirname $(dirname {output.model_file}))"
+        cmd="python scripts/train/without_social_pooling/train_single_vd.py --data_path {input.h5_file} --epochs {params.epochs} --batch_size {params.batch_size} --sequence_length {params.sequence_length} --model_type {params.model_type} --experiment_name {params.experiment_name} --save_dir $(dirname $(dirname {output.model_file})) --hidden_size {params.hidden_size} --num_layers {params.num_layers} --dropout {params.dropout} --learning_rate {params.learning_rate} --weight_decay {params.weight_decay}"
         
         if [ -n "{params.select_vd_id}" ] && [ "{params.select_vd_id}" != "None" ]; then
             cmd="$cmd --select_vd_id {params.select_vd_id}"
@@ -117,7 +125,12 @@ rule train_lstm_multi_vd:
         sequence_length=config['training_lstm']['multi_vd']['sequence_length'],
         num_vds=config['training_lstm']['multi_vd']['num_vds'],
         model_type=config['training_lstm']['multi_vd']['model_type'],
-        experiment_name=os.path.basename(config['training_lstm']['multi_vd']['experiment_dir'])
+        experiment_name=os.path.basename(config['training_lstm']['multi_vd']['experiment_dir']),
+        hidden_size=config['training_lstm']['multi_vd'].get('hidden_size', 128),
+        num_layers=config['training_lstm']['multi_vd'].get('num_layers', 2),
+        dropout=config['training_lstm']['multi_vd'].get('dropout', 0.2),
+        learning_rate=config['training_lstm']['multi_vd'].get('learning_rate', 0.001),
+        weight_decay=config['training_lstm']['multi_vd'].get('weight_decay', 0.0001)
     shell:
         """
         python scripts/train/without_social_pooling/train_multi_vd.py \
@@ -128,7 +141,12 @@ rule train_lstm_multi_vd:
         --num_vds {params.num_vds} \
         --model_type {params.model_type} \
         --experiment_name {params.experiment_name} \
-        --save_dir $(dirname $(dirname {output.training_history})) >> {log} 2>&1
+        --save_dir $(dirname $(dirname {output.training_history})) \
+        --hidden_size {params.hidden_size} \
+        --num_layers {params.num_layers} \
+        --dropout {params.dropout} \
+        --learning_rate {params.learning_rate} \
+        --weight_decay {params.weight_decay} >> {log} 2>&1
         """
 
 rule train_lstm_independent_multi_vd:
@@ -146,7 +164,12 @@ rule train_lstm_independent_multi_vd:
         num_vds=config['training_lstm']['independent_multi_vd']['num_vds'],
         target_vd_index=config['training_lstm']['independent_multi_vd']['target_vd_index'],
         model_type=config['training_lstm']['independent_multi_vd']['model_type'],
-        experiment_name=os.path.basename(config['training_lstm']['independent_multi_vd']['experiment_dir'])
+        experiment_name=os.path.basename(config['training_lstm']['independent_multi_vd']['experiment_dir']),
+        hidden_size=config['training_lstm']['independent_multi_vd'].get('hidden_size', 128),
+        num_layers=config['training_lstm']['independent_multi_vd'].get('num_layers', 2),
+        dropout=config['training_lstm']['independent_multi_vd'].get('dropout', 0.2),
+        learning_rate=config['training_lstm']['independent_multi_vd'].get('learning_rate', 0.001),
+        weight_decay=config['training_lstm']['independent_multi_vd'].get('weight_decay', 0.0001)
     shell:
         """
         python scripts/train/without_social_pooling/train_independent_multi_vd.py \
@@ -158,7 +181,12 @@ rule train_lstm_independent_multi_vd:
         --target_vd_index {params.target_vd_index} \
         --model_type {params.model_type} \
         --experiment_name {params.experiment_name} \
-        --save_dir $(dirname $(dirname {output.training_history})) >> {log} 2>&1
+        --save_dir $(dirname $(dirname {output.training_history})) \
+        --hidden_size {params.hidden_size} \
+        --num_layers {params.num_layers} \
+        --dropout {params.dropout} \
+        --learning_rate {params.learning_rate} \
+        --weight_decay {params.weight_decay} >> {log} 2>&1
         """
 
 rule generate_lstm_single_vd_report:
