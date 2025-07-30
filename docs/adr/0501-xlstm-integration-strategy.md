@@ -6,7 +6,7 @@
 
 ## 📋 背景
 
-經過 LSTM 基準系統的完整建立（ADR-0500），我們已具備穩固的評估基礎。下一階段需要整合 xLSTM（Extended LSTM）技術，以驗證其是否能改善當前 LSTM 系統的嚴重過擬合問題。
+經過 LSTM 基準系統的完整建立（ADR-0502），我們已具備穩固的評估基礎。下一階段需要整合 xLSTM（Extended LSTM）技術，以驗證其是否能改善當前 LSTM 系統的嚴重過擬合問題。
 
 ### 當前 LSTM 基準表現
 - **Single VD**: 訓練 R² = 0.93，驗證 R² = -6（嚴重過擬合）
@@ -253,7 +253,7 @@ pip install mlstm_kernels  # Tiled Flash Linear Attention (TFLA) 優化內核
 
 ## 🔄 相關 ADR
 
-- **ADR-0500**: LSTM 基準完成與下一步規劃
+- **ADR-0502**: LSTM 基準完成與下一步規劃
 - **ADR-0100**: Social Pooling vs Graph Networks  
 - **ADR-0101**: xLSTM vs Traditional LSTM
 

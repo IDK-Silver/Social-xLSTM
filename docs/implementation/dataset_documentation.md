@@ -101,7 +101,37 @@ config = TrafficDatasetConfig(
 - `compression`: 壓縮方式 ("gzip", "lzf")
 - `chunk_size`: 數據塊大小
 - `selected_vdids`: 選定的 VD ID 列表
-- `time_range`: 時間範圍過濾
+- `time_range`: 時間範圍過濾 (詳見下方說明)
+
+#### time_range 參數詳解
+
+**用途**: 指定數據處理的時間範圍過濾，控制 HDF5 轉換過程中處理的數據時間窗口。
+
+**類型**: `Optional[Tuple[str, str]]`
+
+**格式要求**: `"YYYY-MM-DD_HH-MM-SS,YYYY-MM-DD_HH-MM-SS"`
+- 開始時間和結束時間用逗號分隔
+- 時間格式：年-月-日_時-分-秒
+- 範例：`"2025-03-18_00-00-00,2025-03-18_23-59-59"`
+
+**行為說明**:
+- `null` 或 `None`: 處理所有可用數據（無時間過濾）- 推薦用於生產環境
+- 具體時間範圍: 僅處理指定時間段內的數據 - 適合開發測試
+
+**實現位置**: `src/social_xlstm/dataset/storage/h5_converter.py:419-425`
+
+**配置範例**:
+```yaml
+# 開發環境 - 處理特定時間範圍
+time_range: "2025-03-18_00-00-00,2025-03-18_23-59-59"
+
+# 生產環境 - 處理所有數據
+time_range: null
+```
+
+**相關配置文件**:
+- 開發配置: `cfgs/snakemake/dev.yaml`
+- 生產配置: `cfgs/snakemake/default.yaml`
 
 ### 2. 數據特徵 (`storage/feature.py`)
 

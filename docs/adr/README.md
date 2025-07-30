@@ -35,6 +35,8 @@
 ### 階段性總結 (0500-0599)
 - [ADR-0500](0500-scripts-directory-reorganization.md) - Scripts 目錄重新組織 (Implemented)
 - [ADR-0501](0501-xlstm-integration-strategy.md) - xLSTM 整合策略與並行訓練架構 (Proposed)
+- [ADR-0502](0502-lstm-baseline-completion-next-steps.md) - LSTM 基準系統完成與下一步規劃 (Accepted)
+- [ADR-0503](0503-dual-dataset-architecture-decision.md) - 雙資料集架構決策 - METR-LA 與台灣交通資料統一支援 (Accepted)
 
 ### Social Pooling 架構 (0600-0699)
 - [ADR-0600](0600-social-pooling-integration-strategy.md) - Social Pooling 整合策略與雙重實現架構 (Accepted)

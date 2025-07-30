@@ -195,7 +195,7 @@ rule generate_lstm_single_vd_report:
     output:
         report=os.path.join(config['training_lstm']['single_vd']['experiment_dir'], "training_report.md")
     log:
-        "logs/reports/generate_single_vd_report.log"
+        config['training_lstm']['single_vd']['report_log']
     shell:
         """
         python scripts/utils/generate_training_report.py \
@@ -211,7 +211,7 @@ rule generate_xlstm_single_vd_report:
     output:
         report=os.path.join(config['training_xlstm']['single_vd']['experiment_dir'], "training_report.md")
     log:
-        "logs/reports/generate_single_vd_xlstm_report.log"
+        config['training_xlstm']['single_vd']['report_log']
     shell:
         """
         python scripts/utils/generate_training_report.py \
@@ -227,7 +227,7 @@ rule generate_xlstm_multi_vd_report:
     output:
         report=os.path.join(config['training_xlstm']['multi_vd']['experiment_dir'], "training_report.md")
     log:
-        "logs/reports/generate_multi_vd_xlstm_report.log"
+        config['training_xlstm']['multi_vd']['report_log']
     shell:
         """
         python scripts/utils/generate_training_report.py \
@@ -243,7 +243,7 @@ rule generate_lstm_multi_vd_report:
     output:
         report=os.path.join(config['training_lstm']['multi_vd']['experiment_dir'], "training_report.md")
     log:
-        "logs/reports/generate_multi_vd_report.log"
+        config['training_lstm']['multi_vd']['report_log']
     shell:
         """
         python scripts/utils/generate_training_report.py \
@@ -259,7 +259,7 @@ rule generate_lstm_independent_multi_vd_report:
     output:
         report=os.path.join(config['training_lstm']['independent_multi_vd']['experiment_dir'], "training_report.md")
     log:
-        "logs/reports/generate_independent_multi_vd_report.log"
+        config['training_lstm']['independent_multi_vd']['report_log']
     shell:
         """
         python scripts/utils/generate_training_report.py \
@@ -277,7 +277,7 @@ rule generate_lstm_single_vd_plots:
         metric_evolution=os.path.join(config['training_lstm']['single_vd']['experiment_dir'], "plots", "metric_evolution.png"),
         advanced_metrics=os.path.join(config['training_lstm']['single_vd']['experiment_dir'], "plots", "advanced_metrics.png")
     log:
-        "logs/reports/generate_single_vd_plots.log"
+        config['training_lstm']['single_vd']['plot_log']
     shell:
         """
         python scripts/utils/generate_training_plots.py \
@@ -295,7 +295,7 @@ rule generate_xlstm_single_vd_plots:
         metric_evolution=os.path.join(config['training_xlstm']['single_vd']['experiment_dir'], "plots", "metric_evolution.png"),
         advanced_metrics=os.path.join(config['training_xlstm']['single_vd']['experiment_dir'], "plots", "advanced_metrics.png")
     log:
-        "logs/reports/generate_single_vd_xlstm_plots.log"
+        config['training_xlstm']['single_vd']['plot_log']
     shell:
         """
         python scripts/utils/generate_training_plots.py \
@@ -312,7 +312,7 @@ rule generate_xlstm_multi_vd_plots:
         metric_evolution=os.path.join(config['training_xlstm']['multi_vd']['experiment_dir'], "plots", "metric_evolution.png"),
         advanced_metrics=os.path.join(config['training_xlstm']['multi_vd']['experiment_dir'], "plots", "advanced_metrics.png")
     log:
-        "logs/reports/generate_multi_vd_xlstm_plots.log"
+        config['training_xlstm']['multi_vd']['plot_log']
     shell:
         """
         python scripts/utils/generate_training_plots.py \
@@ -329,7 +329,7 @@ rule generate_lstm_multi_vd_plots:
         metric_evolution=os.path.join(config['training_lstm']['multi_vd']['experiment_dir'], "plots", "metric_evolution.png"),
         advanced_metrics=os.path.join(config['training_lstm']['multi_vd']['experiment_dir'], "plots", "advanced_metrics.png")
     log:
-        "logs/reports/generate_multi_vd_plots.log"
+        config['training_lstm']['multi_vd']['plot_log']
     shell:
         """
         python scripts/utils/generate_training_plots.py \
@@ -346,7 +346,7 @@ rule generate_lstm_independent_multi_vd_plots:
         metric_evolution=os.path.join(config['training_lstm']['independent_multi_vd']['experiment_dir'], "plots", "metric_evolution.png"),
         advanced_metrics=os.path.join(config['training_lstm']['independent_multi_vd']['experiment_dir'], "plots", "advanced_metrics.png")
     log:
-        "logs/reports/generate_independent_multi_vd_plots.log"
+        config['training_lstm']['independent_multi_vd']['plot_log']
     shell:
         """
         python scripts/utils/generate_training_plots.py \
@@ -361,7 +361,7 @@ rule generate_training_report:
     output:
         report="{experiment_path}/training_report.md"
     log:
-        "logs/reports/generate_training_report_{experiment_path}.log"
+        config['generic_logs']['reports']
     shell:
         """
         python scripts/utils/generate_training_report.py \
@@ -380,7 +380,7 @@ rule generate_training_plots:
         metric_evolution="{experiment_path}/plots/metric_evolution.png",
         advanced_metrics="{experiment_path}/plots/advanced_metrics.png"
     log:
-        "logs/reports/generate_training_plots_{experiment_path}.log"
+        config['generic_logs']['plots']
     shell:
         """
         python scripts/utils/generate_training_plots.py \

@@ -1,3 +1,8 @@
+# Generic rule logging configuration
+generic_logs:
+  reports: "logs/dev/reports/generate_training_report_{experiment_path}.log"
+  plots: "logs/dev/reports/generate_training_plots_{experiment_path}.log"
+
 storage:
   cold_storage:
     raw_zip:
@@ -20,20 +25,18 @@ dataset:
       log: logs/dev/create_h5_file.log
       selected_vdids:
       - VD-28-0740-000-001
+      # Time range for data processing (Format: YYYY-MM-DD_HH-MM-SS,YYYY-MM-DD_HH-MM-SS)
+      # Set to `null` to process all available data without filtering
+      # See docs/implementation/dataset_documentation.md for detailed usage
       time_range: 2025-03-18_00-00-00,2025-03-18_23-59-59
       overwrite: true
-    # Alternative stable dataset for overfitting validation
-    h5_stable:
-      file: blob/dataset/pre-processed/h5/traffic_features_stable.h5
-      log: logs/dev/create_h5_stable_file.log
-      selected_vdids:
-      - VD-28-0740-000-001
-      time_range: 2025-03-18_00-00-00,2025-03-18_23-59-59
-      overwrite: true
+
 training_lstm:
   single_vd:
     experiment_dir: blob/experiments/dev/lstm/single_vd
     log: logs/dev/train_single_vd_lstm.log
+    report_log: "logs/dev/reports/generate_single_vd_report.log"  # Report generation log
+    plot_log: "logs/dev/reports/generate_single_vd_plots.log"    # Plot generation log
     epochs: 10
     batch_size: 32
     sequence_length: 5
@@ -59,6 +62,8 @@ training_lstm:
   multi_vd:
     experiment_dir: blob/experiments/dev/lstm/multi_vd
     log: logs/dev/train_multi_vd_lstm.log
+    report_log: "logs/dev/reports/generate_multi_vd_report.log"  # Report generation log
+    plot_log: "logs/dev/reports/generate_multi_vd_plots.log"    # Plot generation log
     epochs: 10
     batch_size: 32
     sequence_length: 5
@@ -84,6 +89,8 @@ training_lstm:
   independent_multi_vd:
     experiment_dir: blob/experiments/dev/lstm/independent_multi_vd
     log: logs/dev/train_independent_multi_vd_lstm.log
+    report_log: "logs/dev/reports/generate_independent_multi_vd_report.log"  # Report generation log
+    plot_log: "logs/dev/reports/generate_independent_multi_vd_plots.log"    # Plot generation log
     epochs: 10
     batch_size: 32
     sequence_length: 5
@@ -111,6 +118,8 @@ training_xlstm:
   single_vd:
     experiment_dir: blob/experiments/dev/xlstm/single_vd
     log: logs/dev/train_single_vd_xlstm.log
+    report_log: "logs/dev/reports/generate_single_vd_xlstm_report.log"  # Report generation log
+    plot_log: "logs/dev/reports/generate_single_vd_xlstm_plots.log"    # Plot generation log
     epochs: 5
     batch_size: 16
     sequence_length: 5
@@ -141,6 +150,8 @@ training_xlstm:
   multi_vd:
     experiment_dir: blob/experiments/dev/xlstm/multi_vd
     log: logs/dev/train_multi_vd_xlstm.log
+    report_log: "logs/dev/reports/generate_multi_vd_xlstm_report.log"  # Report generation log
+    plot_log: "logs/dev/reports/generate_multi_vd_xlstm_plots.log"    # Plot generation log
     epochs: 5
     batch_size: 16
     sequence_length: 5
