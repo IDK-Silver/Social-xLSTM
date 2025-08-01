@@ -1,0 +1,61 @@
+# 📦 文檔封存目錄 (Legacy Documentation)
+
+**狀態**: 已封存 (Archived)  
+**日期**: 2025-08-01  
+**原因**: 文檔結構重建，遷移到 [docs_rebuild/](../docs_rebuild/)
+
+## ⚠️ 重要通知
+
+此目錄中的文檔已被新的 `docs_rebuild/` 系統取代。
+
+### 🚀 新用戶請使用
+**推薦路徑**: [docs_rebuild/](../docs_rebuild/) - 重建的用戶友好文檔系統
+
+## 文檔結構
+
+### getting-started/
+**學習導向** - 適合新手入門
+- 快速開始指南
+- 基本概念介紹
+- 第一個模型訓練
+
+### how-to/
+**目標導向** - 解決具體問題
+- 模型訓練指南
+- 數據處理方法
+- 常見問題排解
+
+### reference/
+**技術參考** - 查找具體信息
+- API 文檔
+- 數據格式規範
+- 數學公式定義
+
+### explanation/
+**概念解釋** - 深入理解系統
+- 架構設計說明
+- Social Pooling 機制
+- 重要技術決策
+
+## 快速導航
+
+| 我想... | 前往 |
+|---------|------|
+| 開始使用這個專案 | [getting-started/](getting-started/) |
+| 解決具體問題 | [how-to/](how-to/) |
+| 查找技術規格 | [reference/](reference/) |
+| 理解設計原理 | [explanation/](explanation/) |
+| 了解專案狀態 | [PROJECT_STATUS.md](PROJECT_STATUS.md) |
+
+## 從舊文檔遷移
+
+本文檔系統重新組織了原有的 docs/ 內容：
+- 整合了分散的相關信息
+- 去除了重複內容
+- 採用了更直觀的分類方式
+- 歷史文檔保存在 [archive/](archive/) 中
+
+---
+
+**版本**: 2.0 (重建版)  
+**最後更新**: 2025-01-15

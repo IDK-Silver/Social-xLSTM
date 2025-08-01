@@ -12,7 +12,7 @@ Social-xLSTM 是一個創新的交通流量預測研究專案，旨在解決現�
 - **混合記憶機制**：結合 sLSTM 和 mLSTM 的高容量記憶
 - **自適應節點分佈**：適應不規則節點分佈和動態交通環境
 
-詳細專案說明請參考 [專案概述文檔](docs/overview/project_overview.md)
+詳細專案說明請參考 [專案狀態文檔](docs_rebuild/PROJECT_STATUS.md)
 
 ## 專案狀態
 
