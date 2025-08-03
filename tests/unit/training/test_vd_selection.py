@@ -305,7 +305,7 @@ class TestVDSelectionIntegration:
         """Test with simulated real batch format from TrafficDataModule."""
         # Simulate the exact format from TrafficTimeSeries
         batch = {
-            'input_seq': torch.randn(2, 5, 3, 5),  # [batch, seq, vds, features]
+            'input_seq': torch.randn(2, 5, 3, 5),  # [B, T, N, F] - B=批次, T=時間步, N=VD數量, F=特徵
             'target_seq': torch.randn(2, 15, 3, 5),
             'vdids': [
                 ['VD-11-0020-002-001', 'VD-28-0740-000-001', 'VD-13-0660-000-002'],

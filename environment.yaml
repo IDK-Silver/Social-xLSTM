@@ -34,3 +34,4 @@ dependencies:
       - h5py
       - pytorch-lightning
       - scikit-learn
+      - tensorboard

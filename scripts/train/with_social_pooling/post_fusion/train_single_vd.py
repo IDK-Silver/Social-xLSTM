@@ -2,18 +2,30 @@
 """
 Post-Fusion Social Pooling Single VD Training Script
 
+⚠️  DEPRECATED: This script uses incorrect centralized architecture ⚠️
+
 This script implements single VD training with Post-Fusion Social Pooling integration.
 It extends the base single VD training to include spatial feature aggregation through
 the Social Pooling mechanism using the SocialTrafficModel wrapper.
 
-Features:
+DEPRECATION NOTICE:
+This training script is based on the deprecated centralized Social Pooling architecture
+that fundamentally cannot scale to distributed social traffic scenarios. The Post-Fusion 
+approach creates bottlenecks that prevent proper distributed xLSTM implementation.
+
+MIGRATION PATH:
+- Use scripts/train/distributed_social_xlstm/ instead
+- See docs/legacy/explanation/social-pooling-implementation-guide.md
+- Historical access: git checkout centralized-legacy-v0.2
+
+Features (DEPRECATED):
 - Support for both LSTM and xLSTM base models
 - Post-Fusion strategy with Gated Fusion
 - Coordinate-driven spatial pooling
 - Scenario-based configuration (urban/highway/mixed)
 - Performance monitoring and validation
 
-Usage Examples:
+Usage Examples (DEPRECATED):
     # Basic Social-LSTM training
     python train_single_vd.py --model_type lstm --select_vd_id VD-C1T0440-N --coordinate_data data/vd_coords.json --scenario urban --epochs 2
 
@@ -24,6 +36,7 @@ Usage Examples:
     python train_single_vd.py --model_type lstm --select_vd_id VD-C1T0440-N --coordinate_data data/vd_coords.json --pooling_radius 1500 --max_neighbors 10 --epochs 2
 
 Author: Social-xLSTM Project Team
+Version: DEPRECATED
 """
 
 import sys
@@ -183,6 +196,16 @@ def parse_arguments():
 
 def main():
     """Main training function."""
+    # Issue deprecation warning
+    import warnings
+    warnings.warn(
+        "This training script uses deprecated centralized Social Pooling architecture. "
+        "The Post-Fusion approach fundamentally cannot scale to distributed social traffic scenarios. "
+        "Use scripts/train/distributed_social_xlstm/ for correct distributed Social-xLSTM implementation.",
+        DeprecationWarning,
+        stacklevel=2
+    )
+    
     # Parse command line arguments
     args = parse_arguments()
     

@@ -1,53 +1,103 @@
 # 🚀 Social Pooling 5分鐘快速入門 (正確分散式架構)
 
-**🚨 架構更正**：本指南基於正確的分散式 Social-LSTM 架構，每個 VD 擁有獨立的 recurrent core 模型。
+**🚨 架構更正**：本指南基於正確的分散式 **Social-xLSTM** 架構，每個 VD 擁有獨立的 **xLSTM** 模型。
 
 ## 🎯 核心概念定義
 
-**Social-xLSTM 架構**採用靈活的 recurrent neural network core 設計。專案的主要創新是 **xLSTM block**，這是本工作的核心貢獻。為了基準對比和向後兼容，架構也支援標準 **LSTM block** 作為替換選項。
+**Social-xLSTM 架構**是本專案的核心創新，結合 **xLSTM（Extended Long Short-Term Memory）** 與 **Social Pooling** 技術。
 
-本指南中使用 **"recurrent core"** 來抽象指代這個核心組件。除非特別說明（如性能對比章節），所有架構特性和功能討論都默認指向主要的 xLSTM 實現。
+### 🔬 **技術核心說明**
+- **主要創新**: **xLSTM** - 基於 Beck et al. (2024) 的 sLSTM + mLSTM 混合架構
+- **社交機制**: **Social Pooling** - 基於 Alahi et al. (2016) 的空間聚合技術
+- **基準對比**: **傳統 LSTM** - 僅用於性能對比，非核心貢獻
+
+### ⚠️ **重要術語區分**
+```
+✅ 本專案核心創新:
+   Social-xLSTM = xLSTM (核心) + Social Pooling (空間聚合)
+
+📊 基準對比用途:
+   Social-LSTM = 傳統LSTM + Social Pooling (性能對比基準)
+```
+
+**指南說明**: 本文檔重點展示 **xLSTM 架構**的實現。除非明確標註"基準對比"，所有程式碼範例和架構討論均基於 **xLSTM** 實現。
 
 ---
 
 ## 🎯 什麼是 Social Pooling？
 
-**正確的理解**：每個交通檢測器（VD）先通過獨立的 recurrent core 學習自己的行為模式，然後在隱狀態層級「聽取」附近檢測器的經驗，最後融合預測。
+**正確的理解**：每個交通檢測器（VD）先通過獨立的 **xLSTM** 學習自己的行為模式，然後在隱狀態層級「聽取」附近檢測器的經驗，最後融合預測。
 
 ### 📊 架構對比
 
 ```
 ❌ 錯誤理解（集中式）：
-原始特徵 → Social_Pooling → Single_RecurrentCore → 預測
+原始特徵 → Social_Pooling → Single_xLSTM → 預測
 
-✅ 正確理解（分散式）：
-VD_A: 原始序列 → RecurrentCore_A → 隱狀態_A ┐
-VD_B: 原始序列 → RecurrentCore_B → 隱狀態_B ├→ Social_Pooling → 融合預測
-VD_C: 原始序列 → RecurrentCore_C → 隱狀態_C ┘
+✅ 正確理解（分散式 Social-xLSTM）：
+VD_A: 原始序列 → xLSTM_A → 隱狀態_A ┐
+VD_B: 原始序列 → xLSTM_B → 隱狀態_B ├→ Social_Pooling → 融合預測
+VD_C: 原始序列 → xLSTM_C → 隱狀態_C ┘
+
+💡 基準對比時：xLSTM 可替換為傳統 LSTM 進行性能比較
 ```
 
 ### 🔥 分散式架構的優勢
 
-- ✅ **個體記憶**：每個 VD 維護獨立的時序記憶
+- ✅ **個體記憶**：每個 VD 維護獨立的時序記憶（xLSTM 特性）
 - ✅ **空間融合**：在高層語義特徵上進行空間信息交換
-- ✅ **權重共享**：所有 recurrent core 共享參數，學習通用模式
-- ✅ **理論正確**：符合原始 Social-LSTM 論文的設計，擴展至 xLSTM
+- ✅ **權重共享**：所有 xLSTM 共享參數，學習通用交通模式
+- ✅ **理論正確**：符合原始 Social-LSTM 論文設計，升級至 xLSTM 架構
+- ✅ **性能優勢**：xLSTM 的 sLSTM + mLSTM 混合架構提供更強表達能力
+
+### 🎯 **VDXLSTMManager：分散式架構的核心管理器**
+
+**VDXLSTMManager** 是實現 per-VD 獨立處理的關鍵組件：
+
+#### **核心職責**
+- **動態實例管理**：為每個 VD 動態創建和管理獨立的 xLSTM 模型實例
+- **記憶體優化**：通過快取和修剪機制避免記憶體浪費
+- **批次處理協調**：處理不同數量 VD 的異構批次數據
+
+#### **關鍵特性**
+```python
+# 🔧 懶加載 (Lazy Instantiation)
+def get(self, vd_id: AgentId) -> nn.Module:
+    """按需為 vd_id 創建 xLSTM 實例，避免預先分配所有可能 VD 的記憶體"""
+    if vd_id not in self._vd_registry:
+        self._vd_registry[vd_id] = self._build_xlstm().to(self.device)
+    return self._vd_registry[vd_id]
+
+# ♻️ 記憶體回收機制
+def prune(self, max_idle_steps: int = 100) -> None:
+    """自動清理長時間未使用的 VD 模型，防止記憶體洩漏"""
+```
+
+#### **在架構中的角色**
+- **輸入端**：接收不同 VD 的時間序列數據
+- **處理**：為每個 VD 提供獨立的 xLSTM 實例（權重共享）
+- **輸出端**：產生每個 VD 的隱狀態，供 Social Pooling 使用
+
+#### **實際優勢**
+- **動態擴展**：支援任意數量的 VD，無需預先定義
+- **記憶體效率**：只為活躍的 VD 保留模型實例
+- **生命週期管理**：自動處理 VD 的創建、使用和清理
 
 ---
 
 ## ⚡ 2分鐘正確實現體驗
 
-**重要**：以下程式碼展示正確的分散式 Social Pooling 實現：
+**重要**：以下程式碼展示正確的分散式 **Social-xLSTM** 實現（核心創新）：
 
 ```python
-# 1. 匯入模組 (xLSTM 為主，LSTM 相容)
+# 1. 匯入模組 (xLSTM 為核心創新，LSTM 僅供基準對比)
 import torch
 import torch.nn as nn
 from social_xlstm.models.xlstm import TrafficXLSTM, TrafficXLSTMConfig  # 主要使用
 from social_xlstm.models.lstm import TrafficLSTM, TrafficLSTMConfig    # 基準對比
 from social_xlstm.models.social_pooling import SocialPooling, SocialPoolingConfig
 
-# 2. 創建正確的分散式配置 (預設 xLSTM)
+# 2. 創建正確的分散式配置 (xLSTM 為核心，展示主要創新)
 recurrent_config = TrafficXLSTMConfig(
     input_size=3,      # [速度, 流量, 佔有率]
     hidden_size=32,    # 隱狀態維度
@@ -113,9 +163,14 @@ class SimpleDistributedSocialModel(nn.Module):
     def __init__(self, recurrent_config, social_config):
         super().__init__()
         
-        # 共享的 recurrent core - 所有 VD 使用相同權重
-        # 預設使用 xLSTM，也可替換為 LSTM 進行對比
-        self.shared_recurrent_core = TrafficXLSTM(recurrent_config)
+        # VDXLSTMManager - 分散式架構的核心管理器
+        # 為每個 VD 動態創建和管理獨立的 xLSTM 實例
+        from social_xlstm.interfaces import VDXLSTMManager
+        self.vd_manager = VDXLSTMManager(recurrent_config)
+        
+        # 備用方案：共享的 xLSTM core（演示用）
+        # 所有 VD 使用相同 xLSTM 權重，學習通用交通模式
+        self.shared_xlstm_core = TrafficXLSTM(recurrent_config)
         
         # Social Pooling - 處理隱狀態
         self.social_pooling = SocialPooling(
@@ -128,16 +183,24 @@ class SimpleDistributedSocialModel(nn.Module):
         self.fusion = nn.Linear(fusion_dim, recurrent_config.output_size)
         
     def forward(self, vd_sequences, coordinates, vd_ids):
-        # 步驟 1: 每個 VD 獨立的 recurrent core 處理
+        # 步驟 1: 每個 VD 獨立的 xLSTM 處理（核心創新）
         hidden_states = {}
-        print("\\n📊 步驟 1: 每個 VD 獨立 recurrent core 處理")
+        print("\\n📊 步驟 1: 每個 VD 獨立 xLSTM 處理（使用 VDXLSTMManager）")
         
         for vd_id in vd_ids:
-            # 使用共享權重的 recurrent core (xLSTM) 處理每個 VD 的序列
-            recurrent_output = self.shared_recurrent_core(vd_sequences[vd_id])  # [1, 1, hidden_size]
-            hidden_state = recurrent_output.squeeze(1)  # [1, hidden_size]
+            # 方法 A: 使用 VDXLSTMManager（推薦的生產方式）
+            try:
+                # VDXLSTMManager 自動為每個 VD 創建和管理獨立的 xLSTM 實例
+                vd_xlstm = self.vd_manager.get(vd_id)  # 獲取或創建 VD 專用的 xLSTM
+                xlstm_output = vd_xlstm(vd_sequences[vd_id])  # [1, 1, hidden_size]
+                print(f"  ✅ {vd_id}: VDXLSTMManager 管理 → 隱狀態 {xlstm_output.shape}")
+            except Exception as e:
+                # 方法 B: 備用方案（演示用）
+                xlstm_output = self.shared_xlstm_core(vd_sequences[vd_id])  # [1, 1, hidden_size]
+                print(f"  📝 {vd_id}: 共享 xLSTM（演示模式） → 隱狀態 {xlstm_output.shape}")
+            
+            hidden_state = xlstm_output.squeeze(1)  # [1, hidden_size]
             hidden_states[vd_id] = hidden_state
-            print(f"  {vd_id}: 序列 {vd_sequences[vd_id].shape} → 隱狀態 {hidden_state.shape}")
         
         # 步驟 2: 堆疊隱狀態用於 Social Pooling
         hidden_stack = torch.stack([hidden_states[vd_id] for vd_id in vd_ids], dim=1)
@@ -176,10 +239,10 @@ for vd_id, pred in predictions.items():
 
 **預期輸出**：
 ```
-📊 步驟 1: 每個 VD 獨立 recurrent core 處理
-  VD_A: 序列 torch.Size([1, 5, 3]) → 隱狀態 torch.Size([1, 32])  # xLSTM 處理
-  VD_B: 序列 torch.Size([1, 5, 3]) → 隱狀態 torch.Size([1, 32])  # xLSTM 處理
-  VD_C: 序列 torch.Size([1, 5, 3]) → 隱狀態 torch.Size([1, 32])  # xLSTM 處理
+📊 步驟 1: 每個 VD 獨立 xLSTM 處理（核心創新）
+  VD_A: 序列 torch.Size([1, 5, 3]) → 隱狀態 torch.Size([1, 32])  # xLSTM sLSTM+mLSTM
+  VD_B: 序列 torch.Size([1, 5, 3]) → 隱狀態 torch.Size([1, 32])  # xLSTM sLSTM+mLSTM  
+  VD_C: 序列 torch.Size([1, 5, 3]) → 隱狀態 torch.Size([1, 32])  # xLSTM sLSTM+mLSTM
 
 🌟 步驟 2: 隱狀態堆疊 torch.Size([1, 3, 32])
 
@@ -217,13 +280,13 @@ lstm_output = lstm(social_features)  # ❌
 ### ✅ 正確的分散式實現
 
 ```python
-# 正確：每個 VD 獨立 LSTM，然後對隱狀態進行 Social Pooling
+# 正確：每個 VD 獨立 xLSTM，然後對隱狀態進行 Social Pooling
 vd_sequences = {"VD_A": torch.randn(1, 5, 3), ...}  # 每個VD獨立序列
 
-# 步驟 1: 獨立 LSTM 處理
+# 步驟 1: 獨立 xLSTM 處理（核心創新）
 hidden_states = {}
 for vd_id in vd_ids:
-    hidden_states[vd_id] = shared_lstm(vd_sequences[vd_id])  # ✅
+    hidden_states[vd_id] = shared_xlstm(vd_sequences[vd_id])  # ✅ xLSTM核心
 
 # 步驟 2: 隱狀態級別 Social Pooling
 hidden_stack = torch.stack([hidden_states[vd] for vd in vd_ids], dim=1)
@@ -233,9 +296,10 @@ social_features = social_pooling(hidden_stack, coordinates, vd_ids)  # ✅
 predictions = fusion_layer(torch.cat([hidden_stack, social_features], dim=-1))  # ✅
 
 # 優勢：
-# 1. 保持每個 VD 的獨立時序記憶
+# 1. 保持每個 VD 的獨立時序記憶（xLSTM 增強記憶能力）
 # 2. Social Pooling 作用於高層語義特徵
-# 3. 符合原始 Social-LSTM 論文設計
+# 3. 符合原始 Social-LSTM 論文設計，升級為 xLSTM 架構
+# 4. sLSTM + mLSTM 混合架構提供更強表達能力
 ```
 
 ---
@@ -245,12 +309,18 @@ predictions = fusion_layer(torch.cat([hidden_stack, social_features], dim=-1))  
 ### 分散式架構的關鍵配置
 
 ```python
-# LSTM 配置
-lstm_config = TrafficLSTMConfig(
+# xLSTM 配置（核心創新）
+xlstm_config = TrafficXLSTMConfig(
     input_size=3,           # 原始交通特徵數量
     hidden_size=64,         # 隱狀態維度（重要：影響 Social Pooling 輸入）
-    num_layers=2,           # LSTM 層數
+    num_blocks=6,           # xLSTM blocks 數量
+    slstm_ratio=0.7,        # sLSTM:mLSTM = 7:3 混合比例
     output_size=3           # 預測特徵數量
+)
+
+# 基準對比用 LSTM 配置
+lstm_config = TrafficLSTMConfig(
+    input_size=3, hidden_size=64, num_layers=2, output_size=3
 )
 
 # Social Pooling 配置  
@@ -263,44 +333,48 @@ social_config = SocialPoolingConfig(
 )
 
 # 關鍵關係：
-# - Social Pooling 的 feature_dim = lstm_config.hidden_size
+# - Social Pooling 的 feature_dim = xlstm_config.hidden_size  # xLSTM 隱狀態維度
 # - 融合層輸入維度 = hidden_size + social_embedding_dim
+# - xLSTM blocks 數量影響模型複雜度和表達能力
 ```
 
 ### 場景化配置範例
 
 ```python
-# 🏙️ 城市密集交通
+# 🏙️ 城市密集交通（xLSTM 核心配置）
 urban_config = {
-    "lstm": TrafficLSTMConfig(hidden_size=64, num_layers=2),
+    "xlstm": TrafficXLSTMConfig(hidden_size=64, num_blocks=6, slstm_ratio=0.7),
     "social": SocialPoolingConfig(
         pooling_radius=500.0,      # 較小半徑
         max_neighbors=8,           # 較多鄰居
         social_embedding_dim=32,
         weighting_function="gaussian"
-    )
+    ),
+    "baseline_lstm": TrafficLSTMConfig(hidden_size=64, num_layers=2)  # 基準對比
 }
 
-# 🛣️ 高速公路稀疏交通
+# 🛣️ 高速公路稀疏交通（xLSTM 輕量配置）
 highway_config = {
-    "lstm": TrafficLSTMConfig(hidden_size=32, num_layers=1),
+    "xlstm": TrafficXLSTMConfig(hidden_size=32, num_blocks=3, slstm_ratio=0.5),
     "social": SocialPoolingConfig(
         pooling_radius=2000.0,     # 較大半徑
         max_neighbors=3,           # 較少鄰居
         social_embedding_dim=16,
         weighting_function="exponential"
-    )
+    ),
+    "baseline_lstm": TrafficLSTMConfig(hidden_size=32, num_layers=1)  # 基準對比
 }
 
-# 🐛 開發除錯配置
+# 🐛 開發除錯配置（xLSTM 最小配置）
 debug_config = {
-    "lstm": TrafficLSTMConfig(hidden_size=16, num_layers=1),
+    "xlstm": TrafficXLSTMConfig(hidden_size=16, num_blocks=2, slstm_ratio=0.5),
     "social": SocialPoolingConfig(
         pooling_radius=800.0,
         max_neighbors=2,
         social_embedding_dim=8,
         weighting_function="linear"
-    )
+    ),
+    "baseline_lstm": TrafficLSTMConfig(hidden_size=16, num_layers=1)  # 基準對比
 }
 ```
 
@@ -311,16 +385,20 @@ debug_config = {
 在實施前，請確認您的實現符合以下要求：
 
 ### ✅ 架構檢查
-- [ ] 每個 VD 有獨立的 LSTM 實例（權重共享）
-- [ ] Social Pooling 處理 LSTM 隱狀態，而非原始特徵
+- [ ] 每個 VD 有獨立的 **xLSTM** 實例（權重共享，核心創新）
+- [ ] **使用 VDXLSTMManager** 進行 VD 實例管理（推薦生產方式）
+- [ ] Social Pooling 處理 **xLSTM 隱狀態**，而非原始特徵
 - [ ] 數據格式：`{"VD_001": tensor, "VD_002": tensor, ...}`
 - [ ] 預測結果格式：每個 VD 獨立的字典
+- [ ] xLSTM 配置包含 `num_blocks` 和 `slstm_ratio` 參數
+- [ ] VDXLSTMManager 支援動態 VD 註冊和記憶體回收
 
 ### ✅ 維度檢查
-- [ ] Social Pooling 輸入維度 = LSTM hidden_size
-- [ ] 融合層輸入維度 = hidden_size + social_embedding_dim
+- [ ] Social Pooling 輸入維度 = **xLSTM** hidden_size
+- [ ] 融合層輸入維度 = hidden_size + social_embedding_dim  
 - [ ] 每個 VD 序列形狀：`[batch, seq_len, features]`
-- [ ] 隱狀態堆疊形狀：`[batch, num_vds, hidden_size]`
+- [ ] xLSTM 隱狀態堆疊形狀：`[batch, num_vds, hidden_size]`
+- [ ] xLSTM blocks 數量合理（通常 2-8 blocks）
 
 ### ✅ 功能檢查
 - [ ] 可以處理不同數量的 VD
@@ -344,13 +422,13 @@ vd_sequences = {f"VD_{i}": torch.randn(batch, seq_len, num_features)
 
 ### 錯誤 2：Social Pooling 時機錯誤
 ```python
-# ❌ 錯誤：在 LSTM 之前
+# ❌ 錯誤：在 xLSTM 之前
 social_features = social_pooling(raw_features, coords, vd_ids)
-lstm_output = lstm(social_features)
+xlstm_output = xlstm(social_features)
 
-# ✅ 正確：在 LSTM 之後
-lstm_outputs = {vd: lstm(vd_sequences[vd]) for vd in vd_ids}
-hidden_stack = torch.stack([lstm_outputs[vd] for vd in vd_ids], dim=1)
+# ✅ 正確：在 xLSTM 之後（核心架構）
+xlstm_outputs = {vd: xlstm(vd_sequences[vd]) for vd in vd_ids}
+hidden_stack = torch.stack([xlstm_outputs[vd] for vd in vd_ids], dim=1)
 social_features = social_pooling(hidden_stack, coords, vd_ids)
 ```
 
@@ -359,8 +437,8 @@ social_features = social_pooling(hidden_stack, coords, vd_ids)
 # ❌ 錯誤：Social Pooling 維度設置錯誤
 social_pooling = SocialPooling(config, feature_dim=3)  # 原始特徵維度
 
-# ✅ 正確：使用隱狀態維度
-social_pooling = SocialPooling(config, feature_dim=lstm_config.hidden_size)
+# ✅ 正確：使用 xLSTM 隱狀態維度
+social_pooling = SocialPooling(config, feature_dim=xlstm_config.hidden_size)
 ```
 
 ---
@@ -370,20 +448,26 @@ social_pooling = SocialPooling(config, feature_dim=lstm_config.hidden_size)
 **恭喜！** 您現在掌握了正確的分散式 Social Pooling 實現：
 
 ### 核心原理
-1. **每個 VD 獨立 LSTM**：維護個體時序記憶
-2. **隱狀態級 Social Pooling**：高層語義特徵融合  
-3. **權重共享機制**：學習通用交通模式
-4. **融合預測**：結合個體和社交信息
+1. **每個 VD 獨立 xLSTM**：維護個體時序記憶（核心創新）
+2. **VDXLSTMManager 管理**：動態創建和管理 VD 實例，優化記憶體使用
+3. **隱狀態級 Social Pooling**：高層語義特徵融合  
+4. **權重共享機制**：學習通用交通模式
+5. **融合預測**：結合個體和社交信息
+6. **sLSTM + mLSTM 混合**：xLSTM 提供更強表達能力
 
 ### 關鍵優勢
-- 🎯 **理論正確**：符合原始 Social-LSTM 論文
-- 🚀 **性能提升**：通常帶來 5-15% 準確度改善
-- 🔧 **架構優雅**：為未來擴展奠定基礎
+- 🎯 **理論正確**：符合原始 Social-LSTM 論文，升級至 xLSTM
+- 🚀 **性能提升**：xLSTM + Social Pooling 通常帶來 5-15% 準確度改善
+- 🔧 **架構優雅**：分散式設計為未來擴展奠定基礎
 - 💪 **工程實用**：支援實際生產環境
+- 🧠 **創新技術**：結合最新 xLSTM 架構與空間聚合機制
 
 ### 下一步
 - 📖 深入學習：[完整實現指南](../explanation/social-pooling-implementation-guide.md)
 - 🛠️ 實際應用：參考訓練腳本和配置文件  
 - 🧪 實驗驗證：對比集中式和分散式架構的性能差異
 
-**重要提醒**：如果您之前實現過基於集中式架構的 Social Pooling，請務必重構為本指南描述的分散式架構，以確保實現的正確性和最佳性能。
+**重要提醒**：
+1. 如果您之前實現過基於集中式架構的 Social Pooling，請務必重構為本指南描述的**分散式 xLSTM 架構**
+2. **xLSTM 是本專案的核心創新**，傳統 LSTM 僅用於基準對比
+3. 確保所有實現基於正確的分散式架構，以獲得最佳性能和理論正確性

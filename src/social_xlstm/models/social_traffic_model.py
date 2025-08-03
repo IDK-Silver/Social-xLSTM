@@ -1,9 +1,22 @@
 """
 Social Traffic Model - Unified Integration of TrafficLSTM and Social Pooling
 
+⚠️  DEPRECATED: This implementation uses incorrect centralized architecture ⚠️
+
 This module implements the SocialTrafficModel wrapper that integrates the existing
 TrafficLSTM with Social Pooling using an optimized Post-Fusion strategy with 
 gated fusion mechanisms.
+
+DEPRECATION NOTICE:
+The centralized architecture implemented in this module fundamentally cannot scale 
+to distributed social traffic scenarios. This approach processes social features 
+after base model processing, creating a bottleneck that prevents proper distributed 
+xLSTM implementation.
+
+MIGRATION PATH:
+- Use DistributedSocialXLSTMModel instead
+- See docs/legacy/explanation/social-pooling-implementation-guide.md
+- Historical access: git checkout centralized-legacy-v0.2
 
 Based on:
 - ADR-0100: Social Pooling vs Graph Networks decision
@@ -11,7 +24,7 @@ Based on:
 - Phase 1 Social Pooling implementation
 
 Author: Social-xLSTM Team
-Version: 1.0
+Version: 1.0 (DEPRECATED)
 """
 
 import torch
@@ -123,6 +136,8 @@ class SocialTrafficModel(nn.Module):
         """
         Initialize Social Traffic Model.
         
+        ⚠️  DEPRECATED: This implementation uses incorrect centralized architecture
+        
         Args:
             base_model_config: Configuration for the base TrafficLSTM model
             social_pooling_config: Configuration for Social Pooling
@@ -131,6 +146,17 @@ class SocialTrafficModel(nn.Module):
             social_influence_weight: Initial weight for social influence (0-1)
         """
         super().__init__()
+        
+        # Issue deprecation warning
+        warnings.warn(
+            "SocialTrafficModel uses deprecated centralized architecture. "
+            "The centralized approach fundamentally cannot scale to distributed social traffic scenarios. "
+            "This creates a bottleneck that prevents proper distributed xLSTM implementation. "
+            "Migrate to DistributedSocialXLSTMModel for correct distributed Social-xLSTM implementation. "
+            "See docs/legacy/explanation/social-pooling-implementation-guide.md for migration guide.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         
         # Store configurations
         self.base_config = base_model_config
@@ -420,6 +446,8 @@ def create_social_traffic_model(
     """
     Factory function to create Social Traffic Model with preset configurations.
     
+    ⚠️  DEPRECATED: This creates a model with incorrect centralized architecture
+    
     Args:
         scenario: Preset scenario ("urban", "highway", "mixed")
         base_hidden_size: Base model hidden size
@@ -428,8 +456,14 @@ def create_social_traffic_model(
         **kwargs: Additional model arguments
         
     Returns:
-        Configured SocialTrafficModel
+        Configured SocialTrafficModel (DEPRECATED)
     """
+    warnings.warn(
+        "create_social_traffic_model() creates deprecated centralized architecture. "
+        "Use DistributedSocialXLSTMModel factory functions instead.",
+        DeprecationWarning,
+        stacklevel=2
+    )
     # Create base model config
     base_config = TrafficLSTMConfig(
         hidden_size=base_hidden_size,

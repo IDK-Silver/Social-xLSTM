@@ -149,12 +149,12 @@ def run_minimal_training(config_path, max_epochs=10):
             optimizer.zero_grad()
             
             # Get data
-            input_seq = batch['input_seq'].to(device)  # [batch, seq, vd, features]
-            target_seq = batch['target_seq'].to(device)  # [batch, pred, vd, features]
+            input_seq = batch['input_seq'].to(device)  # [B, T, N, F] - B=批次, T=時間步, N=VD數量, F=特徵
+            target_seq = batch['target_seq'].to(device)  # [B, T, N, F] - B=批次, T=預測長度, N=VD數量, F=特徵
             
             # Reshape for model: combine VD and feature dimensions
             batch_size, seq_len, num_vds, num_features = input_seq.shape
-            input_reshaped = input_seq.view(batch_size, seq_len, -1)  # [batch, seq, vd*features]
+            input_reshaped = input_seq.view(batch_size, seq_len, -1)  # [B, T, N*F] - 攤平後格式
             
             # Forward pass
             outputs = model(input_reshaped)  # [batch, pred, vd*features]

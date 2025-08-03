@@ -173,7 +173,7 @@ class TrafficXLSTM(nn.Module):
         if self.config.multi_vd_mode:
             # Handle multi-VD input - accept both 4D and 3D (pre-flattened) formats
             if x.dim() == 4:
-                # 4D input: [batch_size, seq_len, num_vds, num_features] - needs flattening
+                # 4D input: [B, T, N, F] - B=批次, T=時間步, N=VD數量, F=特徵 (needs flattening)
                 seq_len, num_vds, num_features = x.size(1), x.size(2), x.size(3)
                 x = x.view(batch_size, seq_len, num_vds * num_features)
                 logging.getLogger(__name__).debug(f"Flattened 4D input to 3D: {num_vds} VDs x {num_features} features")
@@ -212,6 +212,39 @@ class TrafficXLSTM(nn.Module):
         output = output.unsqueeze(1)  # (batch, 1, output_size)
         
         return output
+    
+    def get_hidden_states(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Extract hidden states from xLSTM stack.
+        
+        Args:
+            x: Input tensor of shape (batch_size, sequence_length, input_size)
+            
+        Returns:
+            Hidden states tensor of shape (batch_size, sequence_length, embedding_dim)
+        """
+        # Input validation and Multi-VD handling (reuse from forward)
+        batch_size = x.size(0)
+        
+        if self.config.multi_vd_mode:
+            # Handle multi-VD input - accept both 4D and 3D (pre-flattened) formats
+            if x.dim() == 4:
+                batch_size, num_vds, seq_len, input_size = x.shape
+                x = x.view(batch_size * num_vds, seq_len, input_size)
+            elif x.dim() == 3 and x.size(0) != batch_size:
+                # Assume it's already flattened from 4D
+                original_batch_size = x.size(0) // self.config.num_vds
+                if original_batch_size * self.config.num_vds != x.size(0):
+                    raise ValueError(f"Multi-VD input size mismatch: {x.size(0)} samples for {self.config.num_vds} VDs")
+        
+        # Input embedding
+        embedded = self.input_embedding(x)  # (batch, seq, embedding_dim)
+        embedded = self.dropout(embedded)
+        
+        # xLSTM processing - return the hidden states directly
+        xlstm_output = self.xlstm_stack(embedded)  # (batch, seq, embedding_dim)
+        
+        return xlstm_output
     
     def get_model_info(self) -> Dict[str, any]:
         """Get model architecture information."""

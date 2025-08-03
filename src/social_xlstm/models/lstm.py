@@ -73,7 +73,7 @@ class TrafficLSTM(nn.Module):
     
     Supports both single VD and multi-VD modes:
     - Single VD: Input shape [batch_size, seq_len, num_features]
-    - Multi VD: Input shape [batch_size, seq_len, num_vds, num_features]
+    - Multi VD: Input shape [B, T, N, F] - B=批次, T=時間步, N=VD數量, F=特徵
     """
     
     def __init__(self, config: TrafficLSTMConfig):
@@ -133,7 +133,7 @@ class TrafficLSTM(nn.Module):
         Args:
             x: Input tensor
                - Single VD mode: [batch_size, seq_len, num_features]
-               - Multi VD mode: [batch_size, seq_len, num_vds, num_features]
+               - Multi VD mode: [B, T, N, F] - B=批次, T=時間步, N=VD數量, F=特徵
             hidden: Optional initial hidden state
         
         Returns:
@@ -144,7 +144,7 @@ class TrafficLSTM(nn.Module):
         if self.config.multi_vd_mode:
             # Handle multi-VD input - accept both 4D and 3D (pre-flattened) formats
             if x.dim() == 4:
-                # 4D input: [batch_size, seq_len, num_vds, num_features] - needs flattening
+                # 4D input: [B, T, N, F] - B=批次, T=時間步, N=VD數量, F=特徵 (needs flattening)
                 seq_len, num_vds, num_features = x.size(1), x.size(2), x.size(3)
                 x = x.view(batch_size, seq_len, num_vds * num_features)
                 logger.debug(f"Flattened 4D input to 3D: {num_vds} VDs x {num_features} features")

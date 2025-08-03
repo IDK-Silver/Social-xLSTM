@@ -2,17 +2,30 @@
 """
 Common utilities for Post-Fusion Social Pooling training scripts
 
+⚠️  DEPRECATED: This module uses incorrect centralized architecture ⚠️
+
 This module provides shared utilities specifically for training Social-xLSTM models
 using the Post-Fusion strategy. It extends the base training framework to support
 Social Pooling integration while maintaining backward compatibility.
 
-Features:
+DEPRECATION NOTICE:
+This module is based on the deprecated centralized Social Pooling architecture that 
+fundamentally cannot scale to distributed social traffic scenarios. The Post-Fusion 
+utilities create bottlenecks that prevent proper distributed xLSTM implementation.
+
+MIGRATION PATH:
+- Use scripts/train/distributed_social_xlstm/common.py instead
+- See docs/legacy/explanation/social-pooling-implementation-guide.md
+- Historical access: git checkout centralized-legacy-v0.2
+
+Features (DEPRECATED):
 - Post-Fusion model creation with SocialTrafficModel wrapper
 - Coordinate data loading and validation
 - Social Pooling configuration management
 - Integration with existing TrafficLSTM/TrafficXLSTM models
 
 Author: Social-xLSTM Project Team
+Version: DEPRECATED
 """
 
 import logging

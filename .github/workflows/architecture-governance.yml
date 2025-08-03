@@ -1,0 +1,158 @@
+# Architecture Governance CI Workflow
+# ===================================
+# 
+# Created as part of multi-LLM collaborative architecture design process:
+# - DeepSeek R1: Designed comprehensive CI/CD architecture governance system
+# - OpenAI o3-pro: Contributed validation requirements and compliance checks
+# - Claude Opus 4: Provided distributed architecture validation principles
+#
+# Purpose: Enforce distributed Social-xLSTM architecture compliance through automated checks
+# Integration: Pre-commit hooks + CI/CD pipeline for continuous architecture validation
+#
+# Validation Areas:
+# 1. Documentation Synchronization: Ensure docs match code interfaces
+# 2. Interface Compatibility: Validate type contracts and version compatibility  
+# 3. Architecture Compliance: Enforce ModuleDict usage and distributed patterns
+# 4. Code Quality: Interface contract validation and best practices
+# 5. Documentation Quality: Markdown linting and link validation
+
+name: Architecture Governance CI
+
+# Trigger Conditions:
+# - Push to main/develop: Full validation for production deployment
+# - Pull Request to main: Comprehensive review before merge
+# - Focus on architecture-critical branches for performance optimization
+on:
+  push:
+    branches: [ main, develop ]  # Production and development branches
+  pull_request:
+    branches: [ main ]           # Review validation before main merge
+
+jobs:
+  # Primary Validation Job
+  # =====================
+  # Comprehensive architecture compliance validation including documentation sync,
+  # interface compatibility, compliance checks, and quality assurance
+  validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15  # Prevent hanging on complex validation tasks
+    
+    steps:
+      # Repository Setup
+      # ---------------
+      # Full git history required for interface version comparison and change detection
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for version comparisons and change analysis
+      
+      # Python Environment Setup  
+      # ------------------------
+      # Python 3.11 for modern type hints and performance optimization
+      # Pip cache for faster dependency installation
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'  # Modern Python for advanced type checking
+          cache: 'pip'            # Cache dependencies for faster builds
+          
+      # Dependency Installation
+      # ----------------------
+      # Core dependencies + validation tools for comprehensive architecture checking
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          # Architecture validation tools
+          pip install pylint pytest mypy pydantic markdownlint-cli
+          
+      # Documentation Synchronization Validation
+      # ----------------------------------------
+      # Ensures architecture documentation stays synchronized with code interfaces
+      # Critical for preventing documentation drift that misleads developers
+      - name: Document sync validation
+        run: |
+          # Validate all interfaces are documented and code examples are syntactically correct
+          python scripts/doc_sync.py --validate
+          # Ensure no documentation files were modified during validation
+          git diff --exit-code docs/ || (echo "Documentation out of sync. Run 'python scripts/doc_sync.py'" && exit 1)
+        
+      # Interface Version Compatibility Check
+      # ------------------------------------
+      # Validates backward compatibility of interface changes to prevent breaking changes
+      # Essential for maintaining stable API contracts across distributed architecture
+      - name: Interface version compatibility
+        run: |
+          # Check interface compatibility against previous versions
+          python -m social_xlstm.versioning --check-compatibility
+        
+      # Architecture Compliance Validation
+      # ----------------------------------
+      # Enforces distributed Social-xLSTM architecture rules through AST analysis
+      # Prevents regression to centralized patterns and ensures proper PyTorch usage
+      - name: Architecture compliance checks
+        run: |
+          # Check for ModuleDict usage compliance and distributed architecture patterns
+          python scripts/check_architecture_rules.py
+          # Run custom pylint rules for architecture-specific violations
+          pylint --load-plugins=.pylint_plugins/arch_rules src/social_xlstm/
+        
+      # Interface Contract Validation
+      # -----------------------------
+      # Ensures type safety and proper implementation of abstract base classes
+      # Critical for distributed architecture where interfaces define component contracts
+      - name: Interface contract validation
+        run: |
+          # Verify abstract base classes are properly implemented with strict type checking
+          mypy src/social_xlstm/interfaces/ --strict
+          # Check pydantic model validation for configuration schemas
+          python -c "from social_xlstm.interfaces.config import ModelConfig; ModelConfig()"
+        
+      # Core Architecture Tests
+      # ----------------------
+      # Run interface and architecture-specific test suites with coverage reporting
+      # Focuses on distributed architecture components and interface implementations
+      - name: Run core tests
+        run: |
+          # Test interfaces and architecture components with coverage
+          pytest tests/interfaces/ tests/architecture/ -v --cov=src/social_xlstm/interfaces
+        
+      # Documentation Quality Assurance
+      # -------------------------------
+      # Comprehensive documentation validation including linting, links, and examples
+      # Ensures high-quality documentation that accurately reflects the architecture
+      - name: Documentation quality checks
+        run: |
+          # Markdown linting for consistent documentation style
+          npx markdownlint-cli docs/**/*.md
+          # Link validation to prevent broken documentation references
+          python scripts/validate_doc_links.py
+          # Check code examples in docs for syntax and accuracy
+          python scripts/validate_doc_examples.py
+
+  # Interface Change Detection Job
+  # =============================
+  # Specialized validation for pull requests that modify interface files
+  # Provides enhanced validation and impact analysis for critical interface changes
+  interface-change-detection:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'  # Only run on PR events
+    
+    steps:
+      # Repository Setup for Change Detection
+      # ------------------------------------
+      # Full history required for accurate change comparison against base branch
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for comprehensive change analysis
+          
+      # Interface Change Detection and Extended Validation
+      # -------------------------------------------------
+      # Detects changes to interface files and triggers specialized validation
+      # Critical for maintaining API stability and backward compatibility
+      - name: Detect interface changes
+        run: |
+          # Check if any files in interfaces/ have changed compared to main branch
+          if git diff --name-only origin/main...HEAD | grep -q "src/social_xlstm/interfaces/"; then
+            echo "Interface changes detected. Running extended validation..."
+            # Run specialized interface change validation with base comparison
+            python scripts/interface_change_validator.py --base=origin/main
+          fi

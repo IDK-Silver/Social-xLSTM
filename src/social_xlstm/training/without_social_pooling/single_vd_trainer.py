@@ -89,8 +89,8 @@ class SingleVDTrainer(BaseTrainer):
         
         Args:
             batch: Raw batch from DataLoader with format:
-                   - 'input_seq': [batch_size, seq_len, num_vds, num_features]
-                   - 'target_seq': [batch_size, pred_len, num_vds, num_features]
+                   - 'input_seq': [B, T, N, F] - B=批次, T=時間步, N=VD數量, F=特徵
+                   - 'target_seq': [B, T, N, F] - B=批次, T=預測長度, N=VD數量, F=特徵
         
         Returns:
             Tuple of (inputs, targets) with format:
@@ -98,8 +98,8 @@ class SingleVDTrainer(BaseTrainer):
             - targets: [batch_size, prediction_steps, num_features]
         """
         # Extract input and target sequences
-        inputs = batch['input_seq']  # [batch_size, seq_len, num_vds, num_features]
-        targets = batch['target_seq']  # [batch_size, pred_len, num_vds, num_features]
+        inputs = batch['input_seq']  # [B, T, N, F] - B=批次, T=時間步, N=VD數量, F=特徵
+        targets = batch['target_seq']  # [B, T, N, F] - B=批次, T=預測長度, N=VD數量, F=特徵
         
         # Determine which VD to use
         vd_idx = 0  # Default to first VD
@@ -147,8 +147,9 @@ class SingleVDTrainer(BaseTrainer):
                 vd_idx = 0
         
         # Select the specific VD
-        inputs = inputs[:, :, vd_idx, :]  # [batch_size, seq_len, num_features]
-        targets = targets[:, :, vd_idx, :]  # [batch_size, pred_len, num_features]
+        # 從多VD格式選擇單VD - 維持數據結構一致性，詳見 docs/architecture/data_pipeline.md
+        inputs = inputs[:, :, vd_idx, :]  # [batch_size, seq_len, num_features] - 選定VD的歷史數據
+        targets = targets[:, :, vd_idx, :]  # [batch_size, pred_len, num_features] - 選定VD的未來數據(targets)
         
         # Select only the required prediction steps
         targets = targets[:, :self.prediction_steps, :]  # [batch_size, prediction_steps, num_features]

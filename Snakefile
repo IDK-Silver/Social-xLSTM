@@ -473,3 +473,78 @@ rule train_xlstm_multi_vd:
         --save_dir $(dirname $(dirname {output.training_history})) >> {log} 2>&1
         """
 
+
+# =============================================================================
+# Social-xLSTM Training Rules - Multi-VD Distributed Architecture
+# =============================================================================
+
+rule train_social_xlstm_multi_vd:
+    input:
+        h5_file=config['dataset']['pre-processed']['h5']['file']
+    output:
+        model_file=os.path.join(config['training_social_xlstm']['multi_vd']['experiment_dir'], "best_model.pt"),
+        config_file=os.path.join(config['training_social_xlstm']['multi_vd']['experiment_dir'], "config.json"),
+        training_history=os.path.join(config['training_social_xlstm']['multi_vd']['experiment_dir'], "training_history.json")
+    log:
+        config['training_social_xlstm']['multi_vd']['log']
+    params:
+        epochs=config['training_social_xlstm']['multi_vd']['epochs'],
+        batch_size=config['training_social_xlstm']['multi_vd']['batch_size'],
+        sequence_length=config['training_social_xlstm']['multi_vd']['sequence_length'],
+        prediction_length=config['training_social_xlstm']['multi_vd']['prediction_length'],
+        num_vds=config['training_social_xlstm']['multi_vd']['num_vds'],
+        hidden_size=config['training_social_xlstm']['multi_vd']['hidden_size'],
+        num_blocks=config['training_social_xlstm']['multi_vd']['num_blocks'],
+        embedding_dim=config['training_social_xlstm']['multi_vd']['embedding_dim'],
+        slstm_at=config['training_social_xlstm']['multi_vd']['slstm_at'],
+        enable_spatial_pooling=config['training_social_xlstm']['multi_vd']['enable_spatial_pooling'],
+        spatial_radius=config['training_social_xlstm']['multi_vd']['spatial_radius'],
+        pool_type=config['training_social_xlstm']['multi_vd']['pool_type'],
+        learning_rate=config['training_social_xlstm']['multi_vd']['learning_rate'],
+        experiment_name=os.path.basename(config['training_social_xlstm']['multi_vd']['experiment_dir'])
+    shell:
+        """
+        cmd="python scripts/train_distributed_social_xlstm.py --data_path {input.h5_file} --epochs {params.epochs} --batch_size {params.batch_size} --sequence_length {params.sequence_length} --prediction_length {params.prediction_length} --hidden_size {params.hidden_size} --num_blocks {params.num_blocks} --embedding_dim {params.embedding_dim} --slstm_at {params.slstm_at} --learning_rate {params.learning_rate} --experiment_name {params.experiment_name} --save_dir $(dirname $(dirname {output.training_history}))"
+        
+        if [ "{params.enable_spatial_pooling}" = "True" ]; then
+            cmd="$cmd --enable_spatial_pooling --spatial_radius {params.spatial_radius} --pool_type {params.pool_type}"
+        fi
+        
+        echo "Executing: $cmd" >> {log}
+        $cmd >> {log} 2>&1
+        """
+# =============================================================================
+# Social-xLSTM Report and Plot Generation Rules
+# =============================================================================
+
+rule generate_social_xlstm_multi_vd_report:
+    input:
+        training_history=rules.train_social_xlstm_multi_vd.output.training_history
+    output:
+        report=os.path.join(config['training_social_xlstm']['multi_vd']['experiment_dir'], "training_report.md")
+    log:
+        config['training_social_xlstm']['multi_vd']['report_log']
+    shell:
+        """
+        python scripts/utils/generate_training_report.py \
+        --experiment_dir $(dirname {input.training_history}) \
+        --output_file {output.report} \
+        --verbose >> {log} 2>&1
+        """
+
+rule generate_social_xlstm_multi_vd_plots:
+    input:
+        training_history=rules.train_social_xlstm_multi_vd.output.training_history
+    output:
+        plots_dir=directory(os.path.join(config['training_social_xlstm']['multi_vd']['experiment_dir'], "plots")),
+        training_curves=os.path.join(config['training_social_xlstm']['multi_vd']['experiment_dir'], "plots", "training_curves.png"),
+        metric_evolution=os.path.join(config['training_social_xlstm']['multi_vd']['experiment_dir'], "plots", "metric_evolution.png"),
+        advanced_metrics=os.path.join(config['training_social_xlstm']['multi_vd']['experiment_dir'], "plots", "advanced_metrics.png")
+    log:
+        config['training_social_xlstm']['multi_vd']['plot_log']
+    shell:
+        """
+        python scripts/utils/generate_training_plots.py \
+        --experiment_dir $(dirname {input.training_history}) \
+        --verbose >> {log} 2>&1
+        """

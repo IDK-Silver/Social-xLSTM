@@ -99,15 +99,15 @@ class MultiVDTrainer(BaseTrainer):
         
         Args:
             batch: Raw batch from DataLoader with format:
-                   - 'input_seq': [batch_size, seq_len, num_vds, num_features]
+                   - 'input_seq': [B, T, N, F] - B=批次, T=時間步, N=VD數量, F=特徵
                    - 'target_seq': [batch_size, pred_len, num_vds, num_features]
         
         Returns:
             Tuple of (inputs, targets) prepared for the model
         """
         # Extract input and target sequences
-        inputs = batch['input_seq']  # [batch_size, seq_len, num_vds, num_features]
-        targets = batch['target_seq']  # [batch_size, pred_len, num_vds, num_features]
+        inputs = batch['input_seq']  # [B, T, N, F] - B=批次, T=時間步, N=VD數量, F=特徵
+        targets = batch['target_seq']  # [B, T, N, F] - B=批次, T=預測長度, N=VD數量, F=特徵
         
         # Select only the required prediction steps first
         targets = targets[:, :self.prediction_steps, :, :]
@@ -227,8 +227,8 @@ class IndependentMultiVDTrainer(BaseTrainer):
             Tuple of (inputs, targets) for the target VD only
         """
         # Extract input and target sequences
-        inputs = batch['input_seq']  # [batch_size, seq_len, num_vds, num_features]
-        targets = batch['target_seq']  # [batch_size, pred_len, num_vds, num_features]
+        inputs = batch['input_seq']  # [B, T, N, F] - B=批次, T=時間步, N=VD數量, F=特徵
+        targets = batch['target_seq']  # [B, T, N, F] - B=批次, T=預測長度, N=VD數量, F=特徵
         
         # Select only the target VD
         inputs = inputs[:, :, self.target_vd_index, :]  # [batch_size, seq_len, num_features]

@@ -21,7 +21,7 @@ dataset:
       log: logs/dev/pre-processed/unzip_to_json.log
       folder: blob/dataset/pre-processed/unzip_to_json
     h5:
-      file: blob/dataset/pre-processed/h5/traffic_features_expanded.h5
+      file: blob/dataset/pre-processed/h5/traffic_features_dev.h5
       log: logs/dev/create_h5_file.log
       selected_vdids:
       - VD-28-0740-000-001
@@ -174,6 +174,46 @@ training_xlstm:
     scheduler_patience: 5
     # Dataset parameters
     prediction_length: 1
+    train_ratio: 0.8
+    val_ratio: 0.2
+    test_ratio: 0.0
+    normalize: true
+    normalization_method: standard
+
+# =============================================================================
+# Social-xLSTM Training Configuration - Multi-VD Distributed Architecture
+# =============================================================================
+# Social-xLSTM 是 multi-VD 分散式架構，支援完整的空間社會聚合功能
+# 注意：Social-xLSTM 本質上是 multi-VD 系統，如需 single VD 訓練請使用 training_xlstm
+training_social_xlstm:
+  multi_vd:
+    experiment_dir: blob/experiments/dev/social_xlstm/multi_vd
+    log: logs/dev/train_multi_vd_social_xlstm.log
+    report_log: "logs/dev/reports/generate_multi_vd_social_xlstm_report.log"
+    plot_log: "logs/dev/reports/generate_multi_vd_social_xlstm_plots.log"
+    # Multi-VD configuration
+    num_vds: 1
+    # Model architecture parameters
+    epochs: 10
+    batch_size: 8
+    sequence_length: 10
+    prediction_length: 3
+    hidden_size: 64
+    num_blocks: 2
+    embedding_dim: 64
+    # xLSTM specific configuration
+    slstm_at: [1]  # sLSTM layer positions (must be < num_blocks)
+    # Social Pooling configuration (full functionality)
+    enable_spatial_pooling: true
+    spatial_radius: 2.0
+    pool_type: mean
+    learning_rate: 0.001
+    # Optimized training parameters
+    early_stopping_patience: 8
+    gradient_clip_value: 0.5
+    use_scheduler: true
+    scheduler_patience: 5
+    # Dataset parameters
     train_ratio: 0.8
     val_ratio: 0.2
     test_ratio: 0.0
