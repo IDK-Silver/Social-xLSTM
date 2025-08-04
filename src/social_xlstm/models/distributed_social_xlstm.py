@@ -13,6 +13,7 @@ import torch.nn as nn
 import pytorch_lightning as pl
 from typing import Dict, List, Optional, Any
 from collections import OrderedDict
+import torchmetrics
 
 from .vd_xlstm_manager import VDXLSTMManager
 from .xlstm import TrafficXLSTMConfig
@@ -59,6 +60,14 @@ class DistributedSocialXLSTMModel(pl.LightningModule):
         self.learning_rate = learning_rate
         self.enable_spatial_pooling = enable_spatial_pooling
         self.spatial_radius = spatial_radius
+        
+        # Initialize TorchMetrics for proper metric calculation
+        self.train_mae = torchmetrics.MeanAbsoluteError()
+        self.val_mae = torchmetrics.MeanAbsoluteError()
+        self.train_mse = torchmetrics.MeanSquaredError()
+        self.val_mse = torchmetrics.MeanSquaredError()
+        self.train_r2 = torchmetrics.R2Score()
+        self.val_r2 = torchmetrics.R2Score()
         
         # VD Manager
         self.vd_manager = VDXLSTMManager(
@@ -181,6 +190,8 @@ class DistributedSocialXLSTMModel(pl.LightningModule):
         predictions = self(vd_inputs)
         
         total_loss = 0.0
+        all_preds = []
+        all_targets = []
         num_vds = 0
         
         for vd_id, pred in predictions.items():
@@ -191,11 +202,28 @@ class DistributedSocialXLSTMModel(pl.LightningModule):
                 vd_loss = self.criterion(pred, target_flat)
                 total_loss += vd_loss
                 num_vds += 1
+                
+                # Collect predictions and targets for metric calculation
+                all_preds.append(pred)
+                all_targets.append(target_flat)
         
         avg_loss = total_loss / num_vds if num_vds > 0 else total_loss
         
-        self.log('train_loss', avg_loss, prog_bar=True)
-        self.log('num_vds', float(num_vds), prog_bar=True)
+        # Calculate metrics using TorchMetrics if we have data
+        if all_preds and all_targets:
+            preds_tensor = torch.cat(all_preds, dim=0)
+            targets_tensor = torch.cat(all_targets, dim=0)
+            
+            # Update and log metrics
+            self.train_mae(preds_tensor, targets_tensor)
+            self.train_mse(preds_tensor, targets_tensor)
+            self.train_r2(preds_tensor, targets_tensor)
+            
+            self.log('train_loss', avg_loss, prog_bar=True)
+            self.log('train_mae', self.train_mae, prog_bar=False)
+            self.log('train_mse', self.train_mse, prog_bar=False)
+            self.log('train_r2', self.train_r2, prog_bar=False)
+            self.log('num_vds', float(num_vds), prog_bar=True)
         
         return avg_loss
     
@@ -206,6 +234,8 @@ class DistributedSocialXLSTMModel(pl.LightningModule):
         predictions = self(vd_inputs)
         
         total_loss = 0.0
+        all_preds = []
+        all_targets = []
         num_vds = 0
         
         for vd_id, pred in predictions.items():
@@ -216,10 +246,27 @@ class DistributedSocialXLSTMModel(pl.LightningModule):
                 vd_loss = self.criterion(pred, target_flat)
                 total_loss += vd_loss
                 num_vds += 1
+                
+                # Collect predictions and targets for metric calculation
+                all_preds.append(pred)
+                all_targets.append(target_flat)
         
         avg_loss = total_loss / num_vds if num_vds > 0 else total_loss
         
-        self.log('val_loss', avg_loss, prog_bar=True)
+        # Calculate metrics using TorchMetrics if we have data
+        if all_preds and all_targets:
+            preds_tensor = torch.cat(all_preds, dim=0)
+            targets_tensor = torch.cat(all_targets, dim=0)
+            
+            # Update and log metrics
+            self.val_mae(preds_tensor, targets_tensor)
+            self.val_mse(preds_tensor, targets_tensor)
+            self.val_r2(preds_tensor, targets_tensor)
+            
+            self.log('val_loss', avg_loss, prog_bar=True)
+            self.log('val_mae', self.val_mae, prog_bar=False)
+            self.log('val_mse', self.val_mse, prog_bar=False)
+            self.log('val_r2', self.val_r2, prog_bar=False)
         
         return avg_loss
     

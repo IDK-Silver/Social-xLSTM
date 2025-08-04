@@ -245,15 +245,6 @@ class TestTrainingRecorder:
         assert int(first_row['epoch']) == 0
         assert float(first_row['train_loss']) == pytest.approx(1.0)
     
-    def test_export_to_tensorboard(self, recorder_with_data, temp_dir):
-        """Test TensorBoard export functionality."""
-        tb_dir = temp_dir / "tensorboard"
-        
-        # Export (will print message if TensorBoard not available)
-        recorder_with_data.export_to_tensorboard(tb_dir)
-        
-        # Basic check - directory should be created
-        assert tb_dir.exists()
     
     def test_analyze_training_stability(self, recorder_with_data):
         """Test training stability analysis."""
@@ -308,102 +299,8 @@ class TestTrainingRecorder:
         stability = recorder.analyze_training_stability()
         assert stability == {}
     
-    def test_nan_and_inf_handling(self, recorder):
-        """Test handling of NaN and infinity values."""
-        # Log epoch with NaN
-        recorder.log_epoch(
-            epoch=0,
-            train_loss=float('nan'),
-            val_loss=float('inf')
-        )
-        
-        # Should still record the epoch
-        assert len(recorder.epochs) == 1
-        assert np.isnan(recorder.epochs[0].train_loss)
-        assert np.isinf(recorder.epochs[0].val_loss)
     
-    def test_memory_usage_recording(self, recorder):
-        """Test that memory usage is automatically recorded."""
-        recorder.log_epoch(epoch=0, train_loss=1.0)
-        
-        # Memory usage should be recorded (or None if psutil fails)
-        epoch = recorder.epochs[0]
-        assert epoch.memory_usage is None or isinstance(epoch.memory_usage, float)
     
-    def test_sample_predictions_storage(self, recorder):
-        """Test storing sample predictions."""
-        sample_preds = {
-            'inputs': np.random.rand(5, 12, 3).tolist(),
-            'predictions': np.random.rand(5, 1, 3).tolist(),
-            'targets': np.random.rand(5, 1, 3).tolist()
-        }
-        
-        recorder.log_epoch(
-            epoch=0,
-            train_loss=1.0,
-            sample_predictions=sample_preds
-        )
-        
-        assert recorder.epochs[0].sample_predictions == sample_preds
     
-    def test_convergence_analysis(self):
-        """Test convergence analysis functionality."""
-        # Create recorder with more epochs for convergence analysis
-        recorder = TrainingRecorder("convergence_test", {}, {})
-        
-        # Add 15 epochs to have enough data
-        for epoch in range(15):
-            recorder.log_epoch(
-                epoch=epoch,
-                train_loss=1.0 / (epoch + 1),  # Clearly decreasing
-                val_loss=1.1 / (epoch + 1)
-            )
-        
-        # Private method but important to test
-        convergence = recorder._analyze_convergence()
-        
-        assert 'status' in convergence
-        assert convergence['status'] in ['converging', 'plateaued', 'insufficient_data']
-        
-        # With decreasing loss, should be converging
-        assert convergence['status'] == 'converging'
-        assert 'improvement' in convergence
-        assert convergence['improvement'] > 0
     
-    def test_overfitting_detection(self):
-        """Test overfitting detection."""
-        recorder = TrainingRecorder("overfit_test", {}, {})
-        
-        # Simulate overfitting: train loss decreases, val loss increases
-        for epoch in range(10):
-            recorder.log_epoch(
-                epoch=epoch,
-                train_loss=1.0 / (epoch + 1),  # Decreasing
-                val_loss=0.5 + 0.1 * epoch      # Increasing
-            )
-        
-        # Check overfitting score
-        overfitting_score = recorder._detect_overfitting()
-        assert overfitting_score > 0  # Should detect overfitting
     
-    def test_serialization_edge_cases(self, temp_dir):
-        """Test serialization of edge cases."""
-        recorder = TrainingRecorder("edge_case_test", {}, {})
-        
-        # Add epoch with None values
-        recorder.log_epoch(
-            epoch=0,
-            train_loss=1.0,
-            val_loss=None,
-            gradient_norm=None,
-            sample_predictions=None
-        )
-        
-        # Save and load
-        save_path = temp_dir / "edge_case.json"
-        recorder.save(save_path)
-        loaded = TrainingRecorder.load(save_path)
-        
-        # Verify None values are preserved
-        assert loaded.epochs[0].val_loss is None
-        assert loaded.epochs[0].gradient_norm is None

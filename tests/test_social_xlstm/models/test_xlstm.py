@@ -139,7 +139,7 @@ class TestTrafficXLSTM:
         model = TrafficXLSTM(config)
         
         # Test wrong number of dimensions
-        with pytest.raises(ValueError, match="Expected 3D input"):
+        with pytest.raises(ValueError, match="Single VD mode expects 3D input"):
             x = torch.randn(12, 3)  # 2D instead of 3D
             model(x)
         

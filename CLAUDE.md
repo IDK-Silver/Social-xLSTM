@@ -49,7 +49,7 @@ snakemake --configfile cfgs/snakemake/dev.yaml --cores 4
 
 | 目標 | 指令 |
 |------|------|
-| 單/多 VD 訓練 | `snakemake --configfile cfgs/snakemake/dev.yaml train_*_without_social_pooling` |
+| 單/多 VD 訓練 | `snakemake train_*_without_social_pooling --cores 4 --configfile cfgs/snakemake/dev.yaml` |
 | 測試 | `pytest -n auto` |
 | 開發檢查 | `scripts/quick-dev-check.sh` |
 | 架構檢查 | `python scripts/check_architecture_rules.py` |
@@ -97,3 +97,7 @@ snakemake --configfile cfgs/snakemake/dev.yaml --cores 4
 ## 🔗 深入閱讀
 
 `docs/quickstart/first-model.md` | `docs/technical/social-pooling-algorithm.md` | `docs/guides/ci-cd-automation-guide.md`
+
+## 🔔 記憶備忘
+
+- 每當完成 todo.md 的內容要更新打勾狀態
