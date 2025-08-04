@@ -66,6 +66,8 @@ class DistributedSocialXLSTMModel(pl.LightningModule):
         self.val_mae = torchmetrics.MeanAbsoluteError()
         self.train_mse = torchmetrics.MeanSquaredError()
         self.val_mse = torchmetrics.MeanSquaredError()
+        self.train_rmse = torchmetrics.MeanSquaredError(squared=False)  # RMSE
+        self.val_rmse = torchmetrics.MeanSquaredError(squared=False)    # RMSE
         self.train_r2 = torchmetrics.R2Score()
         self.val_r2 = torchmetrics.R2Score()
         
@@ -217,11 +219,13 @@ class DistributedSocialXLSTMModel(pl.LightningModule):
             # Update and log metrics
             self.train_mae(preds_tensor, targets_tensor)
             self.train_mse(preds_tensor, targets_tensor)
+            self.train_rmse(preds_tensor, targets_tensor)
             self.train_r2(preds_tensor, targets_tensor)
             
             self.log('train_loss', avg_loss, prog_bar=True)
             self.log('train_mae', self.train_mae, prog_bar=False)
             self.log('train_mse', self.train_mse, prog_bar=False)
+            self.log('train_rmse', self.train_rmse, prog_bar=False)
             self.log('train_r2', self.train_r2, prog_bar=False)
             self.log('num_vds', float(num_vds), prog_bar=True)
         
@@ -261,11 +265,13 @@ class DistributedSocialXLSTMModel(pl.LightningModule):
             # Update and log metrics
             self.val_mae(preds_tensor, targets_tensor)
             self.val_mse(preds_tensor, targets_tensor)
+            self.val_rmse(preds_tensor, targets_tensor)
             self.val_r2(preds_tensor, targets_tensor)
             
             self.log('val_loss', avg_loss, prog_bar=True)
             self.log('val_mae', self.val_mae, prog_bar=False)
             self.log('val_mse', self.val_mse, prog_bar=False)
+            self.log('val_rmse', self.val_rmse, prog_bar=False)
             self.log('val_r2', self.val_r2, prog_bar=False)
         
         return avg_loss
