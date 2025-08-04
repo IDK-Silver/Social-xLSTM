@@ -46,7 +46,8 @@ PLOT_RULES = [
     "generate_lstm_multi_vd_plots", 
     "generate_lstm_independent_multi_vd_plots",
     "generate_xlstm_single_vd_plots",
-    "generate_xlstm_multi_vd_plots"
+    "generate_xlstm_multi_vd_plots",
+    "generate_social_xlstm_multi_vd_plots"
     # Note: generate_training_plots is a generic rule with wildcards
     # and should not be called directly. Use specific plot rules above.
 ]

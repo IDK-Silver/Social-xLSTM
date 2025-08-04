@@ -47,8 +47,8 @@ VD_C: 原始序列 → xLSTM_C → 隱狀態_C ┘
 
 ### 🚨 Social-xLSTM 視覺化修復
 
-#### 0.1 訓練記錄格式標準化修復
-- [ ] **修復 Social-xLSTM 訓練腳本格式不相容問題** ⚡ 
+#### 0.1 訓練記錄格式標準化修復 ✅ **已完成** (2025-08-04)
+- [x] **修復 Social-xLSTM 訓練腳本格式不相容問題** ⚡ 
 
 **🔍 問題根因**：
 ```bash
@@ -60,21 +60,27 @@ VD_C: 原始序列 → xLSTM_C → 隱狀態_C ┘
 - ✅ **標準格式**（LSTM/xLSTM 使用）：完整 TrainingRecorder 格式，包含 `experiment_name`, `model_config`, `training_config`, `epochs[]` 等
 - ❌ **破損格式**（Social-xLSTM 使用）：PyTorch Lightning 簡化格式，僅有 `epochs`, `best_val_loss`, `tensorboard_logs` 等基本欄位
 
-**🎯 正確解決方案：標準化架構統一**
+**🎯 正確解決方案：標準化架構統一** ✅ **已完成**
 
-  - **標準化訓練記錄** - 工作量: ~4-6小時 - **短期修復方案**
-    - [ ] 修改 `scripts/train_distributed_social_xlstm.py:314-331`
-      - [ ] 匯入 `from social_xlstm.training.recorder import TrainingRecorder`  
-      - [ ] 在訓練開始前實例化 `TrainingRecorder(experiment_name, model_config, training_config)`
-      - [ ] 訓練過程中使用 `recorder.log_epoch()` 記錄每個 epoch 資料
-      - [ ] 替換 `json.dump()` 為 `recorder.save(training_history_path)`
-    - [ ] 確保輸出**完整標準格式**：`experiment_name`, `model_config`, `training_config`, `epochs[]` 陣列
-    - [ ] **注意**：此階段保持 PyTorch Lightning 框架，只修復記錄格式
+  - **標準化訓練記錄** - 工作量: ~4-6小時 - **短期修復方案** ✅
+    - [x] 修改 `scripts/train_distributed_social_xlstm.py:314-331`
+      - [x] 匯入 `from social_xlstm.training.recorder import TrainingRecorder`  
+      - [x] 在訓練開始前實例化 `TrainingRecorder(experiment_name, model_config, training_config)`
+      - [x] 訓練過程中使用 `recorder.log_epoch()` 記錄每個 epoch 資料
+      - [x] 替換 `json.dump()` 為 `recorder.save(training_history_path)`
+    - [x] 確保輸出**完整標準格式**：`experiment_name`, `model_config`, `training_config`, `epochs[]` 陣列
+    - [x] **注意**：此階段保持 PyTorch Lightning 框架，只修復記錄格式
     
-  - **驗證測試** - 工作量: ~1-2小時
-    - [ ] 重新執行 Social-xLSTM 訓練，確認新格式輸出正確
-    - [ ] 測試標準格式的視覺化生成成功
-    - [ ] 更新專案文檔，強化 TrainingRecorder 為**必須**遵循的統一標準
+  - **驗證測試** - 工作量: ~1-2小時 ✅
+    - [x] 重新執行 Social-xLSTM 訓練，確認新格式輸出正確
+    - [x] 測試標準格式的視覺化生成成功
+    - [x] 更新專案文檔，強化 TrainingRecorder 為**必須**遵循的統一標準
+    
+  - **RMSE 指標修復** ✅ **已完成** (2025-08-04)
+    - [x] 識別 RMSE 視覺化空白問題的根本原因
+    - [x] 在 DistributedSocialXLSTMModel 中添加 train_rmse 和 val_rmse TorchMetrics
+    - [x] 修復訓練和驗證步驟中的 RMSE 計算和記錄
+    - [x] 驗證 RMSE 指標正確顯示在視覺化圖表中
 
 **⚠️ 不實施向後相容性的原因**：
 - 違反 "Fail Fast" 原則：錯誤使用應立即暴露

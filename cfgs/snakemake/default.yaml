@@ -35,12 +35,13 @@ dataset:
     h5:
       file: "blob/dataset/pre-processed/h5/traffic_features_default.h5"  # Output HDF5 file path
       log: "logs/default/create_h5_file.log"  # Log file for HDF5 creation
-      selected_vdids: null # Production VDs - Valid data
+      # H5 創建階段：包含所有可用 VD，讓 h5 檔案內容完整
+      selected_vdids: null  # 包含所有 VD 到 h5 檔案中
       # Time range for data processing (Format: YYYY-MM-DD_HH-MM-SS,YYYY-MM-DD_HH-MM-SS)
       # Set to `null` to process all available data without filtering
       # See docs/implementation/dataset_documentation.md for detailed usage
-      time_range: null
-      overwrite: true      # Overwrite existing file for fresh data
+      time_range: null  # 使用所有可用數據
+      overwrite: true
     
 # Model training configuration - Production training with default prefix
 training_lstm:
@@ -50,7 +51,7 @@ training_lstm:
     log: "logs/default/train_single_vd_lstm.log"  # Training log file
     report_log: "logs/reports/generate_single_vd_report.log"  # Report generation log
     plot_log: "logs/reports/generate_single_vd_plots.log"    # Plot generation log
-    epochs: 200          # Sufficient for convergence
+    epochs: 50          # Sufficient for convergence
     batch_size: 32      # Optimized for RTX 3090 Ti (24GB VRAM)
     sequence_length: 20  # Longer sequences for better temporal modeling
     model_type: "lstm"  # Model architecture: "lstm" or "xlstm"
@@ -61,7 +62,7 @@ training_lstm:
     dropout: 0.5
     learning_rate: 0.0005
     weight_decay: 0.01
-    early_stopping_patience: 8
+    early_stopping_patience: -1
     gradient_clip_value: 0.5
     use_scheduler: true
     scheduler_patience: 5
@@ -77,14 +78,17 @@ training_lstm:
   multi_vd:
     experiment_dir: "blob/experiments/default/lstm/multi_vd"  # Output directory for experiment results
     log: "logs/default/train_multi_vd_lstm.log"  # Training log file
-    report_log: "logs/reports/generate_multi_vd_report.log"  # Report generation log
-    plot_log: "logs/reports/generate_multi_vd_plots.log"    # Plot generation log
-    epochs: 200          # More epochs for production
+    report_log: "logs/default/reports/generate_multi_vd_report.log"  # Report generation log
+    plot_log: "logs/default/reports/generate_multi_vd_plots.log"    # Plot generation log
+    epochs: 50          # More epochs for production
     batch_size: 32       # Optimized for RTX 3090 Ti (24GB VRAM)
     sequence_length: 20  # Longer sequences for better temporal modeling
-    num_vds: 50         # Train on first 50 VDs (reasonable subset)
-    # Alternative: use specific VD IDs with vd_ids parameter
-    # vd_ids: "VD-28-0740-000-001,VD-11-0020-008-001,VD-13-0660-000-002"  # Valid VDs with high data quality
+    # 訓練階段 VD 選擇：從完整 h5 檔案中選擇特定高質量 VD 進行訓練
+    selected_vdids:  # 訓練時選擇的 VD（從 h5 檔案中選擇）
+      - VD-28-0740-000-001  # 98.3% 高質量數據
+      - VD-11-0020-008-001  # 高質量數據
+      - VD-13-0660-000-002  # 高質量數據
+    num_vds: 3  # 保持向後相容
     model_type: "lstm"  # Model architecture: "lstm" or "xlstm"
     # Optimized training parameters from fixed configs
     hidden_size: 32
@@ -92,7 +96,7 @@ training_lstm:
     dropout: 0.5
     learning_rate: 0.0005
     weight_decay: 0.01
-    early_stopping_patience: 8
+    early_stopping_patience: -1
     gradient_clip_value: 0.5
     use_scheduler: true
     scheduler_patience: 5
@@ -108,14 +112,17 @@ training_lstm:
   independent_multi_vd:
     experiment_dir: "blob/experiments/default/lstm/independent_multi_vd"  # Output directory
     log: "logs/default/train_independent_multi_vd_lstm.log"  # Training log file
-    report_log: "logs/reports/generate_independent_multi_vd_report.log"  # Report generation log
-    plot_log: "logs/reports/generate_independent_multi_vd_plots.log"    # Plot generation log
-    epochs: 200          # More epochs for production
+    report_log: "logs/default/reports/generate_independent_multi_vd_report.log"  # Report generation log
+    plot_log: "logs/default/reports/generate_independent_multi_vd_plots.log"    # Plot generation log
+    epochs: 50          # More epochs for production
     batch_size: 32       # Optimized for RTX 3090 Ti (24GB VRAM)
     sequence_length: 20  # Longer sequences for better temporal modeling
-    num_vds: 50         # Train on first 50 VDs (reasonable subset)
-    # Alternative: use specific VD IDs with vd_ids parameter
-    # vd_ids: "VD-28-0740-000-001,VD-11-0020-008-001,VD-13-0660-000-002"  # Valid VDs with high data quality
+    # 訓練階段 VD 選擇：從完整 h5 檔案中選擇特定高質量 VD 進行訓練
+    selected_vdids:  # 訓練時選擇的 VD（從 h5 檔案中選擇）
+      - VD-28-0740-000-001  # 98.3% 高質量數據
+      - VD-11-0020-008-001  # 高質量數據
+      - VD-13-0660-000-002  # 高質量數據
+    num_vds: 3  # 保持向後相容
     target_vd_index: 0  # Index of the VD to predict (0-based)
     model_type: "lstm"  # Model architecture: "lstm" or "xlstm"
     # Optimized training parameters from fixed configs
@@ -124,7 +131,7 @@ training_lstm:
     dropout: 0.5
     learning_rate: 0.0005
     weight_decay: 0.01
-    early_stopping_patience: 8
+    early_stopping_patience: -1
     gradient_clip_value: 0.5
     use_scheduler: true
     scheduler_patience: 5
@@ -144,7 +151,7 @@ training_xlstm:
     log: "logs/default/train_single_vd_xlstm.log"
     report_log: "logs/reports/generate_single_vd_xlstm_report.log"  # Report generation log
     plot_log: "logs/reports/generate_single_vd_xlstm_plots.log"    # Plot generation log
-    epochs: 200          # More epochs for production
+    epochs: 50          # More epochs for production
     batch_size: 32       # Optimized for RTX 3090 Ti (24GB VRAM)
     sequence_length: 20  # Same as LSTM for fair comparison
     model_type: "xlstm"
@@ -159,7 +166,7 @@ training_xlstm:
     # Optimized training parameters from fixed configs
     learning_rate: 0.0005
     weight_decay: 0.01
-    early_stopping_patience: 8
+    early_stopping_patience: -1
     gradient_clip_value: 0.5
     use_scheduler: true
     scheduler_patience: 5
@@ -175,15 +182,18 @@ training_xlstm:
   multi_vd:
     experiment_dir: "blob/experiments/default/xlstm/multi_vd"
     log: "logs/default/train_multi_vd_xlstm.log"
-    report_log: "logs/reports/generate_multi_vd_xlstm_report.log"  # Report generation log
-    plot_log: "logs/reports/generate_multi_vd_xlstm_plots.log"    # Plot generation log
-    epochs: 200          # More epochs for production
+    report_log: "logs/default/reports/generate_multi_vd_xlstm_report.log"  # Report generation log
+    plot_log: "logs/default/reports/generate_multi_vd_xlstm_plots.log"    # Plot generation log
+    epochs: 50          # More epochs for production
     batch_size: 32       # Optimized for RTX 3090 Ti (24GB VRAM)
     sequence_length: 20  # Same as LSTM for fair comparison
     model_type: "xlstm"
-    num_vds: 50         # Train on first 50 VDs (reasonable subset)
-    # Alternative: use specific VD IDs with vd_ids parameter
-    # vd_ids: "VD-28-0740-000-001,VD-11-0020-008-001,VD-13-0660-000-002"  # Valid VDs with high data quality
+    # 訓練階段 VD 選擇：從完整 h5 檔案中選擇特定高質量 VD 進行訓練
+    selected_vdids:  # 訓練時選擇的 VD（從 h5 檔案中選擇）
+      - VD-28-0740-000-001  # 98.3% 高質量數據
+      - VD-11-0020-008-001  # 高質量數據
+      - VD-13-0660-000-002  # 高質量數據
+    num_vds: 3  # 保持向後相容
     # xLSTM specific parameters - production settings
     embedding_dim: 128
     num_blocks: 6
@@ -194,12 +204,57 @@ training_xlstm:
     # Optimized training parameters from fixed configs
     learning_rate: 0.0005
     weight_decay: 0.01
-    early_stopping_patience: 8
+    early_stopping_patience: -1
     gradient_clip_value: 0.5
     use_scheduler: true
     scheduler_patience: 5
     # Dataset parameters
     prediction_length: 1
+    train_ratio: 0.8
+    val_ratio: 0.2
+    test_ratio: 0.0
+    normalize: true
+    normalization_method: standard
+
+# =============================================================================
+# Social-xLSTM Training Configuration - Multi-VD Distributed Architecture
+# =============================================================================
+# Social-xLSTM 是 multi-VD 分散式架構，支援完整的空間社會聚合功能
+# 注意：Social-xLSTM 本質上是 multi-VD 系統，如需 single VD 訓練請使用 training_xlstm
+training_social_xlstm:
+  multi_vd:
+    experiment_dir: blob/experiments/default/social_xlstm/multi_vd
+    log: logs/default/train_multi_vd_social_xlstm.log
+    report_log: "logs/default/reports/generate_multi_vd_social_xlstm_report.log"
+    plot_log: "logs/default/reports/generate_multi_vd_social_xlstm_plots.log"
+    # 訓練階段 VD 選擇：從完整 h5 檔案中選擇特定高質量 VD 進行訓練
+    selected_vdids:  # 訓練時選擇的 VD（從 h5 檔案中選擇）
+      - VD-28-0740-000-001  # 98.3% 高質量數據
+      - VD-11-0020-008-001  # 高質量數據
+      - VD-13-0660-000-002  # 高質量數據
+    # Legacy parameter (deprecated in distributed mode)
+    num_vds: 3  # 保持向後相容
+    # Model architecture parameters
+    epochs: 50
+    batch_size: 32
+    sequence_length: 20
+    prediction_length: 3
+    hidden_size: 128
+    num_blocks: 6
+    embedding_dim: 128
+    # xLSTM specific configuration
+    slstm_at: [1, 3]  # sLSTM layer positions (must be < num_blocks)
+    # Social Pooling configuration (full functionality)
+    enable_spatial_pooling: true
+    spatial_radius: 2.0
+    pool_type: mean
+    learning_rate: 0.001
+    # Optimized training parameters
+    early_stopping_patience: -1
+    gradient_clip_value: 0.5
+    use_scheduler: true
+    scheduler_patience: 5
+    # Dataset parameters
     train_ratio: 0.8
     val_ratio: 0.2
     test_ratio: 0.0

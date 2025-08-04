@@ -23,12 +23,12 @@ dataset:
     h5:
       file: blob/dataset/pre-processed/h5/traffic_features_dev.h5
       log: logs/dev/create_h5_file.log
-      selected_vdids:
-      - VD-28-0740-000-001
+      # H5 創建階段：包含所有可用 VD，讓 h5 檔案內容完整
+      selected_vdids: null  # 包含所有 VD 到 h5 檔案中
       # Time range for data processing (Format: YYYY-MM-DD_HH-MM-SS,YYYY-MM-DD_HH-MM-SS)
       # Set to `null` to process all available data without filtering
       # See docs/implementation/dataset_documentation.md for detailed usage
-      time_range: 2025-03-18_00-00-00,2025-03-18_23-59-59
+      time_range: null  # 使用所有可用數據
       overwrite: true
 
 training_lstm:
@@ -41,7 +41,7 @@ training_lstm:
     batch_size: 32
     sequence_length: 5
     model_type: lstm
-    select_vd_id: VD-28-0740-000-001
+    select_vd_id: VD-28-0630-015-001  # 100% 完整的高質量數據
     hidden_size: 32
     num_layers: 1
     dropout: 0.5
@@ -67,7 +67,12 @@ training_lstm:
     epochs: 10
     batch_size: 32
     sequence_length: 5
-    num_vds: 1
+    # 訓練階段 VD 選擇：從完整 h5 檔案中選擇特定高質量 VD 進行訓練
+    selected_vdids:  # 訓練時選擇的 VD（從 h5 檔案中選擇）
+      - VD-28-0630-015-001  # 100% 完整的高質量數據
+      - VD-35-0090-437-002  # 100% 完整的高質量數據  
+      - VD-35-0090-437-003  # 100% 完整的高質量數據
+    num_vds: 3  # 保持向後相容
     model_type: lstm
     hidden_size: 32
     num_layers: 1
@@ -94,7 +99,12 @@ training_lstm:
     epochs: 10
     batch_size: 32
     sequence_length: 5
-    num_vds: 1
+    # 訓練階段 VD 選擇：從完整 h5 檔案中選擇特定高質量 VD 進行訓練
+    selected_vdids:  # 訓練時選擇的 VD（從 h5 檔案中選擇）
+      - VD-28-0630-015-001  # 100% 完整的高質量數據
+      - VD-35-0090-437-002  # 100% 完整的高質量數據  
+      - VD-35-0090-437-003  # 100% 完整的高質量數據
+    num_vds: 3  # 保持向後相容
     target_vd_index: 0
     model_type: lstm
     hidden_size: 32
@@ -124,7 +134,7 @@ training_xlstm:
     batch_size: 16
     sequence_length: 5
     model_type: xlstm
-    select_vd_id: VD-28-0740-000-001
+    select_vd_id: VD-28-0630-015-001  # 100% 完整的高質量數據
     embedding_dim: 64
     num_blocks: 4
     slstm_at:
@@ -156,7 +166,12 @@ training_xlstm:
     batch_size: 16
     sequence_length: 5
     model_type: xlstm
-    num_vds: 1
+    # 訓練階段 VD 選擇：從完整 h5 檔案中選擇特定高質量 VD 進行訓練
+    selected_vdids:  # 訓練時選擇的 VD（從 h5 檔案中選擇）
+      - VD-28-0630-015-001  # 100% 完整的高質量數據
+      - VD-35-0090-437-002  # 100% 完整的高質量數據  
+      - VD-35-0090-437-003  # 100% 完整的高質量數據
+    num_vds: 3  # 保持向後相容
     embedding_dim: 64
     num_blocks: 4
     slstm_at:
@@ -191,8 +206,13 @@ training_social_xlstm:
     log: logs/dev/train_multi_vd_social_xlstm.log
     report_log: "logs/dev/reports/generate_multi_vd_social_xlstm_report.log"
     plot_log: "logs/dev/reports/generate_multi_vd_social_xlstm_plots.log"
-    # Multi-VD configuration
-    num_vds: 1
+    # 訓練階段 VD 選擇：從完整 h5 檔案中選擇特定高質量 VD 進行訓練
+    selected_vdids:  # 訓練時選擇的 VD（從 h5 檔案中選擇）
+      - VD-28-0630-015-001  # 100% 完整的高質量數據
+      - VD-35-0090-437-002  # 100% 完整的高質量數據  
+      - VD-35-0090-437-003  # 100% 完整的高質量數據
+    # Legacy parameter (deprecated in distributed mode)
+    num_vds: 3  # 保持向後相容
     # Model architecture parameters
     epochs: 10
     batch_size: 8

@@ -45,10 +45,61 @@ from social_xlstm.models.xlstm import TrafficXLSTMConfig
 from social_xlstm.models.distributed_social_xlstm import DistributedSocialXLSTMModel
 from social_xlstm.data.distributed_datamodule import DistributedTrafficDataModule
 from social_xlstm.dataset.config.base import TrafficDatasetConfig
+from social_xlstm.training.recorder import TrainingRecorder
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+class TrainingHistoryCallback(pl.Callback):
+    """
+    PyTorch Lightning Callback to record training history
+    using the project's standard TrainingRecorder.
+    """
+    def __init__(self, recorder: TrainingRecorder):
+        super().__init__()
+        self.recorder = recorder
+
+    def on_validation_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
+        """Record epoch metrics after validation."""
+        # Only record on main process to avoid duplicate records
+        if not trainer.is_global_zero:
+            return
+
+        metrics = trainer.callback_metrics
+        
+        # Extract metrics safely with defaults
+        train_loss = float(metrics.get('train_loss', 0.0))
+        val_loss = float(metrics.get('val_loss', 0.0)) if 'val_loss' in metrics else None
+        
+        # Extract additional metrics
+        train_metrics = {}
+        val_metrics = {}
+        
+        # Extract MAE, R2, MSE metrics if available
+        for key, value in metrics.items():
+            if isinstance(value, torch.Tensor):
+                value = float(value)
+            if key.startswith('train_'):
+                train_metrics[key.replace('train_', '')] = value
+            elif key.startswith('val_'):
+                val_metrics[key.replace('val_', '')] = value
+        
+        # Get learning rate from optimizer
+        lr = trainer.optimizers[0].param_groups[0]['lr'] if trainer.optimizers else 0.0
+        
+        # Record the epoch
+        self.recorder.log_epoch(
+            epoch=trainer.current_epoch,
+            train_loss=train_loss,
+            val_loss=val_loss,
+            train_metrics=train_metrics,
+            val_metrics=val_metrics,
+            learning_rate=lr
+        )
+        
+        logger.debug(f"Recorded epoch {trainer.current_epoch} to TrainingRecorder")
 
 
 def parse_args():
@@ -62,6 +113,8 @@ def parse_args():
     parser.add_argument('--data_path', type=str, 
                        default='blob/dataset/pre-processed/h5/traffic_features_dev.h5',
                        help='Path to HDF5 dataset file')
+    parser.add_argument('--selected_vdids', type=str, nargs='*', default=None,
+                       help='List of VD IDs to use for training (space-separated). If not provided, uses all VDs from HDF5 file.')
     parser.add_argument('--batch_size', type=int, default=8,
                        help='Training batch size')
     parser.add_argument('--sequence_length', type=int, default=12,
@@ -160,6 +213,7 @@ def create_dataset_config(args) -> TrafficDatasetConfig:
     """Create dataset configuration from arguments"""
     config = TrafficDatasetConfig(
         hdf5_path=args.data_path,
+        selected_vdids=args.selected_vdids,  # Add VD selection support
         sequence_length=args.sequence_length,
         prediction_length=args.prediction_length,
         batch_size=args.batch_size,
@@ -170,8 +224,15 @@ def create_dataset_config(args) -> TrafficDatasetConfig:
         pin_memory=True
     )
     
-    logger.info(f"Dataset Config: hdf5_path={config.hdf5_path}, "
-               f"batch_size={config.batch_size}, sequence_length={config.sequence_length}")
+    # Log VD selection info
+    if args.selected_vdids:
+        logger.info(f"Dataset Config: hdf5_path={config.hdf5_path}, "
+                   f"selected_vdids={args.selected_vdids}, "
+                   f"batch_size={config.batch_size}, sequence_length={config.sequence_length}")
+    else:
+        logger.info(f"Dataset Config: hdf5_path={config.hdf5_path}, "
+                   f"using all VDs from HDF5 file, "
+                   f"batch_size={config.batch_size}, sequence_length={config.sequence_length}")
     
     return config
 
@@ -204,7 +265,7 @@ def create_model(args, num_features: int) -> DistributedSocialXLSTMModel:
     return model
 
 
-def create_trainer(args) -> pl.Trainer:
+def create_trainer(args, recorder: TrainingRecorder = None) -> pl.Trainer:
     """Create PyTorch Lightning trainer with callbacks and logger"""
     
     # Create experiment directory
@@ -220,6 +281,11 @@ def create_trainer(args) -> pl.Trainer:
     
     # Callbacks
     callbacks = []
+    
+    # Add TrainingHistoryCallback if recorder is provided
+    if recorder is not None:
+        history_callback = TrainingHistoryCallback(recorder)
+        callbacks.append(history_callback)
     
     # Model checkpointing
     checkpoint_callback = ModelCheckpoint(
@@ -285,7 +351,7 @@ def save_experiment_config(args, experiment_dir: Path):
     logger.info(f"Experiment configuration saved to {config_file}")
 
 
-def create_snakemake_outputs(args, trainer: pl.Trainer, experiment_dir: Path):
+def create_snakemake_outputs(args, trainer: pl.Trainer, experiment_dir: Path, recorder: TrainingRecorder = None):
     """Create output files in the format expected by Snakemake rules"""
     import shutil
     
@@ -311,24 +377,31 @@ def create_snakemake_outputs(args, trainer: pl.Trainer, experiment_dir: Path):
         shutil.copy2(experiment_dir / "experiment_config.json", config_path)
         logger.info(f"Config copied to: {config_path}")
     
-    # 3. Create training_history.json from trainer metrics
-    training_history = {
-        'epochs': trainer.current_epoch + 1,
-        'best_val_loss': float(trainer.checkpoint_callback.best_model_score) if trainer.checkpoint_callback else None,
-        'best_model_path': str(trainer.checkpoint_callback.best_model_path) if trainer.checkpoint_callback else None,
-        'tensorboard_logs': str(trainer.logger.log_dir),
-        'training_completed': True
-    }
-    
-    # Try to extract more detailed metrics if available
-    if hasattr(trainer, 'logged_metrics'):
-        training_history['final_metrics'] = {k: float(v) if isinstance(v, torch.Tensor) else v 
-                                           for k, v in trainer.logged_metrics.items()}
-    
-    with open(training_history_path, 'w') as f:
-        json.dump(training_history, f, indent=2)
-    
-    logger.info(f"Training history saved to: {training_history_path}")
+    # 3. Save training history using TrainingRecorder (standard format)
+    if recorder is not None:
+        # Use TrainingRecorder for standard format compliance
+        recorder.save(training_history_path)
+        logger.info(f"Training history saved using TrainingRecorder to: {training_history_path}")
+    else:
+        # Fallback to legacy format (should not happen with new implementation)
+        logger.warning("No TrainingRecorder provided, using legacy format")
+        training_history = {
+            'epochs': trainer.current_epoch + 1,
+            'best_val_loss': float(trainer.checkpoint_callback.best_model_score) if trainer.checkpoint_callback else None,
+            'best_model_path': str(trainer.checkpoint_callback.best_model_path) if trainer.checkpoint_callback else None,
+            'tensorboard_logs': str(trainer.logger.log_dir),
+            'training_completed': True
+        }
+        
+        # Try to extract more detailed metrics if available
+        if hasattr(trainer, 'logged_metrics'):
+            training_history['final_metrics'] = {k: float(v) if isinstance(v, torch.Tensor) else v 
+                                               for k, v in trainer.logged_metrics.items()}
+        
+        with open(training_history_path, 'w') as f:
+            json.dump(training_history, f, indent=2)
+        
+        logger.info(f"Training history saved to: {training_history_path}")
     
     print(f"\\n📁 Snakemake outputs created:")
     print(f"  • {best_model_path}")
@@ -404,9 +477,40 @@ def main():
     logger.info("Creating model...")
     model = create_model(args, num_features)
     
-    # Create trainer
+    # Initialize TrainingRecorder for standard format compliance
+    logger.info("Initializing TrainingRecorder...")
+    model_config = {
+        'model_type': 'DistributedSocialXLSTM',
+        'num_features': num_features,
+        'hidden_size': args.hidden_size,
+        'num_blocks': args.num_blocks,
+        'embedding_dim': args.embedding_dim,
+        'slstm_at': args.slstm_at,
+        'enable_spatial_pooling': args.enable_spatial_pooling,
+        'spatial_radius': args.spatial_radius,
+        'pool_type': args.pool_type
+    }
+    
+    training_config = {
+        'epochs': args.epochs,
+        'batch_size': args.batch_size,
+        'learning_rate': args.learning_rate,
+        'sequence_length': args.sequence_length,
+        'prediction_length': args.prediction_length,
+        'accelerator': args.accelerator,
+        'precision': args.precision,
+        'enable_gradient_checkpointing': args.enable_gradient_checkpointing
+    }
+    
+    recorder = TrainingRecorder(
+        experiment_name=args.experiment_name,
+        model_config=model_config,
+        training_config=training_config
+    )
+    
+    # Create trainer with TrainingHistoryCallback
     logger.info("Setting up trainer...")
-    trainer = create_trainer(args)
+    trainer = create_trainer(args, recorder)
     
     # Save experiment configuration
     experiment_dir = Path(args.save_dir) / args.experiment_name / f"version_{trainer.logger.version}"
@@ -445,7 +549,7 @@ def main():
         print("=" * 80)
         
         # Create Snakemake-compatible output files
-        create_snakemake_outputs(args, trainer, experiment_dir)
+        create_snakemake_outputs(args, trainer, experiment_dir, recorder)
         
     except KeyboardInterrupt:
         logger.info("Training interrupted by user")

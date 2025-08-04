@@ -124,6 +124,7 @@ rule train_lstm_multi_vd:
         batch_size=config['training_lstm']['multi_vd']['batch_size'],
         sequence_length=config['training_lstm']['multi_vd']['sequence_length'],
         num_vds=config['training_lstm']['multi_vd']['num_vds'],
+        vd_ids=",".join(config['training_lstm']['multi_vd']['selected_vdids']) if config['training_lstm']['multi_vd'].get('selected_vdids') else None,
         model_type=config['training_lstm']['multi_vd']['model_type'],
         experiment_name=os.path.basename(config['training_lstm']['multi_vd']['experiment_dir']),
         hidden_size=config['training_lstm']['multi_vd'].get('hidden_size', 128),
@@ -133,20 +134,14 @@ rule train_lstm_multi_vd:
         weight_decay=config['training_lstm']['multi_vd'].get('weight_decay', 0.0001)
     shell:
         """
-        python scripts/train/without_social_pooling/train_multi_vd.py \
-        --data_path {input.h5_file} \
-        --epochs {params.epochs} \
-        --batch_size {params.batch_size} \
-        --sequence_length {params.sequence_length} \
-        --num_vds {params.num_vds} \
-        --model_type {params.model_type} \
-        --experiment_name {params.experiment_name} \
-        --save_dir $(dirname $(dirname {output.training_history})) \
-        --hidden_size {params.hidden_size} \
-        --num_layers {params.num_layers} \
-        --dropout {params.dropout} \
-        --learning_rate {params.learning_rate} \
-        --weight_decay {params.weight_decay} >> {log} 2>&1
+        cmd="python scripts/train/without_social_pooling/train_multi_vd.py --data_path {input.h5_file} --epochs {params.epochs} --batch_size {params.batch_size} --sequence_length {params.sequence_length} --num_vds {params.num_vds} --model_type {params.model_type} --experiment_name {params.experiment_name} --save_dir $(dirname $(dirname {output.training_history})) --hidden_size {params.hidden_size} --num_layers {params.num_layers} --dropout {params.dropout} --learning_rate {params.learning_rate} --weight_decay {params.weight_decay}"
+        
+        if [ -n "{params.vd_ids}" ]; then
+            cmd="$cmd --vd_ids {params.vd_ids}"
+        fi
+        
+        echo "Executing: $cmd" >> {log}
+        $cmd >> {log} 2>&1
         """
 
 rule train_lstm_independent_multi_vd:
@@ -162,6 +157,7 @@ rule train_lstm_independent_multi_vd:
         batch_size=config['training_lstm']['independent_multi_vd']['batch_size'],
         sequence_length=config['training_lstm']['independent_multi_vd']['sequence_length'],
         num_vds=config['training_lstm']['independent_multi_vd']['num_vds'],
+        vd_ids=",".join(config['training_lstm']['independent_multi_vd']['selected_vdids']) if config['training_lstm']['independent_multi_vd'].get('selected_vdids') else None,
         target_vd_index=config['training_lstm']['independent_multi_vd']['target_vd_index'],
         model_type=config['training_lstm']['independent_multi_vd']['model_type'],
         experiment_name=os.path.basename(config['training_lstm']['independent_multi_vd']['experiment_dir']),
@@ -172,21 +168,14 @@ rule train_lstm_independent_multi_vd:
         weight_decay=config['training_lstm']['independent_multi_vd'].get('weight_decay', 0.0001)
     shell:
         """
-        python scripts/train/without_social_pooling/train_independent_multi_vd.py \
-        --data_path {input.h5_file} \
-        --epochs {params.epochs} \
-        --batch_size {params.batch_size} \
-        --sequence_length {params.sequence_length} \
-        --num_vds {params.num_vds} \
-        --target_vd_index {params.target_vd_index} \
-        --model_type {params.model_type} \
-        --experiment_name {params.experiment_name} \
-        --save_dir $(dirname $(dirname {output.training_history})) \
-        --hidden_size {params.hidden_size} \
-        --num_layers {params.num_layers} \
-        --dropout {params.dropout} \
-        --learning_rate {params.learning_rate} \
-        --weight_decay {params.weight_decay} >> {log} 2>&1
+        cmd="python scripts/train/without_social_pooling/train_independent_multi_vd.py --data_path {input.h5_file} --epochs {params.epochs} --batch_size {params.batch_size} --sequence_length {params.sequence_length} --num_vds {params.num_vds} --target_vd_index {params.target_vd_index} --model_type {params.model_type} --experiment_name {params.experiment_name} --save_dir $(dirname $(dirname {output.training_history})) --hidden_size {params.hidden_size} --num_layers {params.num_layers} --dropout {params.dropout} --learning_rate {params.learning_rate} --weight_decay {params.weight_decay}"
+        
+        if [ -n "{params.vd_ids}" ]; then
+            cmd="$cmd --vd_ids {params.vd_ids}"
+        fi
+        
+        echo "Executing: $cmd" >> {log}
+        $cmd >> {log} 2>&1
         """
 
 rule generate_lstm_single_vd_report:
@@ -447,6 +436,7 @@ rule train_xlstm_multi_vd:
         sequence_length=config['training_xlstm']['multi_vd']['sequence_length'],
         model_type=config['training_xlstm']['multi_vd']['model_type'],
         num_vds=config['training_xlstm']['multi_vd']['num_vds'],
+        vd_ids=",".join(config['training_xlstm']['multi_vd']['selected_vdids']) if config['training_xlstm']['multi_vd'].get('selected_vdids') else None,
         embedding_dim=config['training_xlstm']['multi_vd']['embedding_dim'],
         num_blocks=config['training_xlstm']['multi_vd']['num_blocks'],
         slstm_at=config['training_xlstm']['multi_vd']['slstm_at'],
@@ -456,21 +446,14 @@ rule train_xlstm_multi_vd:
         experiment_name=os.path.basename(config['training_xlstm']['multi_vd']['experiment_dir'])
     shell:
         """
-        python scripts/train/without_social_pooling/train_multi_vd.py \
-        --data_path {input.h5_file} \
-        --epochs {params.epochs} \
-        --batch_size {params.batch_size} \
-        --sequence_length {params.sequence_length} \
-        --model_type {params.model_type} \
-        --num_vds {params.num_vds} \
-        --embedding_dim {params.embedding_dim} \
-        --num_blocks {params.num_blocks} \
-        --slstm_at $(echo "{params.slstm_at}" | tr -d '[],' | tr ' ' '\n' | paste -sd ' ') \
-        --context_length {params.context_length} \
-        --dropout {params.dropout} \
-        --backend {params.backend} \
-        --experiment_name {params.experiment_name} \
-        --save_dir $(dirname $(dirname {output.training_history})) >> {log} 2>&1
+        cmd="python scripts/train/without_social_pooling/train_multi_vd.py --data_path {input.h5_file} --epochs {params.epochs} --batch_size {params.batch_size} --sequence_length {params.sequence_length} --model_type {params.model_type} --num_vds {params.num_vds} --embedding_dim {params.embedding_dim} --num_blocks {params.num_blocks} --slstm_at $(echo "{params.slstm_at}" | tr -d '[],' | tr ' ' '\n' | paste -sd ' ') --context_length {params.context_length} --dropout {params.dropout} --backend {params.backend} --experiment_name {params.experiment_name} --save_dir $(dirname $(dirname {output.training_history}))"
+        
+        if [ -n "{params.vd_ids}" ]; then
+            cmd="$cmd --vd_ids {params.vd_ids}"
+        fi
+        
+        echo "Executing: $cmd" >> {log}
+        $cmd >> {log} 2>&1
         """
 
 
@@ -493,6 +476,7 @@ rule train_social_xlstm_multi_vd:
         sequence_length=config['training_social_xlstm']['multi_vd']['sequence_length'],
         prediction_length=config['training_social_xlstm']['multi_vd']['prediction_length'],
         num_vds=config['training_social_xlstm']['multi_vd']['num_vds'],
+        selected_vdids=" ".join(config['training_social_xlstm']['multi_vd']['selected_vdids']) if config['training_social_xlstm']['multi_vd'].get('selected_vdids') else None,
         hidden_size=config['training_social_xlstm']['multi_vd']['hidden_size'],
         num_blocks=config['training_social_xlstm']['multi_vd']['num_blocks'],
         embedding_dim=config['training_social_xlstm']['multi_vd']['embedding_dim'],
@@ -505,6 +489,10 @@ rule train_social_xlstm_multi_vd:
     shell:
         """
         cmd="python scripts/train_distributed_social_xlstm.py --data_path {input.h5_file} --epochs {params.epochs} --batch_size {params.batch_size} --sequence_length {params.sequence_length} --prediction_length {params.prediction_length} --hidden_size {params.hidden_size} --num_blocks {params.num_blocks} --embedding_dim {params.embedding_dim} --slstm_at {params.slstm_at} --learning_rate {params.learning_rate} --experiment_name {params.experiment_name} --save_dir $(dirname $(dirname {output.training_history}))"
+        
+        if [ -n "{params.selected_vdids}" ]; then
+            cmd="$cmd --selected_vdids {params.selected_vdids}"
+        fi
         
         if [ "{params.enable_spatial_pooling}" = "True" ]; then
             cmd="$cmd --enable_spatial_pooling --spatial_radius {params.spatial_radius} --pool_type {params.pool_type}"
