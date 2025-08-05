@@ -172,6 +172,10 @@ def parse_args():
                        help='Directory to save logs and checkpoints')
     parser.add_argument('--early_stopping_patience', type=int, default=10,
                        help='Early stopping patience')
+    parser.add_argument('--gradient_clip_value', type=float, default=0.5,
+                       help='Value for gradient clipping (max norm)')
+    parser.add_argument('--scheduler_patience', type=int, default=5,
+                       help='Patience epochs for LR scheduler before reduction')
     
     # Development and debugging
     parser.add_argument('--limit_train_batches', type=float, default=1.0,

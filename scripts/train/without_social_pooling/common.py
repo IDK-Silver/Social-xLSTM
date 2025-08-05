@@ -108,6 +108,10 @@ def add_common_arguments(parser):
                         help="Learning rate scheduler type")
     parser.add_argument("--early_stopping_patience", type=int, default=15,
                         help="Early stopping patience")
+    parser.add_argument("--gradient_clip_value", type=float, default=0.5,
+                        help="Value for gradient clipping (max norm)")
+    parser.add_argument("--scheduler_patience", type=int, default=5,
+                        help="Patience epochs for LR scheduler before reduction")
     
     # Device parameters
     parser.add_argument("--device", type=str, default="auto",

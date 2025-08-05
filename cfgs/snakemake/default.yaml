@@ -57,12 +57,12 @@ training_lstm:
     model_type: "lstm"  # Model architecture: "lstm" or "xlstm"
     select_vd_id: "VD-28-0740-000-001"  # VD with 98.3% valid data
     # Optimized training parameters from fixed configs
-    hidden_size: 32
+    hidden_size: 64
     num_layers: 1
     dropout: 0.5
-    learning_rate: 0.0005
+    learning_rate: 0.00005
     weight_decay: 0.01
-    early_stopping_patience: -1
+    early_stopping_patience: 100
     gradient_clip_value: 0.5
     use_scheduler: true
     scheduler_patience: 5
@@ -91,12 +91,12 @@ training_lstm:
     num_vds: 3  # 保持向後相容
     model_type: "lstm"  # Model architecture: "lstm" or "xlstm"
     # Optimized training parameters from fixed configs
-    hidden_size: 32
+    hidden_size: 64
     num_layers: 1
     dropout: 0.5
-    learning_rate: 0.0005
+    learning_rate: 0.00005
     weight_decay: 0.01
-    early_stopping_patience: -1
+    early_stopping_patience: 100
     gradient_clip_value: 0.5
     use_scheduler: true
     scheduler_patience: 5
@@ -126,12 +126,12 @@ training_lstm:
     target_vd_index: 0  # Index of the VD to predict (0-based)
     model_type: "lstm"  # Model architecture: "lstm" or "xlstm"
     # Optimized training parameters from fixed configs
-    hidden_size: 32
+    hidden_size: 64
     num_layers: 1
     dropout: 0.5
-    learning_rate: 0.0005
+    learning_rate: 0.00005
     weight_decay: 0.01
-    early_stopping_patience: -1
+    early_stopping_patience: 100
     gradient_clip_value: 0.5
     use_scheduler: true
     scheduler_patience: 5
@@ -156,17 +156,20 @@ training_xlstm:
     sequence_length: 20  # Same as LSTM for fair comparison
     model_type: "xlstm"
     select_vd_id: "VD-28-0740-000-001"  # VD with 98.3% valid data
+    # Standard architecture parameters for consistency
+    hidden_size: 64
+    num_layers: 1
+    dropout: 0.5
     # xLSTM specific parameters - production settings
-    embedding_dim: 128
+    embedding_dim: 64
     num_blocks: 6
     slstm_at: [1, 3]
     context_length: 256
-    dropout: 0.1
     backend: "vanilla"
     # Optimized training parameters from fixed configs
-    learning_rate: 0.0005
+    learning_rate: 0.00005
     weight_decay: 0.01
-    early_stopping_patience: -1
+    early_stopping_patience: 100
     gradient_clip_value: 0.5
     use_scheduler: true
     scheduler_patience: 5
@@ -194,17 +197,20 @@ training_xlstm:
       - VD-11-0020-008-001  # 高質量數據
       - VD-13-0660-000-002  # 高質量數據
     num_vds: 3  # 保持向後相容
+    # Standard architecture parameters for consistency
+    hidden_size: 64
+    num_layers: 1
+    dropout: 0.5
     # xLSTM specific parameters - production settings
-    embedding_dim: 128
+    embedding_dim: 64
     num_blocks: 6
     slstm_at: [1, 3]
     context_length: 256
-    dropout: 0.1
     backend: "vanilla"
     # Optimized training parameters from fixed configs
-    learning_rate: 0.0005
+    learning_rate: 0.00005
     weight_decay: 0.01
-    early_stopping_patience: -1
+    early_stopping_patience: 100
     gradient_clip_value: 0.5
     use_scheduler: true
     scheduler_patience: 5
@@ -238,19 +244,21 @@ training_social_xlstm:
     epochs: 50
     batch_size: 32
     sequence_length: 20
-    prediction_length: 3
-    hidden_size: 128
+    prediction_length: 1
+    model_type: "social_xlstm"
+    # Social-xLSTM specific parameters
+    dropout: 0.5
     num_blocks: 6
-    embedding_dim: 128
-    # xLSTM specific configuration
+    embedding_dim: 64
     slstm_at: [1, 3]  # sLSTM layer positions (must be < num_blocks)
     # Social Pooling configuration (full functionality)
     enable_spatial_pooling: true
     spatial_radius: 2.0
     pool_type: mean
-    learning_rate: 0.001
+    learning_rate: 0.00005
+    weight_decay: 0.01
     # Optimized training parameters
-    early_stopping_patience: -1
+    early_stopping_patience: 100
     gradient_clip_value: 0.5
     use_scheduler: true
     scheduler_patience: 5

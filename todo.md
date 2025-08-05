@@ -794,6 +794,47 @@ create src/social_xlstm/models/distributed_social_xlstm_model.py
 
 ---
 
+## 🚨 關鍵發現與問題診斷 (模型性能分析)
+
+### 1. 數據洩漏問題 ⚠️
+發現代碼的標準化在整個數據集上進行：
+```python
+# processor.py:24-25
+data_reshaped = data.reshape(-1, data.shape[-1])  # 所有數據
+scaler.fit(valid_data)  # 在所有數據上 fit scaler
+```
+
+**這是典型的數據洩漏**：驗證集的統計信息被用於訓練集的標準化！
+
+### 2. 時間分割問題 📅
+雖然有 `temporal_split_validation.py`，但實際可能還在用簡單的比例分割，這對交通數據是錯誤的。
+
+### 3. MAPE 爆炸 📊
+交通流量夜間接近零，直接用 MAPE 會導致除零問題。
+
+### 📋 模型性能問題嚴重程度評估
+- **所有模型都有嚴重過擬合問題**
+- **訓練 loss 很低 (0.007-0.04) 但驗證 loss 很高 (2.8-4.5)**
+- **驗證集 R² 為負值 (-4.48 到 -0.14)，表示模型比平均值還差**
+- **MAPE 值異常高 (7000+)**
+
+### 🎯 立即修正建議 (專家分析基礎)
+1. **配置策略調整**：
+   - **default.yaml**: 保持 `early_stopping_patience: -1` (完整 50 epochs，用於文件和論文)
+   - **dev.yaml**: 啟用 `early_stopping_patience: 10` (開發時節省時間)
+   - **重要**: 確保文件中所有模型 epochs 一致性，避免比較偏差
+2. **添加測試集** (0.7/0.15/0.15 分割)
+3. **大幅降低 dropout** (0.5 → 0.2)
+4. **時間敏感分割** (需要修改代碼)
+5. **修正數據洩漏** (先分割再標準化)
+6. **使用 sMAPE 替代 MAPE** 避免除零問題
+
+### ⚠️ 配置文件使用策略
+- **default.yaml**: 論文/文件用途，所有模型必須完整訓練 50 epochs
+- **dev.yaml**: 開發/調試用途，可使用 early stopping 節省時間
+
+---
+
 ## 關鍵交付成果
 
 1. **正確架構的完整文檔套件**

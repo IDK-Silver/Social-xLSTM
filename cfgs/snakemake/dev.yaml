@@ -23,12 +23,14 @@ dataset:
     h5:
       file: blob/dataset/pre-processed/h5/traffic_features_dev.h5
       log: logs/dev/create_h5_file.log
-      # H5 創建階段：包含所有可用 VD，讓 h5 檔案內容完整
-      selected_vdids: null  # 包含所有 VD 到 h5 檔案中
+      # H5 創建階段：只包含指定的高質量 VD，節省開發時間
+      selected_vdids:  # 只包含指定 VD 到 h5 檔案中
+        - VD-28-0740-000-001  # 98.3% 高質量數據
+        - VD-11-0020-008-001  # 高質量數據
+        - VD-13-0660-000-002  # 高質量數據
       # Time range for data processing (Format: YYYY-MM-DD_HH-MM-SS,YYYY-MM-DD_HH-MM-SS)
-      # Set to `null` to process all available data without filtering
-      # See docs/implementation/dataset_documentation.md for detailed usage
-      time_range: null  # 使用所有可用數據
+      # 只使用3天數據，適合快速開發迭代
+      time_range: "2025-03-18_00-49-00,2025-03-20_23-59-00"  # 3天數據
       overwrite: true
 
 training_lstm:
@@ -41,14 +43,14 @@ training_lstm:
     batch_size: 32
     sequence_length: 5
     model_type: lstm
-    select_vd_id: VD-28-0630-015-001  # 100% 完整的高質量數據
-    hidden_size: 32
+    select_vd_id: "VD-28-0740-000-001"  # 98.3% 高質量數據
+    hidden_size: 64
     num_layers: 1
     dropout: 0.5
     learning_rate: 0.0005
     weight_decay: 0.01
     # Optimized training parameters from fixed configs
-    early_stopping_patience: 8
+    early_stopping_patience: 100
     gradient_clip_value: 0.5
     use_scheduler: true
     scheduler_patience: 5
@@ -69,18 +71,18 @@ training_lstm:
     sequence_length: 5
     # 訓練階段 VD 選擇：從完整 h5 檔案中選擇特定高質量 VD 進行訓練
     selected_vdids:  # 訓練時選擇的 VD（從 h5 檔案中選擇）
-      - VD-28-0630-015-001  # 100% 完整的高質量數據
-      - VD-35-0090-437-002  # 100% 完整的高質量數據  
-      - VD-35-0090-437-003  # 100% 完整的高質量數據
+      - VD-28-0740-000-001  # 98.3% 高質量數據
+      - VD-11-0020-008-001  # 高質量數據
+      - VD-13-0660-000-002  # 高質量數據
     num_vds: 3  # 保持向後相容
     model_type: lstm
-    hidden_size: 32
+    hidden_size: 64
     num_layers: 1
     dropout: 0.5
     learning_rate: 0.0005
     weight_decay: 0.01
     # Optimized training parameters from fixed configs
-    early_stopping_patience: 8
+    early_stopping_patience: 100
     gradient_clip_value: 0.5
     use_scheduler: true
     scheduler_patience: 5
@@ -101,19 +103,19 @@ training_lstm:
     sequence_length: 5
     # 訓練階段 VD 選擇：從完整 h5 檔案中選擇特定高質量 VD 進行訓練
     selected_vdids:  # 訓練時選擇的 VD（從 h5 檔案中選擇）
-      - VD-28-0630-015-001  # 100% 完整的高質量數據
-      - VD-35-0090-437-002  # 100% 完整的高質量數據  
-      - VD-35-0090-437-003  # 100% 完整的高質量數據
+      - VD-28-0740-000-001  # 98.3% 高質量數據
+      - VD-11-0020-008-001  # 高質量數據
+      - VD-13-0660-000-002  # 高質量數據
     num_vds: 3  # 保持向後相容
     target_vd_index: 0
     model_type: lstm
-    hidden_size: 32
+    hidden_size: 64
     num_layers: 1
     dropout: 0.5
     learning_rate: 0.0005
     weight_decay: 0.01
     # Optimized training parameters from fixed configs
-    early_stopping_patience: 8
+    early_stopping_patience: 100
     gradient_clip_value: 0.5
     use_scheduler: true
     scheduler_patience: 5
@@ -134,19 +136,19 @@ training_xlstm:
     batch_size: 16
     sequence_length: 5
     model_type: xlstm
-    select_vd_id: VD-28-0630-015-001  # 100% 完整的高質量數據
+    select_vd_id: VD-28-0740-000-001  # 98.3% 高質量數據
     embedding_dim: 64
     num_blocks: 4
     slstm_at:
     - 1
     - 3
     context_length: 256
-    dropout: 0.1
+    dropout: 0.5
     backend: vanilla
     # Optimized training parameters from fixed configs
     learning_rate: 0.0005
     weight_decay: 0.01
-    early_stopping_patience: 8
+    early_stopping_patience: 100
     gradient_clip_value: 0.5
     use_scheduler: true
     scheduler_patience: 5
@@ -168,9 +170,9 @@ training_xlstm:
     model_type: xlstm
     # 訓練階段 VD 選擇：從完整 h5 檔案中選擇特定高質量 VD 進行訓練
     selected_vdids:  # 訓練時選擇的 VD（從 h5 檔案中選擇）
-      - VD-28-0630-015-001  # 100% 完整的高質量數據
-      - VD-35-0090-437-002  # 100% 完整的高質量數據  
-      - VD-35-0090-437-003  # 100% 完整的高質量數據
+      - VD-28-0740-000-001  # 98.3% 高質量數據
+      - VD-11-0020-008-001  # 高質量數據
+      - VD-13-0660-000-002  # 高質量數據
     num_vds: 3  # 保持向後相容
     embedding_dim: 64
     num_blocks: 4
@@ -178,12 +180,12 @@ training_xlstm:
     - 1
     - 3
     context_length: 256
-    dropout: 0.1
+    dropout: 0.5
     backend: vanilla
     # Optimized training parameters from fixed configs
     learning_rate: 0.0005
     weight_decay: 0.01
-    early_stopping_patience: 8
+    early_stopping_patience: 100
     gradient_clip_value: 0.5
     use_scheduler: true
     scheduler_patience: 5
@@ -208,17 +210,18 @@ training_social_xlstm:
     plot_log: "logs/dev/reports/generate_multi_vd_social_xlstm_plots.log"
     # 訓練階段 VD 選擇：從完整 h5 檔案中選擇特定高質量 VD 進行訓練
     selected_vdids:  # 訓練時選擇的 VD（從 h5 檔案中選擇）
-      - VD-28-0630-015-001  # 100% 完整的高質量數據
-      - VD-35-0090-437-002  # 100% 完整的高質量數據  
-      - VD-35-0090-437-003  # 100% 完整的高質量數據
+      - VD-28-0740-000-001  # 98.3% 高質量數據
+      - VD-11-0020-008-001  # 高質量數據
+      - VD-13-0660-000-002  # 高質量數據
     # Legacy parameter (deprecated in distributed mode)
     num_vds: 3  # 保持向後相容
     # Model architecture parameters
     epochs: 10
     batch_size: 8
     sequence_length: 10
-    prediction_length: 3
-    hidden_size: 64
+    prediction_length: 1
+    model_type: "social_xlstm"
+    dropout: 0.5
     num_blocks: 2
     embedding_dim: 64
     # xLSTM specific configuration
@@ -227,9 +230,9 @@ training_social_xlstm:
     enable_spatial_pooling: true
     spatial_radius: 2.0
     pool_type: mean
-    learning_rate: 0.001
+    learning_rate: 0.0005
     # Optimized training parameters
-    early_stopping_patience: 8
+    early_stopping_patience: 100
     gradient_clip_value: 0.5
     use_scheduler: true
     scheduler_patience: 5

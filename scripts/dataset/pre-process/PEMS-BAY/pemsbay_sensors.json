@@ -1,0 +1,2602 @@
+[
+  {
+    "sensor_id": 400649,
+    "Lanes": 2,
+    "Length": 0.85,
+    "Latitude": 37.251741,
+    "Longitude": -121.958118,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400715,
+    "Lanes": 2,
+    "Length": 0.245,
+    "Latitude": 37.256205,
+    "Longitude": -121.955355,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400240,
+    "Lanes": 3,
+    "Length": 0.535,
+    "Latitude": 37.258184,
+    "Longitude": -121.953853,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 403329,
+    "Lanes": 3,
+    "Length": 0.51,
+    "Latitude": 37.270267,
+    "Longitude": -121.947353,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400436,
+    "Lanes": 3,
+    "Length": 0.905,
+    "Latitude": 37.271687,
+    "Longitude": -121.947037,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400221,
+    "Lanes": 3,
+    "Length": 0.945,
+    "Latitude": 37.293614,
+    "Longitude": -121.937899,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 404370,
+    "Lanes": 4,
+    "Length": 1.579,
+    "Latitude": 37.296028,
+    "Longitude": -121.939132,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400268,
+    "Lanes": 3,
+    "Length": 0.6,
+    "Latitude": 37.255651,
+    "Longitude": -121.858078,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 401555,
+    "Lanes": 3,
+    "Length": 0.48,
+    "Latitude": 37.255657,
+    "Longitude": -121.858984,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400052,
+    "Lanes": 3,
+    "Length": 0.555,
+    "Latitude": 37.255791,
+    "Longitude": -121.875479,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400461,
+    "Lanes": 3,
+    "Length": 0.915,
+    "Latitude": 37.254781,
+    "Longitude": -121.878917,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400750,
+    "Lanes": 3,
+    "Length": 0.945,
+    "Latitude": 37.250746,
+    "Longitude": -121.907763,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400148,
+    "Lanes": 3,
+    "Length": 0.565,
+    "Latitude": 37.250664,
+    "Longitude": -121.912479,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400336,
+    "Lanes": 4,
+    "Length": 0.6,
+    "Latitude": 37.250624,
+    "Longitude": -121.928209,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400713,
+    "Lanes": 3,
+    "Length": 0.595,
+    "Latitude": 37.251585,
+    "Longitude": -121.934046,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400485,
+    "Lanes": 3,
+    "Length": 0.608,
+    "Latitude": 37.254231,
+    "Longitude": -121.949216,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400822,
+    "Lanes": 3,
+    "Length": 0.3829999999999999,
+    "Latitude": 37.255715,
+    "Longitude": -121.955375,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400464,
+    "Lanes": 3,
+    "Length": 0.345,
+    "Latitude": 37.258029,
+    "Longitude": -121.962211,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400688,
+    "Lanes": 4,
+    "Length": 0.595,
+    "Latitude": 37.259412,
+    "Longitude": -121.966974,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 404434,
+    "Lanes": 3,
+    "Length": 1.18,
+    "Latitude": 37.265521,
+    "Longitude": -121.98154,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400222,
+    "Lanes": 3,
+    "Length": 0.93,
+    "Latitude": 37.275395,
+    "Longitude": -122.004702,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400952,
+    "Lanes": 3,
+    "Length": 0.755,
+    "Latitude": 37.279234,
+    "Longitude": -122.01035,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 401210,
+    "Lanes": 3,
+    "Length": 0.87,
+    "Latitude": 37.291198,
+    "Longitude": -122.023391,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400507,
+    "Lanes": 3,
+    "Length": 0.515,
+    "Latitude": 37.298931,
+    "Longitude": -122.029806,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400185,
+    "Lanes": 3,
+    "Length": 0.91,
+    "Latitude": 37.303131,
+    "Longitude": -122.034527,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400677,
+    "Lanes": 4,
+    "Length": 0.95,
+    "Latitude": 37.32001,
+    "Longitude": -122.048757,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 404435,
+    "Lanes": 3,
+    "Length": 0.435,
+    "Latitude": 37.326592,
+    "Longitude": -122.050852,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 407344,
+    "Lanes": 3,
+    "Length": 0.295,
+    "Latitude": 37.331501,
+    "Longitude": -122.05468700000002,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 407321,
+    "Lanes": 3,
+    "Length": 0.17,
+    "Latitude": 37.333648,
+    "Longitude": -122.056851,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 407331,
+    "Lanes": 4,
+    "Length": 0.405,
+    "Latitude": 37.335431,
+    "Longitude": -122.058337,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 407341,
+    "Lanes": 3,
+    "Length": 0.565,
+    "Latitude": 37.344713,
+    "Longitude": -122.059766,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 407339,
+    "Lanes": 3,
+    "Length": 0.29,
+    "Latitude": 37.351571,
+    "Longitude": -122.060285,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 407337,
+    "Lanes": 3,
+    "Length": 0.185,
+    "Latitude": 37.353092,
+    "Longitude": -122.0609,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 402060,
+    "Lanes": 3,
+    "Length": 0.355,
+    "Latitude": 37.356655,
+    "Longitude": -122.062397,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 407336,
+    "Lanes": 3,
+    "Length": 0.6,
+    "Latitude": 37.363146,
+    "Longitude": -122.062707,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 407335,
+    "Lanes": 3,
+    "Length": 0.515,
+    "Latitude": 37.373213,
+    "Longitude": -122.067368,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 407328,
+    "Lanes": 3,
+    "Length": 0.205,
+    "Latitude": 37.377217,
+    "Longitude": -122.067542,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 407342,
+    "Lanes": 3,
+    "Length": 0.225,
+    "Latitude": 37.379094,
+    "Longitude": -122.067604,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 407325,
+    "Lanes": 3,
+    "Length": 0.6,
+    "Latitude": 37.383707,
+    "Longitude": -122.068108,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 407323,
+    "Lanes": 3,
+    "Length": 0.675,
+    "Latitude": 37.396419,
+    "Longitude": -122.068661,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400174,
+    "Lanes": 3,
+    "Length": 0.8140000000000001,
+    "Latitude": 37.403686,
+    "Longitude": -122.06976,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 407332,
+    "Lanes": 1,
+    "Length": 2.849,
+    "Latitude": 37.407311,
+    "Longitude": -122.069566,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400280,
+    "Lanes": 2,
+    "Length": 0.475,
+    "Latitude": 37.26198,
+    "Longitude": -121.858479,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 405613,
+    "Lanes": 2,
+    "Length": 0.165,
+    "Latitude": 37.262704,
+    "Longitude": -121.858533,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 401129,
+    "Lanes": 2,
+    "Length": 0.275,
+    "Latitude": 37.266722,
+    "Longitude": -121.859225,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 401957,
+    "Lanes": 3,
+    "Length": 0.225,
+    "Latitude": 37.270311,
+    "Longitude": -121.861079,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 404451,
+    "Lanes": 3,
+    "Length": 0.24,
+    "Latitude": 37.27263,
+    "Longitude": -121.862544,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400178,
+    "Lanes": 2,
+    "Length": 0.25,
+    "Latitude": 37.276874,
+    "Longitude": -121.863698,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 401567,
+    "Lanes": 2,
+    "Length": 0.295,
+    "Latitude": 37.279628,
+    "Longitude": -121.864838,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 404452,
+    "Lanes": 2,
+    "Length": 0.3,
+    "Latitude": 37.284773,
+    "Longitude": -121.867709,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 401597,
+    "Lanes": 3,
+    "Length": 0.27,
+    "Latitude": 37.2874,
+    "Longitude": -121.869623,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400418,
+    "Lanes": 3,
+    "Length": 0.37,
+    "Latitude": 37.291828,
+    "Longitude": -121.87183600000002,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400654,
+    "Lanes": 3,
+    "Length": 0.44,
+    "Latitude": 37.297486,
+    "Longitude": -121.874117,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400664,
+    "Lanes": 3,
+    "Length": 0.465,
+    "Latitude": 37.303458,
+    "Longitude": -121.878143,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 404453,
+    "Lanes": 2,
+    "Length": 0.41,
+    "Latitude": 37.309111,
+    "Longitude": -121.882596,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400258,
+    "Lanes": 3,
+    "Length": 0.45,
+    "Latitude": 37.313462,
+    "Longitude": -121.886197,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400916,
+    "Lanes": 3,
+    "Length": 0.45,
+    "Latitude": 37.320404,
+    "Longitude": -121.89031,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400563,
+    "Lanes": 3,
+    "Length": 0.33,
+    "Latitude": 37.325124,
+    "Longitude": -121.893062,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 402056,
+    "Lanes": 3,
+    "Length": 0.45,
+    "Latitude": 37.328954,
+    "Longitude": -121.895643,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 402059,
+    "Lanes": 4,
+    "Length": 0.57,
+    "Latitude": 37.337479,
+    "Longitude": -121.897848,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 402118,
+    "Lanes": 3,
+    "Length": 0.47,
+    "Latitude": 37.344411,
+    "Longitude": -121.902181,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 409524,
+    "Lanes": 3,
+    "Length": 0.765,
+    "Latitude": 37.348448,
+    "Longitude": -121.907247,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 409525,
+    "Lanes": 3,
+    "Length": 0.75,
+    "Latitude": 37.362566,
+    "Longitude": -121.917493,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 409526,
+    "Lanes": 3,
+    "Length": 0.405,
+    "Latitude": 37.366737,
+    "Longitude": -121.921627,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 401817,
+    "Lanes": 4,
+    "Length": 0.405,
+    "Latitude": 37.371274,
+    "Longitude": -121.926917,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 402359,
+    "Lanes": 4,
+    "Length": 0.61,
+    "Latitude": 37.329728,
+    "Longitude": -121.842102,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 401908,
+    "Lanes": 4,
+    "Length": 0.28,
+    "Latitude": 37.335284,
+    "Longitude": -121.847662,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400804,
+    "Lanes": 4,
+    "Length": 0.055,
+    "Latitude": 37.336089,
+    "Longitude": -121.848437,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 402361,
+    "Lanes": 4,
+    "Length": 0.275,
+    "Latitude": 37.336549,
+    "Longitude": -121.848881,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400400,
+    "Lanes": 4,
+    "Length": 0.3,
+    "Latitude": 37.34241,
+    "Longitude": -121.854543,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 401890,
+    "Lanes": 5,
+    "Length": 0.365,
+    "Latitude": 37.343447,
+    "Longitude": -121.855539,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400996,
+    "Lanes": 4,
+    "Length": 0.51,
+    "Latitude": 37.350928,
+    "Longitude": -121.862378,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400668,
+    "Lanes": 4,
+    "Length": 0.382,
+    "Latitude": 37.35512,
+    "Longitude": -121.866967,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 402362,
+    "Lanes": 4,
+    "Length": 0.812,
+    "Latitude": 37.358996000000005,
+    "Longitude": -121.871981,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400965,
+    "Lanes": 4,
+    "Length": 0.83,
+    "Latitude": 37.363311,
+    "Longitude": -121.893592,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400001,
+    "Lanes": 5,
+    "Length": 0.265,
+    "Latitude": 37.364085,
+    "Longitude": -121.901149,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 404753,
+    "Lanes": 5,
+    "Length": 0.235,
+    "Latitude": 37.364689,
+    "Longitude": -121.902989,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 402364,
+    "Lanes": 4,
+    "Length": 0.455,
+    "Latitude": 37.368104,
+    "Longitude": -121.90788,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400863,
+    "Lanes": 4,
+    "Length": 0.43,
+    "Latitude": 37.371809000000006,
+    "Longitude": -121.91655,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400911,
+    "Lanes": 4,
+    "Length": 0.41,
+    "Latitude": 37.372674,
+    "Longitude": -121.922087,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400760,
+    "Lanes": 4,
+    "Length": 0.53,
+    "Latitude": 37.374628,
+    "Longitude": -121.931055,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400964,
+    "Lanes": 3,
+    "Length": 0.355,
+    "Latitude": 37.376685,
+    "Longitude": -121.94075,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400227,
+    "Lanes": 5,
+    "Length": 0.715,
+    "Latitude": 37.377237,
+    "Longitude": -121.943586,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 404521,
+    "Lanes": 4,
+    "Length": 0.69,
+    "Latitude": 37.382586,
+    "Longitude": -121.965617,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400353,
+    "Lanes": 4,
+    "Length": 0.3,
+    "Latitude": 37.383125,
+    "Longitude": -121.967496,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 401994,
+    "Lanes": 4,
+    "Length": 0.35,
+    "Latitude": 37.385523,
+    "Longitude": -121.975872,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400246,
+    "Lanes": 4,
+    "Length": 0.31,
+    "Latitude": 37.386551,
+    "Longitude": -121.979462,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 402366,
+    "Lanes": 4,
+    "Length": 0.47,
+    "Latitude": 37.388542,
+    "Longitude": -121.986478,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400168,
+    "Lanes": 4,
+    "Length": 0.34,
+    "Latitude": 37.391166,
+    "Longitude": -121.995524,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400790,
+    "Lanes": 5,
+    "Length": 0.285,
+    "Latitude": 37.391922,
+    "Longitude": -121.998077,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 402368,
+    "Lanes": 4,
+    "Length": 0.445,
+    "Latitude": 37.393954,
+    "Longitude": -122.005269,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 402370,
+    "Lanes": 4,
+    "Length": 0.3,
+    "Latitude": 37.39592,
+    "Longitude": -122.013438,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 401996,
+    "Lanes": 4,
+    "Length": 0.35,
+    "Latitude": 37.396411,
+    "Longitude": -122.015716,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 401997,
+    "Lanes": 4,
+    "Length": 0.74,
+    "Latitude": 37.398597,
+    "Longitude": -122.025693,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 404522,
+    "Lanes": 4,
+    "Length": 0.725,
+    "Latitude": 37.402071,
+    "Longitude": -122.041627,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 401998,
+    "Lanes": 4,
+    "Length": 0.41,
+    "Latitude": 37.404178,
+    "Longitude": -122.05107,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 402372,
+    "Lanes": 4,
+    "Length": 0.405,
+    "Latitude": 37.40547,
+    "Longitude": -122.055924,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 401534,
+    "Lanes": 4,
+    "Length": 0.455,
+    "Latitude": 37.407511,
+    "Longitude": -122.065278,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 401948,
+    "Lanes": 5,
+    "Length": 0.43,
+    "Latitude": 37.409514,
+    "Longitude": -122.071728,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 401507,
+    "Lanes": 6,
+    "Length": 0.365,
+    "Latitude": 37.412677,
+    "Longitude": -122.07953899999998,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 401403,
+    "Lanes": 2,
+    "Length": 0.23,
+    "Latitude": 37.338232,
+    "Longitude": -121.854583,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 401655,
+    "Lanes": 5,
+    "Length": 0.19,
+    "Latitude": 37.335596,
+    "Longitude": -121.858919,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 401808,
+    "Lanes": 6,
+    "Length": 0.405,
+    "Latitude": 37.334883000000005,
+    "Longitude": -121.860066,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 403402,
+    "Lanes": 5,
+    "Length": 0.515,
+    "Latitude": 37.32872,
+    "Longitude": -121.870796,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400799,
+    "Lanes": 4,
+    "Length": 0.28,
+    "Latitude": 37.327927,
+    "Longitude": -121.876137,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400953,
+    "Lanes": 4,
+    "Length": 0.23,
+    "Latitude": 37.327241,
+    "Longitude": -121.88076,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 401810,
+    "Lanes": 5,
+    "Length": 0.235,
+    "Latitude": 37.32592,
+    "Longitude": -121.883989,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 413878,
+    "Lanes": 4,
+    "Length": 0.36,
+    "Latitude": 37.324641,
+    "Longitude": -121.888603,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 414284,
+    "Lanes": 5,
+    "Length": 0.265,
+    "Latitude": 37.323066,
+    "Longitude": -121.896538,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 401942,
+    "Lanes": 6,
+    "Length": 0.1,
+    "Latitude": 37.322594,
+    "Longitude": -121.897858,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 413877,
+    "Lanes": 5,
+    "Length": 0.53,
+    "Latitude": 37.321613,
+    "Longitude": -121.899642,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 414694,
+    "Lanes": 4,
+    "Length": 0.75,
+    "Latitude": 37.315051,
+    "Longitude": -121.913497,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 401167,
+    "Lanes": 5,
+    "Length": 0.315,
+    "Latitude": 37.316984000000005,
+    "Longitude": -121.923208,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 405701,
+    "Lanes": 5,
+    "Length": 0.43,
+    "Latitude": 37.316969,
+    "Longitude": -121.924481,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 407710,
+    "Lanes": 3,
+    "Length": 0.7709999999999999,
+    "Latitude": 37.317459,
+    "Longitude": -121.938793,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 401400,
+    "Lanes": 6,
+    "Length": 0.406,
+    "Latitude": 37.316841,
+    "Longitude": -121.952427,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400714,
+    "Lanes": 4,
+    "Length": 0.695,
+    "Latitude": 37.316788,
+    "Longitude": -121.95351200000002,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400414,
+    "Lanes": 4,
+    "Length": 1.435,
+    "Latitude": 37.317942,
+    "Longitude": -121.977301,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400560,
+    "Lanes": 4,
+    "Length": 1.165,
+    "Latitude": 37.324839,
+    "Longitude": -122.002891,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400499,
+    "Lanes": 4,
+    "Length": 0.985,
+    "Latitude": 37.331068,
+    "Longitude": -122.014931,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400823,
+    "Lanes": 4,
+    "Length": 1.295,
+    "Latitude": 37.334457,
+    "Longitude": -122.035326,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 401845,
+    "Lanes": 4,
+    "Length": 1.65,
+    "Latitude": 37.332668,
+    "Longitude": -122.060628,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 407172,
+    "Lanes": 4,
+    "Length": 0.248,
+    "Latitude": 37.341738,
+    "Longitude": -121.848369,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 407173,
+    "Lanes": 3,
+    "Length": 0.115,
+    "Latitude": 37.342007,
+    "Longitude": -121.847982,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 407165,
+    "Lanes": 6,
+    "Length": 0.39,
+    "Latitude": 37.344023,
+    "Longitude": -121.845368,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 407176,
+    "Lanes": 4,
+    "Length": 0.185,
+    "Latitude": 37.358523,
+    "Longitude": -121.840267,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 407177,
+    "Lanes": 4,
+    "Length": 0.39,
+    "Latitude": 37.360223,
+    "Longitude": -121.841285,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 407179,
+    "Lanes": 4,
+    "Length": 0.51,
+    "Latitude": 37.368611,
+    "Longitude": -121.84660900000002,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 407180,
+    "Lanes": 4,
+    "Length": 0.49,
+    "Latitude": 37.372785,
+    "Longitude": -121.850839,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 407181,
+    "Lanes": 4,
+    "Length": 0.565,
+    "Latitude": 37.379684000000005,
+    "Longitude": -121.857783,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 407157,
+    "Lanes": 4,
+    "Length": 0.535,
+    "Latitude": 37.385475,
+    "Longitude": -121.86383899999998,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 407155,
+    "Lanes": 4,
+    "Length": 0.54,
+    "Latitude": 37.391513,
+    "Longitude": -121.870376,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 407153,
+    "Lanes": 4,
+    "Length": 0.365,
+    "Latitude": 37.398059,
+    "Longitude": -121.875211,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 407174,
+    "Lanes": 4,
+    "Length": 0.345,
+    "Latitude": 37.40088,
+    "Longitude": -121.876103,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 407161,
+    "Lanes": 4,
+    "Length": 0.54,
+    "Latitude": 37.40777,
+    "Longitude": -121.878234,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 407152,
+    "Lanes": 4,
+    "Length": 0.46,
+    "Latitude": 37.416073,
+    "Longitude": -121.880751,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 407151,
+    "Lanes": 4,
+    "Length": 0.4,
+    "Latitude": 37.420741,
+    "Longitude": -121.882093,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 407150,
+    "Lanes": 4,
+    "Length": 0.475,
+    "Latitude": 37.427274,
+    "Longitude": -121.884436,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 408907,
+    "Lanes": 3,
+    "Length": 0.425,
+    "Latitude": 37.321822,
+    "Longitude": -121.940425,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400951,
+    "Lanes": 4,
+    "Length": 0.51,
+    "Latitude": 37.325151,
+    "Longitude": -121.940679,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400057,
+    "Lanes": 3,
+    "Length": 0.75,
+    "Latitude": 37.335022,
+    "Longitude": -121.935522,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400147,
+    "Lanes": 3,
+    "Length": 0.685,
+    "Latitude": 37.34221,
+    "Longitude": -121.926305,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400343,
+    "Lanes": 3,
+    "Length": 0.735,
+    "Latitude": 37.348907,
+    "Longitude": -121.917833,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 401560,
+    "Lanes": 3,
+    "Length": 0.66,
+    "Latitude": 37.357526,
+    "Longitude": -121.907884,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400045,
+    "Lanes": 4,
+    "Length": 0.35,
+    "Latitude": 37.363402,
+    "Longitude": -121.902233,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400122,
+    "Lanes": 3,
+    "Length": 0.24,
+    "Latitude": 37.36614,
+    "Longitude": -121.901132,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 401541,
+    "Lanes": 3,
+    "Length": 0.295,
+    "Latitude": 37.370203,
+    "Longitude": -121.901514,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 402281,
+    "Lanes": 4,
+    "Length": 0.6,
+    "Latitude": 37.38449,
+    "Longitude": -121.904845,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 402283,
+    "Lanes": 4,
+    "Length": 0.5,
+    "Latitude": 37.391595,
+    "Longitude": -121.906506,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 402285,
+    "Lanes": 4,
+    "Length": 0.5,
+    "Latitude": 37.398698,
+    "Longitude": -121.908172,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 402286,
+    "Lanes": 5,
+    "Length": 0.575,
+    "Latitude": 37.405824,
+    "Longitude": -121.909842,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 400088,
+    "Lanes": 4,
+    "Length": 0.475,
+    "Latitude": 37.414988,
+    "Longitude": -121.912685,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 402288,
+    "Lanes": 4,
+    "Length": 0.225,
+    "Latitude": 37.419153,
+    "Longitude": -121.914103,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 413026,
+    "Lanes": 5,
+    "Length": 0.205,
+    "Latitude": 37.421232,
+    "Longitude": -121.914808,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 401464,
+    "Lanes": 4,
+    "Length": 0.225,
+    "Latitude": 37.424833,
+    "Longitude": -121.916049,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 401489,
+    "Lanes": 4,
+    "Length": 0.205,
+    "Latitude": 37.427486,
+    "Longitude": -121.916962,
+    "Dir": "N"
+  },
+  {
+    "sensor_id": 413845,
+    "Lanes": 4,
+    "Length": 2.631,
+    "Latitude": 37.422887,
+    "Longitude": -121.925747,
+    "Dir": "W"
+  },
+  {
+    "sensor_id": 400158,
+    "Lanes": 3,
+    "Length": 0.385,
+    "Latitude": 37.421059,
+    "Longitude": -121.93678,
+    "Dir": "W"
+  },
+  {
+    "sensor_id": 401014,
+    "Lanes": 3,
+    "Length": 0.53,
+    "Latitude": 37.420505,
+    "Longitude": -121.9392,
+    "Dir": "W"
+  },
+  {
+    "sensor_id": 400449,
+    "Lanes": 3,
+    "Length": 0.665,
+    "Latitude": 37.419452,
+    "Longitude": -121.955498,
+    "Dir": "W"
+  },
+  {
+    "sensor_id": 400201,
+    "Lanes": 3,
+    "Length": 0.462,
+    "Latitude": 37.419186,
+    "Longitude": -121.962831,
+    "Dir": "W"
+  },
+  {
+    "sensor_id": 400096,
+    "Lanes": 3,
+    "Length": 0.5429999999999999,
+    "Latitude": 37.418049,
+    "Longitude": -121.972381,
+    "Dir": "W"
+  },
+  {
+    "sensor_id": 400274,
+    "Lanes": 3,
+    "Length": 0.62,
+    "Latitude": 37.409909000000006,
+    "Longitude": -121.995942,
+    "Dir": "W"
+  },
+  {
+    "sensor_id": 400687,
+    "Lanes": 3,
+    "Length": 0.39,
+    "Latitude": 37.408459,
+    "Longitude": -122.002706,
+    "Dir": "W"
+  },
+  {
+    "sensor_id": 404586,
+    "Lanes": 3,
+    "Length": 0.69,
+    "Latitude": 37.406939,
+    "Longitude": -122.009566,
+    "Dir": "W"
+  },
+  {
+    "sensor_id": 400581,
+    "Lanes": 3,
+    "Length": 0.66,
+    "Latitude": 37.403169,
+    "Longitude": -122.026944,
+    "Dir": "W"
+  },
+  {
+    "sensor_id": 401351,
+    "Lanes": 2,
+    "Length": 2.67,
+    "Latitude": 37.401701,
+    "Longitude": -122.032879,
+    "Dir": "W"
+  },
+  {
+    "sensor_id": 400100,
+    "Lanes": 3,
+    "Length": 1.634,
+    "Latitude": 37.295052,
+    "Longitude": -121.938872,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400298,
+    "Lanes": 3,
+    "Length": 1.095,
+    "Latitude": 37.293047,
+    "Longitude": -121.937861,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400278,
+    "Lanes": 3,
+    "Length": 1.42,
+    "Latitude": 37.266561,
+    "Longitude": -121.948692,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400073,
+    "Lanes": 2,
+    "Length": 0.465,
+    "Latitude": 37.2563,
+    "Longitude": -121.955559,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400832,
+    "Lanes": 3,
+    "Length": 0.24,
+    "Latitude": 37.254601,
+    "Longitude": -121.956775,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 407359,
+    "Lanes": 1,
+    "Length": 2.849,
+    "Latitude": 37.407147,
+    "Longitude": -122.070055,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400869,
+    "Lanes": 3,
+    "Length": 0.8590000000000001,
+    "Latitude": 37.403673,
+    "Longitude": -122.069953,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 407374,
+    "Lanes": 3,
+    "Length": 0.495,
+    "Latitude": 37.395123,
+    "Longitude": -122.06861200000002,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400528,
+    "Lanes": 3,
+    "Length": 0.375,
+    "Latitude": 37.388893,
+    "Longitude": -122.068829,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 407348,
+    "Lanes": 3,
+    "Length": 0.33,
+    "Latitude": 37.384273,
+    "Longitude": -122.068412,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 407367,
+    "Lanes": 3,
+    "Length": 0.25,
+    "Latitude": 37.379368,
+    "Longitude": -122.067871,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 407352,
+    "Lanes": 3,
+    "Length": 0.215,
+    "Latitude": 37.377057,
+    "Longitude": -122.067805,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 407360,
+    "Lanes": 3,
+    "Length": 0.51,
+    "Latitude": 37.373187,
+    "Longitude": -122.067646,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 407361,
+    "Lanes": 3,
+    "Length": 0.6,
+    "Latitude": 37.363107,
+    "Longitude": -122.063006,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 402061,
+    "Lanes": 3,
+    "Length": 0.41,
+    "Latitude": 37.356616,
+    "Longitude": -122.06262,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 407364,
+    "Lanes": 3,
+    "Length": 0.42,
+    "Latitude": 37.351529,
+    "Longitude": -122.060518,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 407372,
+    "Lanes": 3,
+    "Length": 0.48,
+    "Latitude": 37.344708,
+    "Longitude": -122.059991,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 407373,
+    "Lanes": 3,
+    "Length": 0.33,
+    "Latitude": 37.337629,
+    "Longitude": -122.059717,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 407370,
+    "Lanes": 3,
+    "Length": 0.605,
+    "Latitude": 37.333574,
+    "Longitude": -122.057007,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400209,
+    "Lanes": 4,
+    "Length": 1.245,
+    "Latitude": 37.319961,
+    "Longitude": -122.049031,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400648,
+    "Lanes": 3,
+    "Length": 0.91,
+    "Latitude": 37.303016,
+    "Longitude": -122.034801,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400828,
+    "Lanes": 3,
+    "Length": 0.515,
+    "Latitude": 37.298804,
+    "Longitude": -122.030071,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 401224,
+    "Lanes": 3,
+    "Length": 0.87,
+    "Latitude": 37.291054,
+    "Longitude": -122.023638,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400097,
+    "Lanes": 3,
+    "Length": 0.755,
+    "Latitude": 37.279012,
+    "Longitude": -122.010614,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400582,
+    "Lanes": 3,
+    "Length": 0.93,
+    "Latitude": 37.275212,
+    "Longitude": -122.004898,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 404444,
+    "Lanes": 3,
+    "Length": 1.18,
+    "Latitude": 37.265311,
+    "Longitude": -121.981694,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400213,
+    "Lanes": 4,
+    "Length": 0.595,
+    "Latitude": 37.259192,
+    "Longitude": -121.967128,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400907,
+    "Lanes": 3,
+    "Length": 0.345,
+    "Latitude": 37.257815,
+    "Longitude": -121.96237,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400792,
+    "Lanes": 3,
+    "Length": 0.3829999999999999,
+    "Latitude": 37.255491,
+    "Longitude": -121.955543,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400934,
+    "Lanes": 3,
+    "Length": 0.288,
+    "Latitude": 37.254002,
+    "Longitude": -121.949365,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400017,
+    "Lanes": 4,
+    "Length": 0.43,
+    "Latitude": 37.253303,
+    "Longitude": -121.94544,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400700,
+    "Lanes": 3,
+    "Length": 0.485,
+    "Latitude": 37.251345,
+    "Longitude": -121.934089,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400772,
+    "Lanes": 3,
+    "Length": 0.6,
+    "Latitude": 37.250448,
+    "Longitude": -121.928226,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400717,
+    "Lanes": 4,
+    "Length": 0.565,
+    "Latitude": 37.250424,
+    "Longitude": -121.912467,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400059,
+    "Lanes": 3,
+    "Length": 1.005,
+    "Latitude": 37.250481,
+    "Longitude": -121.907735,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400690,
+    "Lanes": 3,
+    "Length": 0.935,
+    "Latitude": 37.255184,
+    "Longitude": -121.876817,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400085,
+    "Lanes": 3,
+    "Length": 0.495,
+    "Latitude": 37.255594,
+    "Longitude": -121.87471,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 401495,
+    "Lanes": 4,
+    "Length": 0.525,
+    "Latitude": 37.255346,
+    "Longitude": -121.85898,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400637,
+    "Lanes": 3,
+    "Length": 0.18,
+    "Latitude": 37.255322,
+    "Longitude": -121.855765,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400519,
+    "Lanes": 3,
+    "Length": 0.505,
+    "Latitude": 37.255257,
+    "Longitude": -121.85256,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 401816,
+    "Lanes": 2,
+    "Length": 0.413,
+    "Latitude": 37.37116,
+    "Longitude": -121.926885,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 409529,
+    "Lanes": 3,
+    "Length": 0.405,
+    "Latitude": 37.366662,
+    "Longitude": -121.921519,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 409528,
+    "Lanes": 3,
+    "Length": 0.95,
+    "Latitude": 37.362467,
+    "Longitude": -121.917418,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 402117,
+    "Lanes": 3,
+    "Length": 1.045,
+    "Latitude": 37.344302,
+    "Longitude": -121.902123,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 402058,
+    "Lanes": 3,
+    "Length": 0.305,
+    "Latitude": 37.337137,
+    "Longitude": -121.897741,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 402057,
+    "Lanes": 4,
+    "Length": 0.44,
+    "Latitude": 37.336401,
+    "Longitude": -121.897563,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400236,
+    "Lanes": 3,
+    "Length": 0.595,
+    "Latitude": 37.325009,
+    "Longitude": -121.892984,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400065,
+    "Lanes": 2,
+    "Length": 0.45,
+    "Latitude": 37.320292,
+    "Longitude": -121.890281,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400995,
+    "Lanes": 5,
+    "Length": 0.45,
+    "Latitude": 37.313375,
+    "Longitude": -121.886106,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 404461,
+    "Lanes": 2,
+    "Length": 0.41,
+    "Latitude": 37.309012,
+    "Longitude": -121.882518,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400837,
+    "Lanes": 3,
+    "Length": 0.565,
+    "Latitude": 37.303359,
+    "Longitude": -121.878066,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400040,
+    "Lanes": 3,
+    "Length": 0.44,
+    "Latitude": 37.294949,
+    "Longitude": -121.873109,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400257,
+    "Lanes": 3,
+    "Length": 0.27,
+    "Latitude": 37.291715,
+    "Longitude": -121.871799,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 401606,
+    "Lanes": 3,
+    "Length": 0.27,
+    "Latitude": 37.287298,
+    "Longitude": -121.869548,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 405619,
+    "Lanes": 2,
+    "Length": 0.3,
+    "Latitude": 37.284665,
+    "Longitude": -121.867631,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 401457,
+    "Lanes": 2,
+    "Length": 0.295,
+    "Latitude": 37.279515,
+    "Longitude": -121.864784,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400457,
+    "Lanes": 2,
+    "Length": 0.245,
+    "Latitude": 37.276763,
+    "Longitude": -121.863661,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 404462,
+    "Lanes": 3,
+    "Length": 0.24,
+    "Latitude": 37.272658,
+    "Longitude": -121.862556,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 401958,
+    "Lanes": 3,
+    "Length": 0.23,
+    "Latitude": 37.270209,
+    "Longitude": -121.860998,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 401154,
+    "Lanes": 2,
+    "Length": 0.3,
+    "Latitude": 37.266658,
+    "Longitude": -121.85921,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400842,
+    "Lanes": 2,
+    "Length": 0.605,
+    "Latitude": 37.261849,
+    "Longitude": -121.859205,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 401926,
+    "Lanes": 4,
+    "Length": 0.145,
+    "Latitude": 37.411999,
+    "Longitude": -122.078452,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400149,
+    "Lanes": 3,
+    "Length": 0.05,
+    "Latitude": 37.4118,
+    "Longitude": -122.077964,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 401937,
+    "Lanes": 4,
+    "Length": 0.385,
+    "Latitude": 37.411338,
+    "Longitude": -122.076826,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 401936,
+    "Lanes": 4,
+    "Length": 0.6,
+    "Latitude": 37.407282,
+    "Longitude": -122.06515,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 402373,
+    "Lanes": 4,
+    "Length": 0.505,
+    "Latitude": 37.405335,
+    "Longitude": -122.056343,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400435,
+    "Lanes": 4,
+    "Length": 0.42,
+    "Latitude": 37.403153,
+    "Longitude": -122.047463,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 404554,
+    "Lanes": 4,
+    "Length": 0.395,
+    "Latitude": 37.401893,
+    "Longitude": -122.041683,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400545,
+    "Lanes": 4,
+    "Length": 0.38,
+    "Latitude": 37.40013,
+    "Longitude": -122.033628,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400743,
+    "Lanes": 4,
+    "Length": 0.195,
+    "Latitude": 37.398989,
+    "Longitude": -122.028373,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400330,
+    "Lanes": 4,
+    "Length": 0.31,
+    "Latitude": 37.398628,
+    "Longitude": -122.026802,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 402371,
+    "Lanes": 4,
+    "Length": 0.38,
+    "Latitude": 37.396611,
+    "Longitude": -122.017518,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 404553,
+    "Lanes": 4,
+    "Length": 0.2,
+    "Latitude": 37.395734,
+    "Longitude": -122.013489,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400904,
+    "Lanes": 4,
+    "Length": 0.235,
+    "Latitude": 37.395067,
+    "Longitude": -122.010518,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 402369,
+    "Lanes": 4,
+    "Length": 0.455,
+    "Latitude": 37.393755,
+    "Longitude": -122.005329,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400643,
+    "Lanes": 4,
+    "Length": 0.34,
+    "Latitude": 37.390763,
+    "Longitude": -121.994912,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400794,
+    "Lanes": 5,
+    "Length": 0.245,
+    "Latitude": 37.390422,
+    "Longitude": -121.993716,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 402367,
+    "Lanes": 4,
+    "Length": 0.475,
+    "Latitude": 37.388372,
+    "Longitude": -121.986538,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400069,
+    "Lanes": 4,
+    "Length": 0.36,
+    "Latitude": 37.385758,
+    "Longitude": -121.977493,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400372,
+    "Lanes": 4,
+    "Length": 0.45,
+    "Latitude": 37.38482,
+    "Longitude": -121.974251,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400206,
+    "Lanes": 4,
+    "Length": 0.395,
+    "Latitude": 37.381356,
+    "Longitude": -121.96211,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400895,
+    "Lanes": 5,
+    "Length": 0.56,
+    "Latitude": 37.380958,
+    "Longitude": -121.96074099999998,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400586,
+    "Lanes": 4,
+    "Length": 0.6,
+    "Latitude": 37.376835,
+    "Longitude": -121.94253700000002,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400172,
+    "Lanes": 4,
+    "Length": 1.01,
+    "Latitude": 37.376264,
+    "Longitude": -121.939712,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 402365,
+    "Lanes": 5,
+    "Length": 1.12,
+    "Latitude": 37.367859,
+    "Longitude": -121.907971,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400394,
+    "Lanes": 5,
+    "Length": 0.28,
+    "Latitude": 37.364382,
+    "Longitude": -121.902692,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400922,
+    "Lanes": 5,
+    "Length": 0.37,
+    "Latitude": 37.363644,
+    "Longitude": -121.899535,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400109,
+    "Lanes": 4,
+    "Length": 0.785,
+    "Latitude": 37.362706,
+    "Longitude": -121.889426,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 402363,
+    "Lanes": 4,
+    "Length": 0.752,
+    "Latitude": 37.3588,
+    "Longitude": -121.872094,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400440,
+    "Lanes": 4,
+    "Length": 0.482,
+    "Latitude": 37.353727,
+    "Longitude": -121.865827,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400160,
+    "Lanes": 4,
+    "Length": 0.455,
+    "Latitude": 37.348392,
+    "Longitude": -121.860589,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 401891,
+    "Lanes": 5,
+    "Length": 0.57,
+    "Latitude": 37.343293,
+    "Longitude": -121.855795,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 401906,
+    "Lanes": 4,
+    "Length": 0.6,
+    "Latitude": 37.335259,
+    "Longitude": -121.848031,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 402360,
+    "Lanes": 5,
+    "Length": 0.79,
+    "Latitude": 37.329591,
+    "Longitude": -121.842361,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 401846,
+    "Lanes": 4,
+    "Length": 1.255,
+    "Latitude": 37.332482,
+    "Longitude": -122.060617,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 404640,
+    "Lanes": 4,
+    "Length": 1.35,
+    "Latitude": 37.333614,
+    "Longitude": -122.049627,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400673,
+    "Lanes": 4,
+    "Length": 1.085,
+    "Latitude": 37.329972,
+    "Longitude": -122.013423,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400084,
+    "Lanes": 4,
+    "Length": 0.665,
+    "Latitude": 37.329258,
+    "Longitude": -122.012053,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400429,
+    "Lanes": 4,
+    "Length": 1.22,
+    "Latitude": 37.319424,
+    "Longitude": -121.993175,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400292,
+    "Lanes": 4,
+    "Length": 1.14,
+    "Latitude": 37.316378,
+    "Longitude": -121.972052,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 401388,
+    "Lanes": 4,
+    "Length": 0.841,
+    "Latitude": 37.316628,
+    "Longitude": -121.952438,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 407711,
+    "Lanes": 4,
+    "Length": 0.8059999999999999,
+    "Latitude": 37.317112,
+    "Longitude": -121.941507,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 401163,
+    "Lanes": 5,
+    "Length": 0.55,
+    "Latitude": 37.316756,
+    "Longitude": -121.92318600000002,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 403419,
+    "Lanes": 4,
+    "Length": 0.25,
+    "Latitude": 37.316766,
+    "Longitude": -121.921548,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 401327,
+    "Lanes": 4,
+    "Length": 0.23,
+    "Latitude": 37.315095,
+    "Longitude": -121.914498,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 403414,
+    "Lanes": 4,
+    "Length": 0.5,
+    "Latitude": 37.314844,
+    "Longitude": -121.913648,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 402067,
+    "Lanes": 4,
+    "Length": 0.535,
+    "Latitude": 37.321367,
+    "Longitude": -121.899571,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 401943,
+    "Lanes": 4,
+    "Length": 0.065,
+    "Latitude": 37.322361,
+    "Longitude": -121.8978,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 403412,
+    "Lanes": 4,
+    "Length": 0.205,
+    "Latitude": 37.32243,
+    "Longitude": -121.89764,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 403409,
+    "Lanes": 5,
+    "Length": 0.395,
+    "Latitude": 37.324015,
+    "Longitude": -121.890673,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 401811,
+    "Lanes": 5,
+    "Length": 0.215,
+    "Latitude": 37.325651,
+    "Longitude": -121.883953,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 403406,
+    "Lanes": 5,
+    "Length": 0.265,
+    "Latitude": 37.32592,
+    "Longitude": -121.88331399999998,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 403404,
+    "Lanes": 4,
+    "Length": 0.36,
+    "Latitude": 37.327807,
+    "Longitude": -121.874899,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 403401,
+    "Lanes": 4,
+    "Length": 0.48,
+    "Latitude": 37.328484,
+    "Longitude": -121.870843,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 401809,
+    "Lanes": 6,
+    "Length": 0.555,
+    "Latitude": 37.334524,
+    "Longitude": -121.860098,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 401391,
+    "Lanes": 2,
+    "Length": 0.37,
+    "Latitude": 37.337881,
+    "Longitude": -121.85467,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 407184,
+    "Lanes": 4,
+    "Length": 0.475,
+    "Latitude": 37.427403000000005,
+    "Longitude": -121.884848,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 407185,
+    "Lanes": 4,
+    "Length": 0.525,
+    "Latitude": 37.420881,
+    "Longitude": -121.882423,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 407190,
+    "Lanes": 4,
+    "Length": 0.46,
+    "Latitude": 37.412704,
+    "Longitude": -121.880023,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 407191,
+    "Lanes": 4,
+    "Length": 0.515,
+    "Latitude": 37.407919,
+    "Longitude": -121.878542,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 407200,
+    "Lanes": 4,
+    "Length": 0.61,
+    "Latitude": 37.398207,
+    "Longitude": -121.875543,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 407186,
+    "Lanes": 4,
+    "Length": 0.65,
+    "Latitude": 37.391614,
+    "Longitude": -121.870798,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 407187,
+    "Lanes": 4,
+    "Length": 0.535,
+    "Latitude": 37.383139,
+    "Longitude": -121.861675,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 407207,
+    "Lanes": 4,
+    "Length": 0.455,
+    "Latitude": 37.379794,
+    "Longitude": -121.85818799999998,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 407206,
+    "Lanes": 4,
+    "Length": 0.595,
+    "Latitude": 37.372897,
+    "Longitude": -121.851246,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 407204,
+    "Lanes": 4,
+    "Length": 0.5,
+    "Latitude": 37.366097,
+    "Longitude": -121.845103,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 407202,
+    "Lanes": 4,
+    "Length": 0.415,
+    "Latitude": 37.360613,
+    "Longitude": -121.841794,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 407194,
+    "Lanes": 6,
+    "Length": 0.39,
+    "Latitude": 37.344191,
+    "Longitude": -121.845564,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400665,
+    "Lanes": 4,
+    "Length": 0.3229999999999999,
+    "Latitude": 37.341439,
+    "Longitude": -121.849299,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 402119,
+    "Lanes": 4,
+    "Length": 0.675,
+    "Latitude": 37.421182,
+    "Longitude": -121.915036,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 402289,
+    "Lanes": 4,
+    "Length": 0.285,
+    "Latitude": 37.419106,
+    "Longitude": -121.914308,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400238,
+    "Lanes": 4,
+    "Length": 0.475,
+    "Latitude": 37.413256,
+    "Longitude": -121.912324,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 402287,
+    "Lanes": 5,
+    "Length": 0.495,
+    "Latitude": 37.405777,
+    "Longitude": -121.910072,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 402120,
+    "Lanes": 4,
+    "Length": 0.5,
+    "Latitude": 37.399227,
+    "Longitude": -121.908515,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 402284,
+    "Lanes": 4,
+    "Length": 0.52,
+    "Latitude": 37.391557,
+    "Longitude": -121.90671,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 402282,
+    "Lanes": 4,
+    "Length": 0.39,
+    "Latitude": 37.384485,
+    "Longitude": -121.905044,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 402121,
+    "Lanes": 4,
+    "Length": 0.35,
+    "Latitude": 37.380274,
+    "Longitude": -121.904061,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400971,
+    "Lanes": 4,
+    "Length": 0.335,
+    "Latitude": 37.368669,
+    "Longitude": -121.901336,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 404759,
+    "Lanes": 4,
+    "Length": 0.225,
+    "Latitude": 37.365167,
+    "Longitude": -121.901551,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400479,
+    "Lanes": 4,
+    "Length": 0.245,
+    "Latitude": 37.362439,
+    "Longitude": -121.903211,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400030,
+    "Lanes": 3,
+    "Length": 0.25,
+    "Latitude": 37.359087,
+    "Longitude": -121.90653799999998,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 401440,
+    "Lanes": 3,
+    "Length": 0.445,
+    "Latitude": 37.356826,
+    "Longitude": -121.908804,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 403225,
+    "Lanes": 3,
+    "Length": 0.36,
+    "Latitude": 37.349517,
+    "Longitude": -121.91728,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 403265,
+    "Lanes": 3,
+    "Length": 0.1,
+    "Latitude": 37.349229,
+    "Longitude": -121.917686,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400508,
+    "Lanes": 3,
+    "Length": 0.31,
+    "Latitude": 37.34766,
+    "Longitude": -121.919969,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400253,
+    "Lanes": 3,
+    "Length": 0.305,
+    "Latitude": 37.342957,
+    "Longitude": -121.925721,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400709,
+    "Lanes": 4,
+    "Length": 0.41,
+    "Latitude": 37.341275,
+    "Longitude": -121.927699,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400514,
+    "Lanes": 3,
+    "Length": 0.345,
+    "Latitude": 37.334602,
+    "Longitude": -121.936288,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 400723,
+    "Lanes": 4,
+    "Length": 0.37,
+    "Latitude": 37.334296,
+    "Longitude": -121.936706,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 408911,
+    "Lanes": 4,
+    "Length": 0.57,
+    "Latitude": 37.325153,
+    "Longitude": -121.940859,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 401611,
+    "Lanes": 3,
+    "Length": 0.325,
+    "Latitude": 37.318919,
+    "Longitude": -121.940307,
+    "Dir": "S"
+  },
+  {
+    "sensor_id": 404585,
+    "Lanes": 3,
+    "Length": 2.89,
+    "Latitude": 37.406761,
+    "Longitude": -122.009541,
+    "Dir": "E"
+  },
+  {
+    "sensor_id": 400970,
+    "Lanes": 3,
+    "Length": 1.105,
+    "Latitude": 37.409755,
+    "Longitude": -121.995933,
+    "Dir": "E"
+  },
+  {
+    "sensor_id": 400973,
+    "Lanes": 3,
+    "Length": 0.973,
+    "Latitude": 37.417801,
+    "Longitude": -121.972288,
+    "Dir": "E"
+  },
+  {
+    "sensor_id": 400567,
+    "Lanes": 4,
+    "Length": 0.462,
+    "Latitude": 37.418931,
+    "Longitude": -121.962821,
+    "Dir": "E"
+  },
+  {
+    "sensor_id": 400104,
+    "Lanes": 3,
+    "Length": 0.665,
+    "Latitude": 37.419313,
+    "Longitude": -121.95548,
+    "Dir": "E"
+  },
+  {
+    "sensor_id": 400296,
+    "Lanes": 3,
+    "Length": 0.53,
+    "Latitude": 37.420359000000005,
+    "Longitude": -121.93915,
+    "Dir": "E"
+  },
+  {
+    "sensor_id": 400873,
+    "Lanes": 3,
+    "Length": 2.57,
+    "Latitude": 37.420927,
+    "Longitude": -121.93674,
+    "Dir": "E"
+  }
+]

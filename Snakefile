@@ -98,10 +98,14 @@ rule train_lstm_single_vd:
         num_layers=config['training_lstm']['single_vd'].get('num_layers', 2),
         dropout=config['training_lstm']['single_vd'].get('dropout', 0.2),
         learning_rate=config['training_lstm']['single_vd'].get('learning_rate', 0.001),
-        weight_decay=config['training_lstm']['single_vd'].get('weight_decay', 0.0001)
+        weight_decay=config['training_lstm']['single_vd'].get('weight_decay', 0.0001),
+        early_stopping_patience=config['training_lstm']['single_vd'].get('early_stopping_patience', 15),
+        gradient_clip_value=config['training_lstm']['single_vd'].get('gradient_clip_value', 0.5),
+        use_scheduler=config['training_lstm']['single_vd'].get('use_scheduler', True),
+        scheduler_patience=config['training_lstm']['single_vd'].get('scheduler_patience', 5)
     shell:
         """
-        cmd="python scripts/train/without_social_pooling/train_single_vd.py --data_path {input.h5_file} --epochs {params.epochs} --batch_size {params.batch_size} --sequence_length {params.sequence_length} --model_type {params.model_type} --experiment_name {params.experiment_name} --save_dir $(dirname $(dirname {output.model_file})) --hidden_size {params.hidden_size} --num_layers {params.num_layers} --dropout {params.dropout} --learning_rate {params.learning_rate} --weight_decay {params.weight_decay}"
+        cmd="python scripts/train/without_social_pooling/train_single_vd.py --data_path {input.h5_file} --epochs {params.epochs} --batch_size {params.batch_size} --sequence_length {params.sequence_length} --model_type {params.model_type} --experiment_name {params.experiment_name} --save_dir $(dirname $(dirname {output.model_file})) --hidden_size {params.hidden_size} --num_layers {params.num_layers} --dropout {params.dropout} --learning_rate {params.learning_rate} --weight_decay {params.weight_decay} --early_stopping_patience {params.early_stopping_patience} --gradient_clip_value {params.gradient_clip_value} --scheduler_patience {params.scheduler_patience}"
         
         if [ -n "{params.select_vd_id}" ] && [ "{params.select_vd_id}" != "None" ]; then
             cmd="$cmd --select_vd_id {params.select_vd_id}"
@@ -131,10 +135,14 @@ rule train_lstm_multi_vd:
         num_layers=config['training_lstm']['multi_vd'].get('num_layers', 2),
         dropout=config['training_lstm']['multi_vd'].get('dropout', 0.2),
         learning_rate=config['training_lstm']['multi_vd'].get('learning_rate', 0.001),
-        weight_decay=config['training_lstm']['multi_vd'].get('weight_decay', 0.0001)
+        weight_decay=config['training_lstm']['multi_vd'].get('weight_decay', 0.0001),
+        early_stopping_patience=config['training_lstm']['multi_vd'].get('early_stopping_patience', 15),
+        gradient_clip_value=config['training_lstm']['multi_vd'].get('gradient_clip_value', 0.5),
+        use_scheduler=config['training_lstm']['multi_vd'].get('use_scheduler', True),
+        scheduler_patience=config['training_lstm']['multi_vd'].get('scheduler_patience', 5)
     shell:
         """
-        cmd="python scripts/train/without_social_pooling/train_multi_vd.py --data_path {input.h5_file} --epochs {params.epochs} --batch_size {params.batch_size} --sequence_length {params.sequence_length} --num_vds {params.num_vds} --model_type {params.model_type} --experiment_name {params.experiment_name} --save_dir $(dirname $(dirname {output.training_history})) --hidden_size {params.hidden_size} --num_layers {params.num_layers} --dropout {params.dropout} --learning_rate {params.learning_rate} --weight_decay {params.weight_decay}"
+        cmd="python scripts/train/without_social_pooling/train_multi_vd.py --data_path {input.h5_file} --epochs {params.epochs} --batch_size {params.batch_size} --sequence_length {params.sequence_length} --num_vds {params.num_vds} --model_type {params.model_type} --experiment_name {params.experiment_name} --save_dir $(dirname $(dirname {output.training_history})) --hidden_size {params.hidden_size} --num_layers {params.num_layers} --dropout {params.dropout} --learning_rate {params.learning_rate} --weight_decay {params.weight_decay} --early_stopping_patience {params.early_stopping_patience} --gradient_clip_value {params.gradient_clip_value} --scheduler_patience {params.scheduler_patience}"
         
         if [ -n "{params.vd_ids}" ]; then
             cmd="$cmd --vd_ids {params.vd_ids}"
@@ -165,10 +173,14 @@ rule train_lstm_independent_multi_vd:
         num_layers=config['training_lstm']['independent_multi_vd'].get('num_layers', 2),
         dropout=config['training_lstm']['independent_multi_vd'].get('dropout', 0.2),
         learning_rate=config['training_lstm']['independent_multi_vd'].get('learning_rate', 0.001),
-        weight_decay=config['training_lstm']['independent_multi_vd'].get('weight_decay', 0.0001)
+        weight_decay=config['training_lstm']['independent_multi_vd'].get('weight_decay', 0.0001),
+        early_stopping_patience=config['training_lstm']['independent_multi_vd'].get('early_stopping_patience', 15),
+        gradient_clip_value=config['training_lstm']['independent_multi_vd'].get('gradient_clip_value', 0.5),
+        use_scheduler=config['training_lstm']['independent_multi_vd'].get('use_scheduler', True),
+        scheduler_patience=config['training_lstm']['independent_multi_vd'].get('scheduler_patience', 5)
     shell:
         """
-        cmd="python scripts/train/without_social_pooling/train_independent_multi_vd.py --data_path {input.h5_file} --epochs {params.epochs} --batch_size {params.batch_size} --sequence_length {params.sequence_length} --num_vds {params.num_vds} --target_vd_index {params.target_vd_index} --model_type {params.model_type} --experiment_name {params.experiment_name} --save_dir $(dirname $(dirname {output.training_history})) --hidden_size {params.hidden_size} --num_layers {params.num_layers} --dropout {params.dropout} --learning_rate {params.learning_rate} --weight_decay {params.weight_decay}"
+        cmd="python scripts/train/without_social_pooling/train_independent_multi_vd.py --data_path {input.h5_file} --epochs {params.epochs} --batch_size {params.batch_size} --sequence_length {params.sequence_length} --num_vds {params.num_vds} --target_vd_index {params.target_vd_index} --model_type {params.model_type} --experiment_name {params.experiment_name} --save_dir $(dirname $(dirname {output.training_history})) --hidden_size {params.hidden_size} --num_layers {params.num_layers} --dropout {params.dropout} --learning_rate {params.learning_rate} --weight_decay {params.weight_decay} --early_stopping_patience {params.early_stopping_patience} --gradient_clip_value {params.gradient_clip_value} --scheduler_patience {params.scheduler_patience}"
         
         if [ -n "{params.vd_ids}" ]; then
             cmd="$cmd --vd_ids {params.vd_ids}"
@@ -402,7 +414,11 @@ rule train_xlstm_single_vd:
         context_length=config['training_xlstm']['single_vd']['context_length'],
         dropout=config['training_xlstm']['single_vd']['dropout'],
         backend=config['training_xlstm']['single_vd']['backend'],
-        experiment_name=os.path.basename(config['training_xlstm']['single_vd']['experiment_dir'])
+        experiment_name=os.path.basename(config['training_xlstm']['single_vd']['experiment_dir']),
+        early_stopping_patience=config['training_xlstm']['single_vd'].get('early_stopping_patience', 15),
+        gradient_clip_value=config['training_xlstm']['single_vd'].get('gradient_clip_value', 0.5),
+        use_scheduler=config['training_xlstm']['single_vd'].get('use_scheduler', True),
+        scheduler_patience=config['training_xlstm']['single_vd'].get('scheduler_patience', 5)
     shell:
         """
         python scripts/train/without_social_pooling/train_single_vd.py \
@@ -419,6 +435,9 @@ rule train_xlstm_single_vd:
         --dropout {params.dropout} \
         --backend {params.backend} \
         --experiment_name {params.experiment_name} \
+        --early_stopping_patience {params.early_stopping_patience} \
+        --gradient_clip_value {params.gradient_clip_value} \
+        --scheduler_patience {params.scheduler_patience} \
         --save_dir $(dirname $(dirname {output.training_history})) >> {log} 2>&1
         """
 
@@ -443,10 +462,14 @@ rule train_xlstm_multi_vd:
         context_length=config['training_xlstm']['multi_vd']['context_length'],
         dropout=config['training_xlstm']['multi_vd']['dropout'],
         backend=config['training_xlstm']['multi_vd']['backend'],
-        experiment_name=os.path.basename(config['training_xlstm']['multi_vd']['experiment_dir'])
+        experiment_name=os.path.basename(config['training_xlstm']['multi_vd']['experiment_dir']),
+        early_stopping_patience=config['training_xlstm']['multi_vd'].get('early_stopping_patience', 15),
+        gradient_clip_value=config['training_xlstm']['multi_vd'].get('gradient_clip_value', 0.5),
+        use_scheduler=config['training_xlstm']['multi_vd'].get('use_scheduler', True),
+        scheduler_patience=config['training_xlstm']['multi_vd'].get('scheduler_patience', 5)
     shell:
         """
-        cmd="python scripts/train/without_social_pooling/train_multi_vd.py --data_path {input.h5_file} --epochs {params.epochs} --batch_size {params.batch_size} --sequence_length {params.sequence_length} --model_type {params.model_type} --num_vds {params.num_vds} --embedding_dim {params.embedding_dim} --num_blocks {params.num_blocks} --slstm_at $(echo "{params.slstm_at}" | tr -d '[],' | tr ' ' '\n' | paste -sd ' ') --context_length {params.context_length} --dropout {params.dropout} --backend {params.backend} --experiment_name {params.experiment_name} --save_dir $(dirname $(dirname {output.training_history}))"
+        cmd="python scripts/train/without_social_pooling/train_multi_vd.py --data_path {input.h5_file} --epochs {params.epochs} --batch_size {params.batch_size} --sequence_length {params.sequence_length} --model_type {params.model_type} --num_vds {params.num_vds} --embedding_dim {params.embedding_dim} --num_blocks {params.num_blocks} --slstm_at $(echo "{params.slstm_at}" | tr -d '[],' | tr ' ' '\n' | paste -sd ' ') --context_length {params.context_length} --dropout {params.dropout} --backend {params.backend} --experiment_name {params.experiment_name} --early_stopping_patience {params.early_stopping_patience} --gradient_clip_value {params.gradient_clip_value} --scheduler_patience {params.scheduler_patience} --save_dir $(dirname $(dirname {output.training_history}))"
         
         if [ -n "{params.vd_ids}" ]; then
             cmd="$cmd --vd_ids {params.vd_ids}"
@@ -477,7 +500,6 @@ rule train_social_xlstm_multi_vd:
         prediction_length=config['training_social_xlstm']['multi_vd']['prediction_length'],
         num_vds=config['training_social_xlstm']['multi_vd']['num_vds'],
         selected_vdids=" ".join(config['training_social_xlstm']['multi_vd']['selected_vdids']) if config['training_social_xlstm']['multi_vd'].get('selected_vdids') else None,
-        hidden_size=config['training_social_xlstm']['multi_vd']['hidden_size'],
         num_blocks=config['training_social_xlstm']['multi_vd']['num_blocks'],
         embedding_dim=config['training_social_xlstm']['multi_vd']['embedding_dim'],
         slstm_at=config['training_social_xlstm']['multi_vd']['slstm_at'],
@@ -485,10 +507,14 @@ rule train_social_xlstm_multi_vd:
         spatial_radius=config['training_social_xlstm']['multi_vd']['spatial_radius'],
         pool_type=config['training_social_xlstm']['multi_vd']['pool_type'],
         learning_rate=config['training_social_xlstm']['multi_vd']['learning_rate'],
-        experiment_name=os.path.basename(config['training_social_xlstm']['multi_vd']['experiment_dir'])
+        experiment_name=os.path.basename(config['training_social_xlstm']['multi_vd']['experiment_dir']),
+        early_stopping_patience=config['training_social_xlstm']['multi_vd'].get('early_stopping_patience', 15),
+        gradient_clip_value=config['training_social_xlstm']['multi_vd'].get('gradient_clip_value', 0.5),
+        use_scheduler=config['training_social_xlstm']['multi_vd'].get('use_scheduler', True),
+        scheduler_patience=config['training_social_xlstm']['multi_vd'].get('scheduler_patience', 5)
     shell:
         """
-        cmd="python scripts/train_distributed_social_xlstm.py --data_path {input.h5_file} --epochs {params.epochs} --batch_size {params.batch_size} --sequence_length {params.sequence_length} --prediction_length {params.prediction_length} --hidden_size {params.hidden_size} --num_blocks {params.num_blocks} --embedding_dim {params.embedding_dim} --slstm_at {params.slstm_at} --learning_rate {params.learning_rate} --experiment_name {params.experiment_name} --save_dir $(dirname $(dirname {output.training_history}))"
+        cmd="python scripts/train_distributed_social_xlstm.py --data_path {input.h5_file} --epochs {params.epochs} --batch_size {params.batch_size} --sequence_length {params.sequence_length} --prediction_length {params.prediction_length} --num_blocks {params.num_blocks} --embedding_dim {params.embedding_dim} --slstm_at {params.slstm_at} --learning_rate {params.learning_rate} --experiment_name {params.experiment_name} --early_stopping_patience {params.early_stopping_patience} --gradient_clip_value {params.gradient_clip_value} --scheduler_patience {params.scheduler_patience} --save_dir $(dirname $(dirname {output.training_history}))"
         
         if [ -n "{params.selected_vdids}" ]; then
             cmd="$cmd --selected_vdids {params.selected_vdids}"
