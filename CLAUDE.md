@@ -16,10 +16,9 @@
 
 ## 🚀 啟動檢查（每次新會話）
 
-- `docs/quickstart/social-pooling-quickstart.md` - 快速入門  
-- `docs/legacy/PROJECT_STATUS.md` - 專案狀態  
+- `docs/guides/quickstart/` - 快速入門指南  
+- `docs/PROJECT_STATUS.md` - 專案狀態  
 - `todo.md` - 優先任務
-- `docs/guides/ci-cd-automation-guide.md` - CI/CD 自動化
 
 ---
 
@@ -94,9 +93,16 @@ snakemake --configfile cfgs/snakemake/dev.yaml --cores 4
 
 ---
 
+## 📚 文檔結構（2025-08-06 重組）
+
+**三層架構**：簡化為 3 個主目錄，提升 LLM 檢索效率
+- `docs/guides/` - 使用指南（如何做）
+- `docs/concepts/` - 概念說明（為什麼）  
+- `docs/reference/` - API 參考（是什麼）
+
 ## 🔗 深入閱讀
 
-`docs/quickstart/first-model.md` | `docs/technical/social-pooling-algorithm.md` | `docs/guides/ci-cd-automation-guide.md`
+`docs/guides/quickstart/` | `docs/concepts/architecture/`
 
 ## 🔔 記憶備忘
 

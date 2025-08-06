@@ -1,101 +1,73 @@
-# Social-xLSTM 文檔系統
+# Social-xLSTM 文檔
 
-**版本**: 2.0  
-**最後更新**: 2025-08-01  
-**狀態**: 基於快速入門指南重建，確保準確性
+本專案文檔採用三層結構，讓 LLM 和開發者都能快速找到所需資訊。
 
-## 📚 文檔導覽
+## 📚 文檔結構
 
-### 🚀 [快速開始](quickstart/)
-**5分鐘快速上手 Social-xLSTM**
-- [Social Pooling 快速入門](quickstart/social-pooling-quickstart.md) - 核心概念和實現
-- [專案快速設置](quickstart/project-setup.md) - 環境配置和依賴安裝
-- [第一個模型](quickstart/first-model.md) - 建立和訓練你的第一個模型
+### [guides/](guides/) - 使用指南（如何做）
+教學和操作說明，幫助你快速上手和使用系統。
 
-### 📖 [使用指南](guides/)
-**詳細的功能使用指南**
-- [完整訓練指南](guides/training-guide.md) - 從數據到模型的完整流程
-- [模型配置指南](guides/model-configuration.md) - LSTM vs xLSTM 配置
-- [Social Pooling 進階用法](guides/social-pooling-advanced.md) - 高級配置和調優
-- [評估和可視化](guides/evaluation-visualization.md) - 模型性能分析
+- **[quickstart/](guides/quickstart/)** - 快速開始指南
+  - [project-setup.md](guides/quickstart/project-setup.md) - 專案設置
+  - [first-model.md](guides/quickstart/first-model.md) - 第一個模型
+  - [social-pooling-quickstart.md](guides/quickstart/social-pooling-quickstart.md) - Social Pooling 快速入門
+  
+- **訓練指南**
+  - [training-without-sp.md](guides/training-without-sp.md) - 無 Social Pooling 訓練
+  - [training-with-sp.md](guides/training-with-sp.md) - 含 Social Pooling 訓練
+  
+- **工具使用**
+  - [utils-guide.md](guides/utils-guide.md) - 工具使用指南
 
-### 📋 [技術參考](reference/)
-**完整的 API 和技術規範**
-- [API 參考](reference/api-reference.md) - 完整的類和函數文檔
-- [配置參考](reference/configuration-reference.md) - 所有配置選項詳解
-- [數據格式規範](reference/data-formats.md) - 輸入輸出格式定義
-- [性能基準](reference/benchmarks.md) - 模型性能對比
+### [concepts/](concepts/) - 概念說明（為什麼）
+架構設計、理論基礎和決策記錄。
 
-### 🔧 [技術細節](technical/)
-**深入的技術實現細節**
-- [架構設計原理](technical/architecture-design.md) - 系統架構和設計決策
-- [Social Pooling 算法](technical/social-pooling-algorithm.md) - 數學原理和實現
-- [xLSTM vs LSTM 對比](technical/xlstm-lstm-comparison.md) - 技術差異分析
-- [座標系統實現](technical/coordinate-system.md) - 空間計算和投影
+- **[architecture/](concepts/architecture/)** - 系統架構
+  - [data_pipeline.md](concepts/architecture/data_pipeline.md) - 數據管線架構
+  - [social_pooling.md](concepts/architecture/social_pooling.md) - Social Pooling 架構
+  
+- **[papers/](concepts/papers/)** - 相關論文
+  - [xlstm-2024.md](concepts/papers/xlstm-2024.md) - xLSTM 論文解析
+  - [social-lstm-2016.md](concepts/papers/social-lstm-2016.md) - Social LSTM 論文解析
+  
+- **[decisions/](concepts/decisions/)** - 架構決策記錄
+  - [adr-001-distance-based-social-pooling.md](concepts/decisions/adr-001-distance-based-social-pooling.md)
+  
+- **技術規範**
+  - [mathematical-specifications.md](concepts/mathematical-specifications.md) - 數學規範
+  - [datamodule-comparison.md](concepts/datamodule-comparison.md) - DataModule 比較
+  - [data-quality-remediation-plan.md](concepts/data-quality-remediation-plan.md) - 數據品質修復計劃
 
-## 🎯 學習路徑推薦
+### [reference/](reference/) - API 參考（是什麼）
+詳細的 API 文檔和配置參考。
 
-### 新用戶（第一次使用）
-1. [Social Pooling 快速入門](quickstart/social-pooling-quickstart.md)
-2. [專案快速設置](quickstart/project-setup.md)
-3. [第一個模型](quickstart/first-model.md)
+- **API 文檔**
+  - [api-reference.md](reference/api-reference.md) - API 參考手冊
+  
+- **配置指南**
+  - [configuration-guide.md](reference/configuration-guide.md) - 配置指南
+  - [configuration-reference.md](reference/configuration-reference.md) - 配置參考
+  - [data-formats.md](reference/data-formats.md) - 數據格式說明
+  
+- **工具參考**
+  - [tools-overview.md](reference/tools-overview.md) - 工具概覽
+  - [analysis-tools.md](reference/analysis-tools.md) - 分析工具
+  - [validation-tools.md](reference/validation-tools.md) - 驗證工具
+  - [testing-guide.md](reference/testing-guide.md) - 測試指南
 
-### 開發者（需要集成）
-1. [完整訓練指南](guides/training-guide.md)
-2. [模型配置指南](guides/model-configuration.md)
-3. [API 參考](reference/api-reference.md)
+## 🔍 快速導航
 
-### 研究者（需要深入理解）
-1. [架構設計原理](technical/architecture-design.md)
-2. [Social Pooling 算法](technical/social-pooling-algorithm.md)
-3. [xLSTM vs LSTM 對比](technical/xlstm-lstm-comparison.md)
+| 我想要... | 去這裡 |
+|-----------|--------|
+| 快速開始使用 | [guides/quickstart/](guides/quickstart/) |
+| 了解系統架構 | [concepts/architecture/](concepts/architecture/) |
+| 查找 API 文檔 | [reference/api-reference.md](reference/api-reference.md) |
+| 閱讀相關論文 | [concepts/papers/](concepts/papers/) |
+| 設置訓練流程 | [guides/training-*.md](guides/) |
+| 理解設計決策 | [concepts/decisions/](concepts/decisions/) |
 
-## 🆕 版本 2.0 更新重點
+## 📝 其他文檔
 
-### 基於快速入門指南重建
-- ✅ **準確性驗證**: 所有文檔與實際程式碼保持一致
-- ✅ **分散式架構**: 正確描述每個 VD 獨立 recurrent core 的架構
-- ✅ **xLSTM 整合**: 完整覆蓋 sLSTM + mLSTM 混合架構
-- ✅ **實際可用**: 所有程式碼範例都經過驗證
-
-### 結構簡化
-- **4個主要目錄**: quickstart, guides, reference, technical
-- **清晰學習路徑**: 從入門到精通的漸進式引導
-- **內容整合**: 消除重複，統一術語
-
-### 用戶導向設計
-- **任務導向**: 基於用戶實際需求組織內容
-- **範例豐富**: 每個概念都有完整的程式碼範例
-- **即時可用**: 複製貼上即可運行的程式碼
-
-## 🔄 文檔演進歷史
-
-本文檔系統已從舊版結構重建：
-
-```
-舊版結構 (legacy/)                  → 新版結構 (docs/)
-├── getting-started/                → quickstart/
-├── explanation/ + how-to/          → guides/
-├── reference/                      → reference/
-├── technical/                      → technical/
-└── 分散的配置文檔                   → guides/model-configuration.md
-```
-
-歷史文檔保存在 [legacy/](legacy/) 目錄中供參考。
-
-## 📞 支援和貢獻
-
-### 問題回報
-- 文檔錯誤：請在 GitHub Issues 中標記 `documentation`
-- 程式碼問題：請在 GitHub Issues 中標記 `bug`
-- 功能請求：請在 GitHub Issues 中標記 `enhancement`
-
-### 文檔維護原則
-1. **Single Source of Truth**: 快速入門指南是所有文檔的基準
-2. **Code-First**: 程式碼變更時，文檔必須同步更新
-3. **Example-Driven**: 每個概念都必須有可運行的範例
-4. **User-Focused**: 優先解決用戶實際問題
-
----
-
-**注意**: 本文檔系統已完成重建整合，舊版文檔保存在 [legacy/](legacy/) 目錄中供參考。
+- [PROJECT_STATUS.md](PROJECT_STATUS.md) - 專案狀態追蹤
+- `../reports/` - 分析報告（專案根目錄）
+- `../maintenance/` - 維護文檔（專案根目錄）
