@@ -37,10 +37,6 @@ from pathlib import Path
 from typing import Dict, Any
 import json
 
-# Add project root to path
-project_root = Path(__file__).parent.parent
-sys.path.append(str(project_root / "src"))
-
 from social_xlstm.models.xlstm import TrafficXLSTMConfig
 from social_xlstm.models.distributed_social_xlstm import DistributedSocialXLSTMModel
 from social_xlstm.data.distributed_datamodule import DistributedTrafficDataModule

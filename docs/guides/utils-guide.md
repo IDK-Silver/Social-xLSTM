@@ -5,8 +5,6 @@ This directory contains general-purpose utilities and helper scripts for the Soc
 ## Purpose
 Scripts in this directory are used for:
 - File structure inspection and analysis
-- Configuration generation and management
-- Data stability and diagnostic tools
 - Development and maintenance utilities
 - Visualization and reporting helpers
 
@@ -26,56 +24,8 @@ Scripts in this directory are used for:
 python scripts/utils/h5_structure_inspector.py
 ```
 
-#### `claude_init.py`
-**Purpose**: Project initialization and status check for Claude Code
-- Provides quick project status overview
-- Shows ADR decision states
-- Displays current development priorities
-- Automated project setup assistance
-
-**Usage**:
-```bash
-python scripts/utils/claude_init.py          # Full mode
-python scripts/utils/claude_init.py --quick  # Quick mode
-```
 
 ### Integration Tools
-
-#### `config_generator.py`
-**Purpose**: Configuration generation CLI interface
-- Creates optimized training configurations
-- Generates development and production configs
-- Unified interface for TrafficConfigGenerator
-- Supports multiple VD configurations
-
-**Usage**:
-```bash
-python scripts/utils/config_generator.py --h5-path <path> --output-dir <dir>
-```
-
-#### `data_stability_tools.py`
-**Purpose**: Data stability operations CLI
-- Dataset quality validation interface
-- Unified access to TrafficFeatureExtractor.stabilize_dataset()
-- Data stability analysis and reporting
-- Integration with main codebase stability functions
-
-**Usage**:
-```bash
-python scripts/utils/data_stability_tools.py --dataset-path <path>
-```
-
-#### `diagnostic_tools.py`
-**Purpose**: Diagnostic operations CLI
-- Comprehensive dataset and model diagnostics
-- Unified interface for DatasetDiagnostics
-- H5 analysis, data splits, and model complexity analysis
-- Diagnostic plotting and reporting
-
-**Usage**:
-```bash
-python scripts/utils/diagnostic_tools.py --h5-path <path> --vd-id <id>
-```
 
 ### Development Tools
 
@@ -114,14 +64,6 @@ python scripts/utils/run_all_plots.py --config dev --timeout 120
 
 ### Legacy and Specialized Tools
 
-#### `config_generator.py`
-**Purpose**: Configuration generation CLI interface
-- Creates optimized training configurations
-- Generates development and production configs
-- Unified interface for TrafficConfigGenerator
-- Supports multiple VD configurations
-
-**Note**: For applying validated fixes to development configurations, see `scripts/config_management/apply_overfitting_fixes.py`
 
 #### `plot_vd_point.py`
 **Purpose**: Plot Vehicle Detector (VD) coordinates
@@ -165,18 +107,14 @@ These utilities complement integrated functions in:
 
 ### Quick Development Check
 ```bash
-python scripts/utils/claude_init.py --quick
+# Use CLAUDE.md for project overview and quick start commands
+cat CLAUDE.md
 ```
 
 ### Data Quality Pipeline
 ```bash
-python scripts/utils/data_stability_tools.py --dataset-path blob/dataset/pre-processed/h5/traffic_features_default.h5
-python scripts/utils/diagnostic_tools.py --h5-path blob/dataset/pre-processed/h5/traffic_features_default.h5 --vd-id VD1
-```
-
-### Configuration Generation
-```bash
-python scripts/utils/config_generator.py --h5-path blob/dataset/pre-processed/h5/traffic_features_default.h5 --output-dir cfgs/generated
+# Use integrated functionality from main codebase
+python -c "from social_xlstm.dataset.storage.h5_converter import TrafficFeatureExtractor; TrafficFeatureExtractor.validate_dataset_quality('path/to/dataset')"
 ```
 
 ## Related Documentation

@@ -1,30 +1,50 @@
 import pandas as pd
 import json
 
-# 讀取 CSV 檔案
-csv_path = '/home/GP/repo/Social-xLSTM/blob/dataset/pre-processed/PEMS-BAY/PEMS-BAY-META.csv'
-df = pd.read_csv(csv_path)
+# 路徑
+meta_path = "PEMS-BAY-META.csv"
+data_path = "活頁簿11.csv"
 
-# 篩選所需欄位
-fields = ['sensor_id', 'Lanes', 'Length', 'Latitude', 'Longitude', 'Dir']
-filtered_df = df[fields]
+# 讀取 Meta 資料
+meta_fields = ['sensor_id', 'Lanes', 'Length', 'Latitude', 'Longitude', 'Dir']
+meta_df = pd.read_csv(meta_path)[meta_fields]
+meta_df.set_index("sensor_id", inplace=True)  # 方便查詢
 
-# 轉成指定格式的 JSON list
-sensor_list = []
-for _, row in filtered_df.iterrows():
-    sensor = {
-        "sensor_id": int(row["sensor_id"]),
-        "Lanes": int(row["Lanes"]),
-        "Length": float(row["Length"]),
-        "Latitude": float(row["Latitude"]),
-        "Longitude": float(row["Longitude"]),
-        "Dir": row["Dir"]
-    }
-    sensor_list.append(sensor)
+# 讀取交通數據
+data_df = pd.read_csv(data_path)
 
-# 寫入 JSON 檔
-output_path = 'pemsbay_sensors.json'
-with open(output_path, 'w') as f:
-    json.dump(sensor_list, f, indent=2)
+# 第一欄是時間
+data_df = data_df.rename(columns={"Unnamed: 0": "date"})
 
-print(f"轉換完成，已儲存為 {output_path}")
+# 建立輸出結構
+output = {}
+
+for _, row in data_df.iterrows():
+    date = row["date"]
+    sensors_info = []
+    
+    for sensor_id in row.index[1:]:  # 跳過 date 欄
+        speed = row[sensor_id]
+        sensor_id_int = int(sensor_id)
+
+        # 取 meta 資料
+        if sensor_id_int in meta_df.index:
+            meta = meta_df.loc[sensor_id_int].to_dict()
+        else:
+            meta = {"Lanes": None, "Length": None, "Latitude": None, "Longitude": None, "Dir": None}
+
+        # 整合
+        sensor_entry = {
+            "sensor_id": sensor_id_int,
+            "speed": None if pd.isna(speed) else float(speed),
+            **meta
+        }
+        sensors_info.append(sensor_entry)
+    
+    output[date] = sensors_info
+
+# 輸出成 JSON
+with open("pemsbay_timeseries.json", "w", encoding="utf-8") as f:
+    json.dump(output, f, indent=2, ensure_ascii=False)
+
+print("轉換完成！輸出檔案：pemsbay_timeseries.json")

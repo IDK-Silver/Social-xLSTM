@@ -134,11 +134,6 @@ Social-xLSTM/
 │   │   ├── without_social_pooling/  # 無社交池化訓練
 │   │   └── with_social_pooling/     # 社交池化訓練 (開發中)
 │   └── utils/                # 核心執行工具
-├── tools/                    # 開發者工具
-│   ├── config/               # 配置生成工具
-│   ├── analysis/             # 數據分析工具
-│   ├── diagnostics/          # 診斷與檢查工具
-│   └── validation/           # 驗證工具
 ├── tests/                    # 測試套件
 │   ├── unit/                 # 單元測試
 │   ├── integration/          # 整合測試
@@ -171,30 +166,8 @@ Social-xLSTM/
 
 ## 開發者工具
 
-### Tools 目錄
-`tools/` 目錄包含專案開發和維護所需的各種工具，這些工具不是核心功能的一部分，但對開發者很有用：
-
-```bash
-# 配置工具
-python tools/config/config_generator.py --type optimized --h5_path data.h5
-
-# 分析工具
-python tools/analysis/data_quality_analysis.py --input data.h5
-python tools/analysis/temporal_pattern_analysis.py --data_path data.h5
-
-# 診斷工具
-python tools/diagnostics/h5_structure_inspector.py --input data.h5
-python tools/diagnostics/data_stability_tools.py --check stability
-
-# 驗證工具
-python tools/validation/temporal_split_validation.py --data_path data.h5
-python tools/validation/training_validation.py --model_path model.pt
-```
-
 ### Notebooks 目錄
 `notebooks/` 目錄用於探索性分析和實驗，該目錄已加入 `.gitignore`，適合個人開發和調試使用。
-
-詳細的工具使用說明請參考 [tools/README.md](tools/README.md)
 
 ## 模組功能
 

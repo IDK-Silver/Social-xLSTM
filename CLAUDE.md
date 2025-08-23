@@ -50,8 +50,6 @@ snakemake --configfile cfgs/snakemake/dev.yaml --cores 4
 |------|------|
 | 單/多 VD 訓練 | `snakemake train_*_without_social_pooling --cores 4 --configfile cfgs/snakemake/dev.yaml` |
 | 測試 | `pytest -n auto` |
-| 開發檢查 | `scripts/quick-dev-check.sh` |
-| 架構檢查 | `python scripts/check_architecture_rules.py` |
 
 ---
 
@@ -73,7 +71,6 @@ snakemake --configfile cfgs/snakemake/dev.yaml --cores 4
 | 新增功能 | `Add: implement Social Pooling aggregation` |
 | 修復問題 | `Fix: handle NaN in processor` |
 | 測試/文檔 | `Test: add unit tests` / `docs: add guide` |
-| *開發階段可用 `[skip ci]` 跳過自動檢查* | |
 
 ---
 
