@@ -1,0 +1,29 @@
+# Traffic xLSTM Base Model Configuration  
+# Pure model architecture parameters, decoupled from training/data settings
+# All parameters are required - no defaults in TrafficXLSTMConfig class
+
+model:
+  name: "TrafficXLSTM"
+  xlstm:
+    # Model Architecture - All required parameters
+    input_size: 3                 # Base features per VD [volume, speed, occupancy]
+    embedding_dim: 128            # Input embedding dimension (xLSTM output dimension)
+    num_blocks: 6                 # Total number of xLSTM blocks
+    output_size: 3                # Output features (same as input)
+    sequence_length: 12           # Input sequence length
+    prediction_length: 1          # Output prediction length
+    
+    # xLSTM Block Configuration - All required
+    slstm_at: [1, 3]              # sLSTM layer positions (must be < num_blocks)
+    slstm_backend: "vanilla"      # sLSTM backend implementation
+    mlstm_backend: "vanilla"      # mLSTM backend implementation
+    
+    # Context and Memory - Required
+    context_length: 256           # Context length for attention
+    
+    # Regularization - Required
+    dropout: 0.1                  # Dropout rate for regularization
+    
+    # Multi-VD Configuration - Optional (will use None if not specified)
+    multi_vd_mode: false          # Single VD mode by default
+    # num_vds: null               # Only needed when multi_vd_mode=true

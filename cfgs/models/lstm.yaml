@@ -1,0 +1,17 @@
+# Traffic LSTM Base Model Configuration
+# Pure model architecture parameters, decoupled from training/data settings
+
+model:
+  name: "TrafficLSTM"
+  lstm:
+    # Core LSTM parameters
+    input_size: 3                 # Base features per VD (will be multiplied by VD count)
+    hidden_size: 64               # LSTM hidden dimension
+    num_layers: 1                 # Number of LSTM layers
+    dropout: 0.5                  # Dropout rate between layers
+    batch_first: true             # Input format: [batch, seq, features]
+    bidirectional: false          # Use unidirectional LSTM
+    
+    # Sequence parameters
+    sequence_length: 5            # Input sequence length
+    prediction_length: 1          # Output prediction length

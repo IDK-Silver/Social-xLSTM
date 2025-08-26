@@ -1,0 +1,97 @@
+# Taiwan VD Dataset Configuration
+# 台灣 VD (Vehicle Detector) 交通數據集配置
+
+dataset_name: "taiwan_vd"
+feature_set: "traffic_core_v1" 
+feature_schema_version: "1.0"
+
+# Feature configuration
+features:
+  # Core traffic features (5 total)
+  names:
+    - "avg_speed"      # Average speed across lanes (km/h)
+    - "total_volume"   # Total volume across lanes (vehicles) 
+    - "avg_occupancy"  # Average occupancy across lanes (%)
+    - "speed_std"      # Standard deviation of speed (km/h)
+    - "lane_count"     # Number of lanes
+  
+  # Feature validation ranges
+  validation:
+    avg_speed:
+      min: 0
+      max: 200
+      unit: "km/h"
+    total_volume:
+      min: 0
+      max: 10000
+      unit: "vehicles"
+    avg_occupancy:
+      min: 0 
+      max: 100
+      unit: "%"
+    speed_std:
+      min: 0
+      max: 50
+      unit: "km/h"
+    lane_count:
+      min: 1
+      max: 8
+      unit: "lanes"
+
+# Data source configuration
+data_source:
+  type: "json_timeseries"
+  structure: "VDLiveDetail"  # Taiwan-specific data structure
+  file_pattern: "*/VDLiveList.json"
+  
+  # Error code handling (Taiwan-specific)
+  error_codes: [-99, -1, 255]
+  
+  # Hierarchical structure: VDLiveDetail -> LinkFlows -> Lanes -> Vehicles
+  hierarchy:
+    - "LinkFlows"
+    - "Lanes" 
+    - "Vehicles"
+
+# Processing configuration
+processing:
+  aggregation_method: "vectorized"
+  missing_value_strategy: "skip"
+  
+  # Quality control
+  min_valid_lanes: 1
+  min_data_coverage: 0.1  # At least 10% valid data per VD
+  
+# Storage configuration  
+storage:
+  format: "hdf5"
+  structure: "hierarchical"  # metadata/, data/ groups
+  compression: "gzip"
+  chunk_size: 1000
+
+# Data processing parameters specific to Taiwan VD
+data:
+  sequence_length: 24        # 2 hours at 5-min intervals
+  prediction_length: 12      # 1 hour prediction  
+  selected_features: ["avg_speed", "total_volume", "avg_occupancy", "speed_std", "lane_count"]
+  normalization_method: "standard"
+  fill_missing: "interpolate"  # Taiwan VD needs interpolation for missing values
+
+# Default training parameters specific to Taiwan VD
+training:
+  sequence_length: 24      # 2 hours at 5-min intervals
+  prediction_length: 12    # 1 hour prediction
+  batch_size: 32
+  
+  # VD selection
+  vd_selection:
+    min_samples: 1000      # Minimum samples per VD
+    max_missing_rate: 0.3  # Maximum 30% missing data
+    
+# Metadata
+metadata:
+  description: "Taiwan VD traffic prediction dataset with 5 core features"
+  timezone: "Asia/Taipei"
+  temporal_resolution: "5min"
+  spatial_coverage: "Taiwan highways"
+  data_provider: "Taiwan highway authority"

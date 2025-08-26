@@ -1,0 +1,15 @@
+# Taiwan VD Development Profile
+# Combines modular configurations for Taiwan VD dataset training
+
+configs:
+  - cfgs/data/dev.yaml
+  - cfgs/models/xlstm.yaml
+  - cfgs/social_pooling/spatial_basic.yaml
+  - cfgs/training/dev.yaml
+  - cfgs/datasets/taiwan_vd.yaml
+
+# Profile-specific overrides
+overrides:
+  data:
+    # Use Taiwan VD HDF5 file (example path)
+    path: "blob/dataset/pre-processed/h5/traffic_features_default.h5"
