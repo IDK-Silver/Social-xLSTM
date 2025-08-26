@@ -16,9 +16,9 @@
 
 ## 🚀 啟動檢查（每次新會話）
 
-- `docs/_work/task.md` - **架構重整計劃與進度** ⭐  
+- `docs/_work/task.md` - **重構完成狀態** ⭐  
 - `todo.md` - 優先任務  
-- **重要**：了解當前 YAGNI 重構階段與已完成 PR-1 狀況
+- **重要**：架構重構已完成，項目回歸簡潔可維護狀態
 
 ---
 
@@ -90,24 +90,20 @@ snakemake --configfile cfgs/snakemake/dev.yaml --cores 4
 
 **後續擴展**：當基本功能驗證無誤後，再逐步添加進階功能
 
-## 🧹 架構整理中（2025-08-26 進行中）
+## ✅ 架構重構完成（2025-08-26）
 
-**基於 YAGNI 原則的過度設計清理**：
-- **問題**：大量 LLM 生成程式碼導致重複實現和不必要抽象
-- **目標**：40-50% 程式碼減少，消除架構債務
-- **進度**：已完成 PR-1 (TensorSpec移除，~200行淨減少)
+**基於 YAGNI 原則的架構簡化已完成**：
+- **成果**：40-50% 程式碼減少，消除過度設計和重複實現
+- **效果**：項目回歸簡潔、可維護的架構狀態
+- **配置現代化**：Profile-based YAML 配置系統，支援多數據集
 
-**重點清理區域**：
-- `src/social_xlstm/interfaces/` - 單一實現的抽象基類
-- `src/social_xlstm/dataset/storage/` - 過度設計的資料結構
-- 重複類別名稱衝突 (如兩個 `VDXLSTMManager`)
-
-**保留核心架構**：
+**核心架構組件**：
 - `VDXLSTMManager` - Social-xLSTM 分散式處理核心組件
 - `TrafficXLSTM` - xLSTM 實現本體
 - `DistributedSocialXLSTMModel` - 主要模型整合
+- `TrafficDataModule` - 統一數據模組
 
-**實施計劃**：詳見 `docs/_work/task.md` 的 5 階段 PR 計劃
+**歷史記錄**：完整重構計劃已歸檔至 `docs/concepts/decisions/archive/`
 
 ---
 
