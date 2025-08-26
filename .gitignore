@@ -236,4 +236,6 @@ notebooks/
 *pemsbay_sensors*.json
 scripts/dataset/pre_process/PEMS_BAY/*.h5
 scripts/dataset/pre_process/PEMS_BAY/*.png
-docs/concepts/papers/*.pdf.claude/
+docs/concepts/papers/*.pdf
+.claude/
+*.pdf
