@@ -5,7 +5,11 @@ import numpy as np
 from pathlib import Path
 from typing import Dict, List, Optional, Any, Union
 
-from ..config import TrafficHDF5Config
+try:
+    from ..config import TrafficHDF5Config
+except ImportError:
+    # For standalone testing - TrafficHDF5Config not needed for basic read operations
+    TrafficHDF5Config = None
 
 
 class TrafficHDF5Reader:
@@ -32,6 +36,12 @@ class TrafficHDF5Reader:
             # Shape information
             features_shape = h5file['data/features'].shape
             metadata['data_shape'] = features_shape
+            
+            # Add standardized dataset metadata with backward compatibility
+            # For legacy files without these attributes, provide defaults
+            metadata['dataset_name'] = metadata.get('dataset_name', 'taiwan_vd')  
+            metadata['feature_set'] = metadata.get('feature_set', 'traffic_core_v1')
+            metadata['feature_schema_version'] = metadata.get('feature_schema_version', '1.0')
             
             return metadata
     

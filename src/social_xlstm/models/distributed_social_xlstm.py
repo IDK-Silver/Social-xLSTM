@@ -17,49 +17,29 @@ import torchmetrics
 
 from .vd_xlstm_manager import VDXLSTMManager
 from .xlstm import TrafficXLSTMConfig
+from .distributed_config import DistributedSocialXLSTMConfig
 from ..pooling.xlstm_pooling import XLSTMSocialPoolingLayer, create_mock_positions
 
 
-class SocialPoolingLayer(nn.Module):
-    def __init__(self, hidden_dim: int, pool_type: str = "mean"):
-        super().__init__()
-        self.hidden_dim = hidden_dim
-        self.pool_type = pool_type
-    
-    def forward(self, neighbor_states: List[torch.Tensor]) -> torch.Tensor:
-        if not neighbor_states:
-            return torch.zeros(1, self.hidden_dim)
-        
-        if len(neighbor_states) == 1:
-            return neighbor_states[0]
-        
-        stacked = torch.stack(neighbor_states, dim=0)
-        return torch.mean(stacked, dim=0)
 
 
 class DistributedSocialXLSTMModel(pl.LightningModule):
-    def __init__(
-        self,
-        xlstm_config: TrafficXLSTMConfig,
-        num_features: int,
-        hidden_dim: int = 128,
-        prediction_length: int = 3,
-        social_pool_type: str = "mean",
-        learning_rate: float = 1e-3,
-        enable_gradient_checkpointing: bool = True,
-        enable_spatial_pooling: bool = False,
-        spatial_radius: float = 2.0
-    ):
+    def __init__(self, config: DistributedSocialXLSTMConfig):
         super().__init__()
         
+        # Validate configuration
+        if not isinstance(config, DistributedSocialXLSTMConfig):
+            raise TypeError("config must be an instance of DistributedSocialXLSTMConfig")
+        
+        self.config = config
         self.save_hyperparameters()
         
-        self.num_features = num_features
-        self.hidden_dim = hidden_dim
-        self.prediction_length = prediction_length
-        self.learning_rate = learning_rate
-        self.enable_spatial_pooling = enable_spatial_pooling
-        self.spatial_radius = spatial_radius
+        # Extract frequently used values
+        self.num_features = config.num_features
+        self.prediction_length = config.prediction_length
+        self.learning_rate = config.learning_rate
+        # VDXLSTMManager returns embedding_dim dimensional hidden states, not hidden_size
+        self.hidden_dim = config.xlstm.embedding_dim
         
         # Initialize TorchMetrics for proper metric calculation
         self.train_mae = torchmetrics.MeanAbsoluteError()
@@ -73,26 +53,30 @@ class DistributedSocialXLSTMModel(pl.LightningModule):
         
         # VD Manager
         self.vd_manager = VDXLSTMManager(
-            xlstm_config=xlstm_config,
+            xlstm_config=config.xlstm,
             lazy_init=True,
-            enable_gradient_checkpointing=enable_gradient_checkpointing
+            enable_gradient_checkpointing=config.enable_gradient_checkpointing
         )
         
-        # Social pooling - use spatial or legacy version
-        if enable_spatial_pooling:
+        # Social pooling - spatial-only mode
+        if config.social_pooling.enabled:
+            # XLSTMSocialPoolingLayer operates on the actual hidden states dimension
+            # which comes from xlstm.embedding_dim (VDXLSTMManager returns embedding_dim)
             self.social_pooling = XLSTMSocialPoolingLayer(
-                hidden_dim=hidden_dim,
-                radius=spatial_radius,
-                pool_type=social_pool_type,
+                hidden_dim=config.xlstm.embedding_dim,  # Use xlstm embedding_dim
+                radius=config.social_pooling.radius,
+                pool_type=config.social_pooling.pool_type,
                 learnable_radius=False
             )
         else:
-            self.social_pooling = SocialPoolingLayer(
-                hidden_dim=hidden_dim,
-                pool_type=social_pool_type
-            )
+            self.social_pooling = None
         
-        # Fusion layer
+        # Simplified dimension handling
+        # Both individual and social contexts use xlstm.embedding_dim (what VDXLSTMManager actually returns)
+        hidden_dim = config.xlstm.embedding_dim
+        self.social_projection = None  # No projection needed
+        
+        # Fusion layer combines individual + social contexts (both same dimension)
         self.fusion_layer = nn.Sequential(
             nn.Linear(hidden_dim * 2, hidden_dim),
             nn.ReLU(),
@@ -104,7 +88,7 @@ class DistributedSocialXLSTMModel(pl.LightningModule):
             nn.Linear(hidden_dim, hidden_dim // 2),
             nn.ReLU(),
             nn.Dropout(0.1),
-            nn.Linear(hidden_dim // 2, prediction_length * num_features)
+            nn.Linear(hidden_dim // 2, config.prediction_length * config.num_features)
         )
         
         self.criterion = nn.MSELoss()
@@ -137,8 +121,8 @@ class DistributedSocialXLSTMModel(pl.LightningModule):
         # Process through VD manager  
         individual_hidden_states = self.vd_manager(vd_inputs)
         
-        # Social pooling - spatial or legacy
-        if self.enable_spatial_pooling and positions is not None:
+        # Social pooling - spatial-only or disabled
+        if self.social_pooling is not None and positions is not None:
             # Use spatial-aware pooling
             social_contexts = self.social_pooling(
                 agent_hidden_states=individual_hidden_states,
@@ -146,28 +130,14 @@ class DistributedSocialXLSTMModel(pl.LightningModule):
                 target_agent_ids=vd_ids
             )
         else:
-            # Use legacy neighbor-based pooling
+            # Social pooling disabled - use zero contexts
             social_contexts = OrderedDict()
             
             for vd_id in vd_ids:
-                neighbors = neighbor_map.get(vd_id, [])
-                neighbor_states = []
-                
-                for neighbor_id in neighbors:
-                    if neighbor_id in individual_hidden_states:
-                        neighbor_hidden = individual_hidden_states[neighbor_id][:, -1, :]
-                        neighbor_states.append(neighbor_hidden)
-                
-                if neighbor_states:
-                    # In legacy mode, manually compute mean pooling 
-                    # (spatial pooling layer expects different interface)
-                    stacked = torch.stack(neighbor_states, dim=0)
-                    social_context = torch.mean(stacked, dim=0)
-                else:
-                    batch_size = individual_hidden_states[vd_id].shape[0]
-                    device = individual_hidden_states[vd_id].device
-                    social_context = torch.zeros(batch_size, self.hidden_dim, device=device)
-                
+                batch_size = individual_hidden_states[vd_id].shape[0]
+                device = individual_hidden_states[vd_id].device
+                # Use xlstm embedding_dim for consistency (what VDXLSTMManager actually returns)
+                social_context = torch.zeros(batch_size, self.config.xlstm.embedding_dim, device=device)
                 social_contexts[vd_id] = social_context
         
         # Fusion and prediction
@@ -176,6 +146,8 @@ class DistributedSocialXLSTMModel(pl.LightningModule):
         for vd_id in vd_ids:
             individual_hidden = individual_hidden_states[vd_id][:, -1, :]
             social_context = social_contexts[vd_id]
+            
+            # No projection needed - both contexts use same dimension
             
             fused_features = torch.cat([individual_hidden, social_context], dim=-1)
             fused_output = self.fusion_layer(fused_features)
@@ -228,6 +200,7 @@ class DistributedSocialXLSTMModel(pl.LightningModule):
             self.log('train_rmse', self.train_rmse, prog_bar=False)
             self.log('train_r2', self.train_r2, prog_bar=False)
             self.log('num_vds', float(num_vds), prog_bar=True)
+            self.log('social_pooling_enabled', float(self.config.social_pooling.enabled), prog_bar=False)
         
         return avg_loss
     
@@ -302,5 +275,11 @@ class DistributedSocialXLSTMModel(pl.LightningModule):
             'trainable_parameters': trainable_params,
             'vd_manager_info': vd_manager_info,
             'hidden_dim': self.hidden_dim,
-            'prediction_length': self.prediction_length
+            'prediction_length': self.prediction_length,
+            'social_pooling_enabled': self.config.social_pooling.enabled,
+            'social_pooling_config': {
+                'radius': self.config.social_pooling.radius,
+                'aggregation': self.config.social_pooling.pool_type,
+                'hidden_dim': self.config.xlstm.embedding_dim  # Use xlstm embedding_dim
+            } if self.config.social_pooling.enabled else None
         }

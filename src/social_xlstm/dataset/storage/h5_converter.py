@@ -16,7 +16,18 @@ logger = logging.getLogger(__name__)
 
 
 class TrafficFeatureExtractor:
-    """Extracts features from traffic data structures."""
+    """Generic traffic feature extractor that uses DatasetRegistry for dataset-specific processing."""
+    
+    def __init__(self, dataset_name: str = "taiwan_vd"):
+        """
+        Initialize with dataset-specific extractor.
+        
+        Args:
+            dataset_name: Name of the dataset (defaults to "taiwan_vd" for backward compatibility)
+        """
+        from ..registry import create_feature_extractor
+        self.dataset_name = dataset_name
+        self._feature_extractor = create_feature_extractor(dataset_name)
     
     @staticmethod
     def validate_dataset_quality(dataset_path: str) -> Tuple[bool, Dict[str, Any]]:
@@ -213,95 +224,10 @@ class TrafficFeatureExtractor:
             'volume': float(total_volume)
         }
     
-    @staticmethod
-    def aggregate_vd_features(vd_detail, feature_names: List[str]) -> List[float]:
-        """Aggregate features from all lanes of a VD using vectorized operations."""
-        from ..utils.json_utils import VDLiveDetail
-        
-        # Get all lanes from all LinkFlows
-        all_lanes = []
-        for link_flow in vd_detail.LinkFlows:
-            all_lanes.extend(link_flow.Lanes)
-        
-        if not all_lanes:
-            return [np.nan] * len(feature_names)
-        
-        # Vectorized feature extraction
-        return TrafficFeatureExtractor._vectorized_lane_aggregation(all_lanes, feature_names)
+    def aggregate_vd_features(self, vd_detail, feature_names: List[str]) -> List[float]:
+        """Aggregate features from VD data using dataset-specific extractor."""
+        return self._feature_extractor.validate_and_extract(vd_detail, feature_names)
     
-    @staticmethod
-    def _vectorized_lane_aggregation(all_lanes, feature_names: List[str]) -> List[float]:
-        """Vectorized aggregation of lane features for better performance."""
-        if not all_lanes:
-            return [np.nan] * len(feature_names)
-        
-        # Pre-allocate arrays for all lane data
-        num_lanes = len(all_lanes)
-        speeds = np.full(num_lanes, np.nan, dtype=np.float32)
-        occupancies = np.full(num_lanes, np.nan, dtype=np.float32)
-        volumes = np.full(num_lanes, 0.0, dtype=np.float32)
-        
-        # Vectorized data extraction with error filtering
-        for i, lane in enumerate(all_lanes):
-            # Process speed with error code filtering
-            speed_val = float(lane.Speed)
-            if TrafficFeatureExtractor._is_valid_speed(speed_val):
-                speeds[i] = speed_val
-            
-            # Process occupancy with error code filtering
-            occupancy_val = float(lane.Occupancy)
-            if TrafficFeatureExtractor._is_valid_occupancy(occupancy_val):
-                occupancies[i] = occupancy_val
-            
-            # Process volume (sum all vehicle volumes in lane)
-            if lane.Vehicles:
-                lane_volume = sum(
-                    v.Volume for v in lane.Vehicles 
-                    if TrafficFeatureExtractor._is_valid_volume(v.Volume)
-                )
-                volumes[i] = float(lane_volume)
-        
-        # Vectorized feature computation
-        aggregated = []
-        for feature_name in feature_names:
-            if feature_name == 'avg_speed':
-                valid_speeds = speeds[~np.isnan(speeds)]
-                aggregated.append(np.mean(valid_speeds) if len(valid_speeds) > 0 else np.nan)
-            
-            elif feature_name == 'total_volume':
-                # Sum all volumes (NaN values are already filtered out)
-                aggregated.append(np.sum(volumes))
-            
-            elif feature_name == 'avg_occupancy':
-                valid_occupancies = occupancies[~np.isnan(occupancies)]
-                aggregated.append(np.mean(valid_occupancies) if len(valid_occupancies) > 0 else np.nan)
-            
-            elif feature_name == 'speed_std':
-                valid_speeds = speeds[~np.isnan(speeds)]
-                aggregated.append(np.std(valid_speeds) if len(valid_speeds) > 1 else np.nan)
-            
-            elif feature_name == 'lane_count':
-                aggregated.append(float(num_lanes))
-            
-            else:
-                aggregated.append(np.nan)
-        
-        return aggregated
-    
-    @staticmethod
-    def _is_valid_speed(value) -> bool:
-        """Fast speed validation (0-200 km/h range)."""
-        return not (value in [-99, -1, 255] or value < 0 or value > 200 or np.isnan(value))
-    
-    @staticmethod
-    def _is_valid_occupancy(value) -> bool:
-        """Fast occupancy validation (0-100% range)."""
-        return not (value in [-99, -1, 255] or value < 0 or value > 100 or np.isnan(value))
-    
-    @staticmethod
-    def _is_valid_volume(value) -> bool:
-        """Fast volume validation (non-negative)."""
-        return not (value in [-99, -1, 255] or value < 0 or np.isnan(value))
 
 
 class TrafficHDF5Converter:
@@ -309,7 +235,9 @@ class TrafficHDF5Converter:
     
     def __init__(self, config: TrafficHDF5Config):
         self.config = config
-        self.extractor = TrafficFeatureExtractor()
+        # Get dataset name from HDF5 metadata if available, otherwise default to taiwan_vd
+        dataset_name = getattr(config, 'dataset_name', 'taiwan_vd')
+        self.extractor = TrafficFeatureExtractor(dataset_name)
         
         # Cache for VD information
         self._vd_info_cache: Optional[Dict[str, Any]] = None
@@ -703,6 +631,11 @@ class TrafficHDF5Converter:
         h5file.attrs['num_timesteps'] = num_timesteps
         h5file.attrs['num_locations'] = len(target_vdids)
         h5file.attrs['num_features'] = len(self.config.feature_names)
+        
+        # Add standardized dataset metadata for multi-dataset support
+        h5file.attrs['dataset_name'] = 'taiwan_vd'  # Default for existing taiwan data
+        h5file.attrs['feature_set'] = 'traffic_core_v1'
+        h5file.attrs['feature_schema_version'] = '1.0'
         
         return timestamps_dataset, features_dataset
     

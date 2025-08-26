@@ -7,22 +7,34 @@ from typing import List, Optional, Tuple
 
 @dataclass
 class TrafficDatasetConfig:
-    """Configuration for traffic dataset."""
+    """Configuration for traffic dataset.
+    
+    Batch format semantics:
+    - 'centralized': Standard format [B, T, N, F] tensor batches
+    - 'distributed': Per-VD format {"VD_001": [B, T, F], ...} dictionary batches
+    
+    Note: batch_size represents per-process batch size in both modes.
+    Effective total batch size = batch_size * world_size in distributed training.
+    """
     hdf5_path: Path
-    sequence_length: int = 60           # Input sequence length (minutes)
-    prediction_length: int = 15         # Prediction sequence length (minutes)
-    selected_vdids: Optional[List[str]] = None
-    selected_features: Optional[List[str]] = None
-    train_ratio: float = 0.7
-    val_ratio: float = 0.15
-    test_ratio: float = 0.15
-    normalize: bool = True
-    normalization_method: str = 'standard'  # 'standard', 'minmax'
-    fill_missing: str = 'interpolate'   # 'zero', 'forward', 'interpolate'
-    stride: int = 1                     # Sliding window stride
-    batch_size: int = 32
-    num_workers: int = 4
-    pin_memory: bool = True
+    sequence_length: int                         # Input sequence length (minutes)
+    prediction_length: int                       # Prediction sequence length (minutes) 
+    train_ratio: float                          # Training data ratio
+    val_ratio: float                            # Validation data ratio
+    test_ratio: float                           # Test data ratio
+    normalize: bool                             # Whether to normalize data
+    normalization_method: str                  # Normalization method
+    fill_missing: str                          # Missing value handling
+    stride: int                                # Sliding window stride
+    batch_size: int                            # DataLoader batch size
+    num_workers: int                           # DataLoader workers
+    pin_memory: bool                           # DataLoader pin memory
+    selected_vdids: Optional[List[str]] = None   # VD IDs to use (None = use all)
+    selected_features: Optional[List[str]] = None  # Features to use (None = use all)
+    batch_format: str = 'centralized'          # Batch format: 'centralized' | 'distributed'
+    
+    # Allowed batch formats
+    ALLOWED_BATCH_FORMATS = ('centralized', 'distributed')
     
     def __post_init__(self):
         self.hdf5_path = Path(self.hdf5_path)
@@ -33,6 +45,16 @@ class TrafficDatasetConfig:
         total_ratio = self.train_ratio + self.val_ratio + self.test_ratio
         if abs(total_ratio - 1.0) > 1e-6:
             raise ValueError(f"Train/val/test ratios must sum to 1.0, got {total_ratio}")
+        
+        # Validate and normalize batch_format
+        self.batch_format = str(self.batch_format).strip().lower()
+        if self.batch_format not in self.ALLOWED_BATCH_FORMATS:
+            raise ValueError(f"batch_format must be one of {self.ALLOWED_BATCH_FORMATS}, got {self.batch_format}")
+    
+    @property
+    def is_distributed(self) -> bool:
+        """True if batch format is distributed."""
+        return self.batch_format == 'distributed'
 
 
 @dataclass

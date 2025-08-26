@@ -29,7 +29,7 @@ from collections import OrderedDict
 import logging
 
 from .xlstm import TrafficXLSTM, TrafficXLSTMConfig
-from ..interfaces.tensor_spec import TensorSpec, ensure_deterministic_vd_order
+from ..utils.tensor_checks import ensure_deterministic_vd_order
 
 logger = logging.getLogger(__name__)
 

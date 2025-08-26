@@ -41,8 +41,9 @@ License: MIT
 
 import torch
 import torch.nn as nn
-from typing import Dict, Optional, Tuple, List
+from typing import Dict, Optional, Tuple, List, Union
 from dataclasses import dataclass, field
+from pathlib import Path
 import logging
 
 # Import xlstm library components
@@ -51,6 +52,7 @@ from xlstm.blocks.mlstm.block import mLSTMBlockConfig
 from xlstm.blocks.slstm.block import sLSTMBlockConfig
 from xlstm.blocks.mlstm.layer import mLSTMLayerConfig
 from xlstm.blocks.slstm.layer import sLSTMLayerConfig
+from social_xlstm.utils.yaml import load_yaml_file_to_dict
 
 logger = logging.getLogger(__name__)
 
@@ -60,37 +62,32 @@ class TrafficXLSTMConfig:
     """
     Configuration class for Traffic xLSTM model.
     
-    Based on ADR-0501 decisions for xLSTM integration strategy.
+    All parameters must be provided via YAML configuration.
+    No default values to ensure explicit configuration and single source of truth.
+    
+    IMPORTANT: xLSTM library uses embedding_dim as the output dimension for both 
+    sLSTM and mLSTM blocks. There is no separate "hidden_size" concept.
     """
-    # Model Architecture
-    input_size: int = 3  # [volume, speed, occupancy]
-    embedding_dim: int = 128
-    hidden_size: int = 128
-    num_blocks: int = 6
-    output_size: int = 3  # Same as input features
-    sequence_length: int = 12  # Input sequence length
-    prediction_length: int = 1  # Number of future timesteps to predict
+    # Model Architecture - All required, no defaults
+    input_size: int                # [volume, speed, occupancy] 
+    embedding_dim: int             # xLSTM representation dimension (used for all internal processing and output)
+    num_blocks: int                # Total number of xLSTM blocks
+    output_size: int               # Output features (same as input)
+    sequence_length: int           # Input sequence length
+    prediction_length: int         # Number of future timesteps to predict
     
-    # xLSTM Block Configuration (ADR-0501)
-    slstm_at: List[int] = field(default_factory=lambda: [1, 3])  # sLSTM at positions [1, 3]
-    slstm_backend: str = "vanilla"  # Use vanilla backend for stability
-    mlstm_backend: str = "vanilla"  # Use vanilla backend for stability
+    # xLSTM Block Configuration
+    slstm_at: List[int]            # sLSTM layer positions (must be < num_blocks)
+    slstm_backend: str             # sLSTM backend implementation
+    mlstm_backend: str             # mLSTM backend implementation
+    context_length: int            # Context length for attention
     
-    # Context and Memory
-    context_length: int = 256
+    # Regularization - Required
+    dropout: float                 # Dropout rate for regularization
     
-    # Regularization
-    dropout: float = 0.1
-    
-    # Input/Output Configuration
-    batch_first: bool = True
-    
-    # Multi-VD Configuration
-    multi_vd_mode: bool = False  # Single VD by default
-    num_vds: Optional[int] = None  # Required when multi_vd_mode=True
-    
-    # Training Configuration
-    device: str = "cuda" if torch.cuda.is_available() else "cpu"
+    # Multi-VD Configuration - Optional parameters
+    multi_vd_mode: Optional[bool] = None    # Single VD by default
+    num_vds: Optional[int] = None           # Required when multi_vd_mode=True
     
     def __post_init__(self):
         """Validate configuration parameters."""
@@ -103,7 +100,34 @@ class TrafficXLSTMConfig:
         
         logger.info(f"TrafficXLSTM Config: {self.num_blocks} blocks, "
                    f"sLSTM at {self.slstm_at}, "
-                   f"embedding_dim={self.embedding_dim}")
+                   f"embedding_dim={self.embedding_dim} (xLSTM output dimension)")
+    
+    @classmethod
+    def load_from_yaml_file(cls, yaml_path: Union[str, Path]) -> 'TrafficXLSTMConfig':
+        """
+        Load configuration from YAML file
+        
+        Args:
+            yaml_path: Path to YAML configuration file
+            
+        Returns:
+            TrafficXLSTMConfig: Instantiated configuration object
+            
+        Raises:
+            ValueError: If YAML loading fails or config is invalid
+        """        
+        config_dict = load_yaml_file_to_dict(yaml_path)
+        if config_dict is None:
+            raise ValueError(f"Failed to load YAML configuration from {yaml_path}")
+        
+        # Extract xlstm configuration from nested structure
+        xlstm_config = config_dict.get('model', {}).get('xlstm', {})
+        
+        if not xlstm_config:
+            raise ValueError("YAML file must contain 'model.xlstm' section")
+        
+        # Create instance with YAML parameters
+        return cls(**xlstm_config)
 
 
 class TrafficXLSTM(nn.Module):
