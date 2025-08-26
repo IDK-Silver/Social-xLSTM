@@ -9,317 +9,254 @@
 
 Social-xLSTM 結合座標驅動的社會聚合機制與擴展長短期記憶網路，實現在缺乏完整道路拓撲資訊的情況下進行高精度交通預測。
 
-## ✨ 核心亮點
-
-- **🎯 無拓撲依賴**: 自動學習空間互動關係，無需預先定義道路網絡
-- **⚡ 動態配置系統**: CLI 參數減少 **70-75%**（從 25+ 個減少到 4 個配置文件）
-- **🔄 一鍵切換**: 支援多種社會聚合方法（attention、weighted_mean、weighted_sum）
-- **📊 完整報告**: 自動生成訓練報告、視覺化圖表、比較分析
-- **🏗️ 現代架構**: 分散式 xLSTM、混合記憶機制、模組化設計
-
 ## 🚀 快速開始
 
 ### 環境設置
 
 ```bash
-# 建立環境
+# 創建 conda 環境
 conda env create -f environment.yaml
 conda activate social_xlstm
+
+# 安裝項目
 pip install -e .
 ```
 
-### 一鍵訓練（推薦）
+### PEMS-BAY 數據集訓練
 
-使用動態配置系統進行 Social-xLSTM 訓練：
-
-```bash
-# Attention-based 社會聚合
-python workflow/snakemake_warp.py \
-  --configfile cfgs/models/xlstm.yaml \
-  --configfile cfgs/social_pooling/attention.yaml \
-  --configfile cfgs/vd_modes/multi.yaml \
-  --configfile cfgs/training/default.yaml \
-  train_social_xlstm_multi_vd --cores 2
-
-# 切換聚合方法只需更改一個配置文件
-python workflow/snakemake_warp.py \
-  --configfile cfgs/models/xlstm.yaml \
-  --configfile cfgs/social_pooling/weighted_mean.yaml \
-  --configfile cfgs/vd_modes/multi.yaml \
-  --configfile cfgs/training/default.yaml \
-  train_social_xlstm_multi_vd --cores 2
-
-# 無社會聚合（基準比較）
-python workflow/snakemake_warp.py \
-  --configfile cfgs/models/xlstm.yaml \
-  --configfile cfgs/social_pooling/off.yaml \
-  --configfile cfgs/vd_modes/multi.yaml \
-  --configfile cfgs/training/default.yaml \
-  train_social_xlstm_multi_vd --cores 2
-```
-
-### 數據處理
+使用 PEMS-BAY 數據集進行 Social-xLSTM 訓練：
 
 ```bash
-# 完整數據管線
-snakemake --cores 4
+# 使用預設輸出位置
+python scripts/train/with_social_pooling/train_multi_vd.py \
+  --config cfgs/profiles/pems_bay_dev.yaml
 
-# 或手動執行關鍵步驟
-python scripts/dataset/pre-process/create_h5_file.py \
-  --source_dir blob/dataset/pre-processed/unzip_to_json \
-  --output_path blob/dataset/pre-processed/h5/traffic_features_default.h5
+# 指定自定義輸出位置
+python scripts/train/with_social_pooling/train_multi_vd.py \
+  --config cfgs/profiles/pems_bay_dev.yaml \
+  --output_dir blob/experiments/soical_pooling/xlstm/
 ```
 
-## 📋 配置系統
+**輸出文件結構**：
+- Lightning 日誌: `{output_dir}/lightning_logs/version_X/`
+- 指標文件: `{output_dir}/metrics/metrics.csv`
+- 模型檢查點: `{output_dir}/lightning_logs/version_X/checkpoints/`
 
-### snakemake_warp.py - 統一工作流程工具
-
-`snakemake_warp.py` 是項目的核心工作流程工具，負責配置合併和自動化執行：
-
-**核心功能**：
-- **配置合併**: 自動合併多個 YAML 配置文件
-- **環境變數傳遞**: 設置 `SNAKEMAKE_MERGED_CONFIG` 給下游使用
-- **簡化參數**: 從 25+ CLI 參數減少到 4 個配置文件
-- **統一執行**: 取代直接使用 `snakemake` 指令
-
-**基本語法**：
-```bash
-python workflow/snakemake_warp.py \
-  --configfile config1.yaml \
-  --configfile config2.yaml \
-  --configfile config3.yaml \
-  target_rule --cores N
-```
-
-**為什麼使用 snakemake_warp.py？**
-- ✅ 避免 Snakemake 多配置文件時序問題
-- ✅ 確保配置正確合併和傳遞
-- ✅ 統一的實驗管理方式
-- ✅ 支援複雜的消融研究配置
-
-### 四層 YAML 配置架構
-
-```
-cfgs/
-├── models/           # 純模型架構配置
-│   ├── lstm.yaml    # 傳統 LSTM
-│   └── xlstm.yaml   # 擴展 xLSTM
-├── social_pooling/   # 社會聚合配置
-│   ├── off.yaml     # 無聚合（基準）
-│   ├── weighted_mean.yaml
-│   ├── weighted_sum.yaml
-│   └── attention.yaml
-├── vd_modes/        # VD 模式配置
-│   ├── single.yaml  # 單點預測
-│   └── multi.yaml   # 多點預測
-└── training/        # 訓練超參數
-    └── default.yaml
-```
-
-### 配置範例
-
-**模型配置** (`xlstm.yaml`):
-```yaml
-model:
-  name: "TrafficXLSTM"
-  xlstm:
-    input_size: 3
-    embedding_dim: 64
-    num_blocks: 4
-    slstm_at: [1, 3]
-    dropout: 0.5
-```
-
-**社會聚合配置** (`attention.yaml`):
-```yaml
-social:
-  enabled: true
-  pooling_radius: 2500.0
-  max_neighbors: 10
-  aggregation_method: "attention"
-  distance_metric: "euclidean"
-```
-
-## 🎛️ 實驗工作流
-
-### 消融研究支援
+### Taiwan VD 數據集訓練
 
 ```bash
-# 比較不同聚合方法
-for method in off weighted_mean weighted_sum attention; do
-  python workflow/snakemake_warp.py \
-    --configfile cfgs/models/xlstm.yaml \
-    --configfile cfgs/social_pooling/${method}.yaml \
-    --configfile cfgs/vd_modes/multi.yaml \
-    --configfile cfgs/training/default.yaml \
-    train_social_xlstm_multi_vd --cores 2
-done
+# 使用預設輸出位置
+python scripts/train/with_social_pooling/train_multi_vd.py \
+  --config cfgs/profiles/taiwan_vd_dev.yaml
+
+# 指定自定義輸出位置
+python scripts/train/with_social_pooling/train_multi_vd.py \
+  --config cfgs/profiles/taiwan_vd_dev.yaml \
+  --output_dir /path/to/my/experiments
 ```
 
-### 報告生成
+## 📊 數據集支持
+
+### PEMS-BAY
+- **特徵數量**: 6個 (avg_speed, lanes, length, latitude, longitude, direction)
+- **數據位置**: `blob/dataset/processed/pems_bay.h5`
+- **批次大小**: 16 (針對較大特徵集優化)
+
+### Taiwan VD
+- **特徵數量**: 3個 (avg_speed, total_volume, avg_occupancy) 
+- **數據位置**: `blob/dataset/processed/taiwan_vd.h5`
+- **批次大小**: 8 (預設配置)
+
+## 🔪 HDF5 時間分割工具
+
+為了快速驗證訓練優化效果，項目提供通用的 HDF5 時間分割腳本，可從完整數據集創建小型測試數據集。
+
+### 基本使用
 
 ```bash
-# 生成單一實驗報告
-python scripts/utils/generate_training_report.py \
-  --experiment_dir blob/experiments/dev/social_xlstm/multi_vd
-
-# 生成模型比較報告
-python workflow/snakemake_warp.py generate_model_comparison_report --cores 1
-
-# 生成社會聚合方法比較
-python workflow/snakemake_warp.py generate_social_pooling_comparison_report --cores 1
+# 創建 150 個時間步的測試數據集 (確保驗證集有足夠樣本)
+python scripts/utils/h5_time_slice.py \
+  --input blob/dataset/processed/pems_bay.h5 \
+  --output blob/dataset/processed/pems_bay_fast_test.h5 \
+  --start-index 0 --length 150 \
+  --progress --atomic
 ```
 
-## 🏗️ 項目架構
+### 進階選項
+
+```bash
+# 使用時間範圍切分（需要時間戳）
+python scripts/utils/h5_time_slice.py \
+  --input blob/dataset/processed/pems_bay.h5 \
+  --output blob/dataset/processed/pems_bay_custom.h5 \
+  --start-time "2017-01-01 00:00:00" \
+  --end-time "2017-01-02 00:00:00" \
+  --progress --atomic
+
+# 使用自定義時間戳數據集路徑
+python scripts/utils/h5_time_slice.py \
+  --input your_data.h5 \
+  --output your_test_data.h5 \
+  --timestamp-dset "metadata/custom_timestamps" \
+  --start-index 0 --length 50
+```
+
+### 快速測試工作流
+
+項目提供兩種快速測試方案，適用於不同的優化需求：
+
+#### 🚀 超快速測試（10-VD，20秒完成）
+
+適用於算法邏輯驗證和快速調試：
+
+```bash
+# 1. 創建測試數據集（150 個時間步確保所有數據分割都有樣本）
+python scripts/utils/h5_time_slice.py \
+  --input blob/dataset/processed/pems_bay.h5 \
+  --output blob/dataset/processed/pems_bay_fast_test.h5 \
+  --start-index 0 --length 150 --progress --atomic
+
+# 2. 使用 10-VD 超快速測試 Profile（約 20 秒完成）
+python scripts/train/with_social_pooling/train_multi_vd.py \
+  --config cfgs/profiles/pems_bay_10vd_fast.yaml \
+  --output_dir blob/experiments/ultra_fast_10vd
+
+# 3. 生成指標圖表
+python scripts/utils/generate_metrics_plots.py \
+  --csv_path blob/experiments/ultra_fast_10vd/metrics/metrics.csv
+```
+
+**特色**：
+- ⚡ **97% 記憶體減少** - 325 個 VD → 10 個代表性高質量 VD
+- 🚀 **6-8倍速度提升** - 從 2-3 分鐘縮短到 20 秒
+- 🎯 **智能 VD 選擇** - 基於數據質量和地理分布的代表性採樣
+
+#### 🔧 標準快速測試（全 VD，2-3分鐘完成）
+
+適用於完整功能驗證：
+
+```bash
+# 使用標準快速測試 Profile 進行訓練（約 2-3 分鐘完成）
+python scripts/train/with_social_pooling/train_multi_vd.py \
+  --config cfgs/profiles/pems_bay_fast_test.yaml \
+  --output_dir blob/experiments/fast_test
+
+# 比較結果並迭代優化
+python scripts/utils/generate_metrics_plots.py \
+  --experiment_dir blob/experiments/fast_test/metrics
+```
+
+### 支持功能
+
+- ✅ **索引範圍切分** - 指定起始索引和長度
+- ✅ **時間範圍切分** - 使用時間戳進行精確切分  
+- ✅ **元數據保持** - 完整保留原始文件的元數據和屬性
+- ✅ **自動塊調整** - 智能調整 HDF5 塊大小以適應新維度
+- ✅ **進度顯示** - 實時顯示切分進度
+- ✅ **原子操作** - 使用臨時文件確保操作安全性
+- ✅ **格式檢測** - 自動檢測時間戳格式（字符串/數字）
+
+### ⚠️ 重要注意事項
+
+**時間步數選擇**：確保切分後的數據集有足夠的樣本用於訓練、驗證和測試分割。
+
+- **最小需求**：`(sequence_length + prediction_length) × 3` ≈ 45 個時間步
+- **推薦大小**：150+ 個時間步，確保每個分割都有足夠的樣本
+- **PEMS-BAY 配置**：sequence_length=12, prediction_length=3，所以需要 15 個時間步創建 1 個樣本
+
+**GPU 記憶體優化**：
+- 保持 `batch_size: 16` 以避免 CUDA OOM（針對 325 個 VD 的 PEMS-BAY）
+- 較小的批次大小可避免創建過多 xLSTM 實例導致的記憶體問題
+
+## 📈 指標記錄與可視化
+
+項目內建輕量級指標記錄系統，自動記錄 MAE、MSE、RMSE、R² 四個核心指標。
+
+**特色功能**：
+- ✅ **數據持久化** - 支持後續重新繪圖，無需重新訓練
+- ✅ **分散式安全** - 支持 DDP 分散式訓練
+- ✅ **Lightning 整合** - 無縫整合 PyTorch Lightning 框架
+- ✅ **輕量設計** - 遵循 YAGNI 原則，避免過度設計
+
+### 生成訓練圖表
+
+```bash
+# 從實驗目錄生成圖表
+python scripts/utils/generate_metrics_plots.py \
+  --experiment_dir ./lightning_logs/version_0
+
+# 直接從 CSV 生成圖表
+python scripts/utils/generate_metrics_plots.py \
+  --csv_path ./path/to/metrics.csv --output_dir ./plots
+```
+
+### 輸出文件
+- `metrics.csv` - 詳細的 epoch 級指標數據
+- `metrics_summary.json` - 訓練摘要和最終指標
+- `plots/` - 自動生成的可視化圖表
+
+## 🔧 配置系統
+
+### Profile-based 配置
+
+使用 `cfgs/profiles/` 中的預設配置快速開始：
+
+#### 🏭 生產環境配置
+- `pems_bay_dev.yaml` - PEMS-BAY 完整開發配置 (325 VDs)
+- `taiwan_vd_dev.yaml` - Taiwan VD 完整開發配置
+
+#### ⚡ 快速測試配置  
+- `pems_bay_fast_test.yaml` - 快速測試配置 (325 VDs, 150 時間步, ~2-3 分鐘)
+- `pems_bay_10vd_fast.yaml` - **超快速測試配置** (10 VDs, 150 時間步, ~20 秒) ⭐
+
+#### 配置選擇指南
+| 用途 | Profile | VDs | 時間 | 適用場景 |
+|------|---------|-----|------|----------|
+| 生產訓練 | `pems_bay_dev.yaml` | 325 | 15-30 分鐘 | 完整模型訓練、論文結果 |
+| 功能驗證 | `pems_bay_fast_test.yaml` | 325 | 2-3 分鐘 | 完整流程測試、參數調優 |
+| 算法調試 | `pems_bay_10vd_fast.yaml` | 10 | 20 秒 | 快速驗證、代碼調試 ⚡ |
+
+### 自定義配置
+
+配置系統支持模組化 YAML 合併，可參考 `cfgs/` 目錄中的範例配置。
+
+## 🗂️ 項目結構
 
 ```
 Social-xLSTM/
-├── cfgs/                     # 🔧 四層配置系統
-│   ├── models/              # 模型架構配置
-│   ├── social_pooling/      # 社會聚合配置
-│   ├── vd_modes/           # VD 模式配置
-│   └── training/           # 訓練參數配置
-├── scripts/
-│   ├── train/
-│   │   ├── with_social_pooling/    # 🚀 Social-xLSTM 訓練
-│   │   └── without_social_pooling/ # 基準模型訓練
-│   └── utils/              # 報告生成工具
-├── src/social_xlstm/        # 📦 核心套件
-│   ├── models/             # 模型實現
-│   │   ├── xlstm.py       # xLSTM 核心
-│   │   ├── social_pooling.py  # 社會聚合
-│   │   └── distributed_social_xlstm.py
-│   ├── config/             # 動態配置管理
-│   ├── training/           # 訓練框架
-│   └── visualization/      # 報告視覺化
-├── workflow/
-│   ├── snakemake_warp.py   # 🔄 配置合併工具
-│   └── rules/              # Snakemake 規則
-└── docs/                   # 📚 完整文檔系統
+├── src/social_xlstm/           # 核心源代碼
+│   ├── models/                 # 模型實現（xLSTM, Social Pooling）
+│   ├── dataset/                # 數據處理和載入
+│   ├── metrics/                # 輕量級指標記錄系統
+│   ├── training/               # 訓練框架
+│   └── deprecated/             # 已廢棄的複雜系統
+├── scripts/                    # 訓練和工具腳本
+│   ├── train/with_social_pooling/
+│   └── utils/                  # 可視化和分析工具
+├── cfgs/                       # 配置文件
+│   └── profiles/               # 數據集特定配置
+├── blob/dataset/               # 數據存儲（HDF5 格式）
+└── docs/                       # 文檔
 ```
 
-## 📊 系統特性
+## 📚 文檔
 
-### 性能指標
-- **參數效率**: 從 25+ CLI 參數減少到 4 個配置文件（**70-75% 減少**）
-- **模型規模**: TrafficXLSTM (654K 參數)，Multi-VD (1.4M 參數)
-- **測試覆蓋**: 189/189 測試通過（**100% 通過率**）
-- **數據規模**: 66,371 筆台灣交通流量資料
+- [快速開始指南](docs/guides/quickstart/) - 15分鐘建立第一個模型
+- [訓練指南](docs/guides/training-with-sp.md) - 詳細訓練流程  
+- [配置指南](docs/reference/configuration-guide.md) - 配置系統說明
+- [API 參考](docs/reference/api-reference.md) - 完整 API 文檔
 
-### 支援的模型
-| 模型 | 參數量 | 特性 |
-|------|--------|------|
-| TrafficLSTM | 226K | 單VD基準模型 |
-| TrafficXLSTM | 655K | sLSTM + mLSTM 混合 |
-| Multi-VD LSTM | 1.4M | 多點空間關聯 |
-| Social-xLSTM | 1.4M+ | 無拓撲社會聚合 |
+## 🚧 系統要求
 
-### 社會聚合方法
-- **Off**: 無聚合（基準比較）
-- **Weighted Mean**: 距離加權平均（行歸一化）
-- **Weighted Sum**: 距離加權求和（無歸一化）
-- **Attention**: 注意力機制（Softmax 歸一化）
+- Python 3.11+
+- PyTorch 2.0+
+- CUDA 12.4 (GPU 訓練)
+- 16GB+ RAM (推薦)
 
-## 🧪 使用範例
+## 📄 許可證
 
-### 基本訓練
-
-```bash
-# 單 VD 訓練（基準）
-python scripts/train/without_social_pooling/train_single_vd.py \
-  --data_path blob/dataset/pre-processed/h5/traffic_features_dev.h5 \
-  --epochs 50 --batch_size 16
-
-# Multi-VD 訓練（空間關聯）
-python scripts/train/without_social_pooling/train_multi_vd.py \
-  --data_path blob/dataset/pre-processed/h5/traffic_features_dev.h5 \
-  --selected_vdids VD-28-0740-000-001 VD-11-0020-008-001 VD-13-0660-000-002
-
-# Social-xLSTM 訓練（完整功能）
-python scripts/train/with_social_pooling/train_distributed_social_xlstm.py \
-  --config-file cfgs/merged_config.yaml \
-  --data_path blob/dataset/pre-processed/h5/traffic_features_dev.h5
-```
-
-### 批量實驗
-
-```bash
-# 使用 Snakemake 批量執行
-python workflow/snakemake_warp.py \
-  train_single_vd_without_social_pooling \
-  train_multi_vd_without_social_pooling \
-  train_social_xlstm_multi_vd --cores 3
-
-# 生成完整報告
-python workflow/snakemake_warp.py generate_experiment_summary_report --cores 1
-```
-
-## 📚 文檔資源
-
-- **[動態配置系統指南](docs/guides/dynamic-configuration-system.md)** - 完整配置使用說明
-- **[Social Pooling 訓練指南](docs/guides/training-with-sp.md)** - 社會聚合訓練流程
-- **[快速入門系列](docs/guides/quickstart/)** - 新手入門指南
-- **[API 參考](docs/reference/api-reference.md)** - 完整 API 文檔
-- **[數學規格](docs/concepts/mathematical-specifications.md)** - 算法數學定義
-
-## 💻 系統需求
-
-- **Python**: 3.11+
-- **GPU**: CUDA 12.4+ （推薦）
-- **RAM**: 16GB+
-- **Storage**: 50GB+
-
-### 主要依賴
-```yaml
-pytorch: 2.0+
-pytorch-lightning: 2.0+
-xlstm: latest
-h5py: 3.8+
-snakemake: 7.0+
-matplotlib: 3.7+
-```
-
-## 🔬 研究背景
-
-**項目資訊**：
-- **編號**: NUTN-CSIE-PRJ-115-006
-- **學校**: 國立臺南大學資訊工程學系
-- **指導教授**: 陳宗禧 教授
-- **研究團隊**: 黃毓峰 (S11159005)、唐翊靜 (S11159028)
-
-**核心創新**：
-1. **座標驅動社會聚合** - 使用連續空間距離取代傳統網格方法
-2. **混合記憶架構** - 結合 sLSTM 和 mLSTM 的高容量記憶
-3. **無拓撲依賴** - 自動學習節點間空間互動關係
-4. **動態配置管理** - 大幅簡化實驗配置和消融研究
-
-## 🤝 開發貢獻
-
-```bash
-# Fork 專案
-git fork https://github.com/your-org/Social-xLSTM
-
-# 創建功能分支
-git checkout -b feature/amazing-feature
-
-# 執行測試
-pytest -n auto
-
-# 提交更改
-git commit -m "Add amazing feature"
-git push origin feature/amazing-feature
-```
-
-## 📄 授權條款
-
-本專案採用 MIT 授權 - 詳見 [LICENSE](LICENSE) 檔案
-
-## 📞 聯絡支援
-
-- **Issues**: [GitHub Issues](https://github.com/your-org/Social-xLSTM/issues)
-- **文檔**: [完整文檔系統](docs/)
-- **討論**: [GitHub Discussions](https://github.com/your-org/Social-xLSTM/discussions)
+MIT License - 詳見 [LICENSE](LICENSE) 文件
 
 ---
 
-⭐ **如果這個專案對您有幫助，請給我們一個 Star！**
+**基於 YAGNI 原則的現代化架構** | **支持 PEMS-BAY 和 Taiwan VD 數據集** | **輕量級指標系統**
