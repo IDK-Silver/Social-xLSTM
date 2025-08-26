@@ -22,8 +22,10 @@ import time
 from tqdm import tqdm
 from abc import ABC, abstractmethod
 
-from ..evaluation.evaluator import ModelEvaluator
-from ..visualization.training_visualizer import TrainingVisualizer
+# NOTE: Using deprecated modules for backward compatibility
+# TODO: Migrate to social_xlstm.metrics for new implementations
+from ..deprecated.evaluation.evaluator import ModelEvaluator
+from ..deprecated.visualization.training_visualizer import TrainingVisualizer
 from .recorder import TrainingRecorder
 
 logger = logging.getLogger(__name__)

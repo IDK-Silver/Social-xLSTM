@@ -214,7 +214,9 @@ class VDXLSTMManager(nn.Module):
                 hidden_states[vd_id] = hidden_state
             except Exception as e:
                 logger.error(f"Forward pass failed for VD '{vd_id}': {e}")
-                raise RuntimeError(f"VD '{vd_id}' forward pass failed") from e
+                logger.error(f"Input tensor shape: {input_tensor.shape}, device: {input_tensor.device}")
+                logger.error(f"VD model config: input_size={vd_model.config.input_size}")
+                raise RuntimeError(f"VD '{vd_id}' forward pass failed: {e}") from e
         
         return hidden_states
     

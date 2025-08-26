@@ -250,7 +250,38 @@ class DistributedSocialXLSTMModel(pl.LightningModule):
         return avg_loss
     
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+        # Use optimizer config if available, otherwise use defaults
+        if self.config.optimizer is not None:
+            opt_config = self.config.optimizer
+            lr = opt_config.lr
+            
+            # Create optimizer based on config
+            if opt_config.name.lower() == "adamw":
+                optimizer = torch.optim.AdamW(
+                    self.parameters(), 
+                    lr=lr,
+                    weight_decay=opt_config.weight_decay,
+                    betas=opt_config.betas,
+                    eps=opt_config.eps
+                )
+            elif opt_config.name.lower() == "sgd":
+                optimizer = torch.optim.SGD(
+                    self.parameters(),
+                    lr=lr,
+                    weight_decay=opt_config.weight_decay,
+                    momentum=opt_config.momentum
+                )
+            else:  # Default to Adam
+                optimizer = torch.optim.Adam(
+                    self.parameters(),
+                    lr=lr,
+                    weight_decay=opt_config.weight_decay,
+                    betas=opt_config.betas,
+                    eps=opt_config.eps
+                )
+        else:
+            # Fallback to original behavior
+            optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
         
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
             optimizer, mode='min', factor=0.5, patience=10

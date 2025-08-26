@@ -8,12 +8,25 @@ Author: Social-xLSTM Team
 """
 
 from dataclasses import dataclass
-from typing import Literal, Tuple
+from typing import Literal, Tuple, Optional, Dict, Any
 from .xlstm import TrafficXLSTMConfig
 
 # Valid pool types based on actual XLSTMSocialPoolingLayer implementation
 # Verified from src/social_xlstm/pooling/xlstm_pooling.py line 185
 ALLOWED_POOL_TYPES: Tuple[str, ...] = ("mean", "max", "weighted_mean")
+
+
+@dataclass
+class OptimizerConfig:
+    """
+    Configuration for optimizer.
+    """
+    name: str = "Adam"              # Optimizer type: Adam, AdamW, SGD
+    lr: float = 0.001              # Learning rate
+    weight_decay: float = 0.0      # Weight decay
+    betas: Tuple[float, float] = (0.9, 0.999)  # Adam betas
+    eps: float = 1e-08            # Adam epsilon
+    momentum: float = 0.9         # SGD momentum
 
 
 @dataclass
@@ -41,6 +54,7 @@ class DistributedSocialXLSTMConfig:
     - prediction_length: from datasets/*.yaml
     - learning_rate: from training/*.yaml  
     - social_pooling: from social_pooling/*.yaml
+    - optimizer: from training/*.yaml or profile overrides
     """
     xlstm: TrafficXLSTMConfig
     num_features: int
@@ -48,6 +62,7 @@ class DistributedSocialXLSTMConfig:
     learning_rate: float
     enable_gradient_checkpointing: bool
     social_pooling: SocialPoolingConfig
+    optimizer: Optional[OptimizerConfig] = None
     
 
 
