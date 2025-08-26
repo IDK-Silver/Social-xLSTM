@@ -165,7 +165,7 @@ class SimpleDistributedSocialModel(nn.Module):
         
         # VDXLSTMManager - 分散式架構的核心管理器
         # 為每個 VD 動態創建和管理獨立的 xLSTM 實例
-        from social_xlstm.interfaces import VDXLSTMManager
+        from social_xlstm.models.vd_xlstm_manager import VDXLSTMManager
         self.vd_manager = VDXLSTMManager(recurrent_config)
         
         # 備用方案：共享的 xLSTM core（演示用）

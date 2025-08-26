@@ -1,15 +1,15 @@
-# Post-Fusion Social Pooling Training
+# Social-xLSTM Training Guide
 
-本目錄包含 Post-Fusion 策略的 Social Pooling 訓練腳本和工具。
+本指南說明如何使用分散式 Social-xLSTM 架構進行空間社會聚合訓練。
 
-## 📁 文件結構
+## 📁 系統架構
 
 ```
-post_fusion/
-├── common.py              # Post-Fusion 專用工具函數
-├── train_single_vd.py     # 單 VD Post-Fusion 訓練腳本
-├── test_integration.py    # 整合測試腳本
-└── README.md             # 本說明文件
+Social-xLSTM 分散式架構：
+├── DistributedSocialXLSTMModel     # 分散式社會 xLSTM 模型
+├── SpatialPooling                  # 空間聚合模組
+├── DynamicConfigManager            # 動態配置管理
+└── snakemake_warp.py              # 配置整合工具
 ```
 
 ## 🚀 快速開始
@@ -24,169 +24,156 @@ conda activate social_xlstm
 cd /path/to/Social-xLSTM
 ```
 
-### 2. 數據準備
+### 2. 使用動態配置系統
 
-確保有以下文件：
-- HDF5 數據文件（通過數據預處理生成）
-- VD 座標文件（JSON 格式）
-
-示例座標文件格式：
-```json
-{
-  "VD-C1T0440-N": [121.5654, 25.0330],
-  "VD-C1T0441-S": [121.5643, 25.0315],
-  "VD-C1T0442-N": [121.5632, 25.0345]
-}
-```
-
-### 3. 運行整合測試
+新的配置系統支援四層 YAML 配置：
 
 ```bash
-cd scripts/train/with_social_pooling/post_fusion
-
-python test_integration.py \
-  --coordinate_data data/sample_vd_coordinates.json \
-  --select_vd_id VD-C1T0440-N \
-  --scenario urban
-```
-
-### 4. 訓練模型
-
-#### Social-LSTM (Post-Fusion)
-```bash
-python train_single_vd.py \
-  --model_type lstm \
-  --select_vd_id VD-C1T0440-N \
-  --coordinate_data data/sample_vd_coordinates.json \
-  --scenario urban \
-  --epochs 2 \
+# 使用動態配置訓練
+python workflow/snakemake_warp.py \
+  --configfile cfgs/models/xlstm.yaml \
+  --configfile cfgs/social_pooling/attention.yaml \
+  --configfile cfgs/vd_modes/multi.yaml \
+  --configfile cfgs/training/default.yaml \
+  --data_path blob/dataset/pre-processed/h5/traffic_features_default.h5 \
+  --epochs 50 \
   --batch_size 16
 ```
 
-#### Social-xLSTM (Post-Fusion)
-```bash
-python train_single_vd.py \
-  --model_type xlstm \
-  --select_vd_id VD-C1T0440-N \
-  --coordinate_data data/sample_vd_coordinates.json \
-  --scenario highway \
-  --epochs 2 \
-  --batch_size 16
-```
-
-## ⚙️ 配置選項
-
-### 場景預設 (`--scenario`)
-
-- **urban**: 城市環境
-  - `pooling_radius`: 500m
-  - `max_neighbors`: 12
-  - `weighting_function`: gaussian
-  
-- **highway**: 高速公路環境
-  - `pooling_radius`: 2000m
-  - `max_neighbors`: 5
-  - `weighting_function`: exponential
-  
-- **mixed**: 混合環境（預設）
-  - `pooling_radius`: 1200m
-  - `max_neighbors`: 8
-  - `weighting_function`: linear
-
-### 自定義參數
+### 3. 直接使用訓練腳本
 
 ```bash
-python train_single_vd.py \
-  --model_type lstm \
-  --select_vd_id VD-C1T0440-N \
-  --coordinate_data data/coordinates.json \
-  --pooling_radius 1500 \
-  --max_neighbors 10 \
-  --distance_metric euclidean \
-  --weighting_function gaussian \
-  --aggregation_method weighted_mean
+# 分散式 Social-xLSTM 訓練
+python scripts/train/with_social_pooling/train_distributed_social_xlstm.py \
+  --data_path blob/dataset/pre-processed/h5/traffic_features_default.h5 \
+  --enable_spatial_pooling \
+  --aggregation_method attention \
+  --spatial_radius 2.0 \
+  --epochs 50 \
+  --batch_size 16 \
+  --experiment_name social_xlstm_attention
 ```
 
-## 🔧 Post-Fusion 架構
+## 🌐 社會聚合配置
 
-Post-Fusion 策略的數據流：
+### 可用的聚合方法
 
+1. **weighted_mean**: 加權平均聚合（行歸一化）
+2. **weighted_sum**: 加權求和聚合（無歸一化）
+3. **attention**: 注意力聚合機制（Softmax 歸一化）
+
+### 配置範例
+
+**注意力聚合配置** (`cfgs/social_pooling/attention.yaml`):
+```yaml
+social:
+  enabled: true
+  pooling_radius: 1000.0
+  max_neighbors: 8
+  distance_metric: "euclidean"
+  weighting_function: "gaussian"
+  aggregation_method: "attention"
+  coordinate_system: "projected"
 ```
-VD 輸入 → 基礎模型 (LSTM/xLSTM) → 個體特徵
-                                      ↓
-座標數據 → Social Pooling → 空間特徵 → Gated Fusion → 預測輸出
+
+**關閉社會聚合** (`cfgs/social_pooling/off.yaml`):
+```yaml
+social:
+  enabled: false
 ```
 
-### 核心組件
+## 📊 實驗架構
 
-1. **基礎模型**: TrafficLSTM 或 TrafficXLSTM
-2. **Social Pooling**: 座標驅動的空間聚合
-3. **Gated Fusion**: 智能特徵融合層
-4. **SocialTrafficModel**: 統一包裝器
+### 1. 基礎模型比較
+- **TrafficLSTM**: 傳統 LSTM 基準模型
+- **TrafficXLSTM**: 擴展 LSTM（無社會聚合）
+- **DistributedSocialXLSTM**: 完整的社會 xLSTM
+
+### 2. 社會聚合比較
+- 無聚合 vs 三種聚合方法的性能比較
+- 不同空間半徑的影響分析
+- 鄰居數量的最佳化研究
+
+### 3. 關鍵創新點
+
+1. **分散式架構**: 每個 VD 維持獨立 xLSTM 實例
+2. **空間聚合**: 基於地理座標的社會特徵融合
+3. **動態配置**: 四層 YAML 配置系統
+4. **參數映射**: 舊新系統的向後兼容性
 
 ## 📊 輸出結果
 
 訓練完成後，結果保存在 `blob/experiments/` 目錄：
 
 ```
-blob/experiments/social_lstm_post_fusion_urban/
+blob/experiments/social_xlstm_attention/
 ├── config.json              # 完整配置
-├── social_config.json       # Social Pooling 配置
-├── coordinate_info.json     # 座標信息
+├── training_history.json    # 訓練歷史
 ├── best_model.pt           # 最佳模型權重
-├── training_history.json   # 訓練歷史
-└── plots/                  # 訓練圖表
+└── plots/                  # 訓練曲線圖
 ```
 
-## 🚨 常見問題
+## 🔧 進階使用
 
-### 1. 環境錯誤
-```
-ModuleNotFoundError: No module named 'torch'
-```
-**解決**: 確保激活了正確的 conda 環境
+### 使用動態配置系統 (推薦)
+
 ```bash
-conda activate social_xlstm
+# 訓練 Social-xLSTM with attention pooling
+python workflow/snakemake_warp.py \
+  --configfile cfgs/models/xlstm.yaml \
+  --configfile cfgs/social_pooling/attention.yaml \
+  --configfile cfgs/vd_modes/multi.yaml \
+  --configfile cfgs/training/default.yaml \
+  train_social_xlstm_multi_vd
+
+# 切換不同的聚合方法 (只需更改一個配置檔案)
+# Attention mechanism
+python workflow/snakemake_warp.py ... --configfile cfgs/social_pooling/attention.yaml ...
+
+# Weighted mean pooling  
+python workflow/snakemake_warp.py ... --configfile cfgs/social_pooling/weighted_mean.yaml ...
+
+# Weighted sum pooling
+python workflow/snakemake_warp.py ... --configfile cfgs/social_pooling/weighted_sum.yaml ...
+
+# No spatial pooling (baseline)
+python workflow/snakemake_warp.py ... --configfile cfgs/social_pooling/off.yaml ...
 ```
 
-### 2. 座標文件錯誤
+### 傳統 Snakemake 方式 (向後兼容)
+
+```bash
+# 使用現有配置檔案
+snakemake train_social_xlstm_multi_vd --configfile cfgs/snakemake/dev.yaml --cores 2
 ```
-FileNotFoundError: Coordinate data file not found
+
+### 參數調整建議
+
+- **spatial_radius**: 1.0-5.0 公里（城市環境）
+- **max_neighbors**: 4-12 個鄰居
+- **aggregation_method**: 從 weighted_mean 開始測試
+- **batch_size**: 8-32（依 GPU 記憶體調整）
+
+## 🚨 故障排除
+
+### 常見問題
+
+1. **記憶體不足**: 減少 `batch_size` 或 `max_neighbors`
+2. **配置衝突**: 使用 `snakemake_warp.py` 進行配置驗證
+3. **參數不匹配**: 檢查 `aggregation_method` vs 舊版 `pool_type`
+
+### 除錯指令
+
+```bash
+# 驗證配置
+python -c "from social_xlstm.config import load_config_from_paths; print('配置系統正常')"
+
+# 測試參數映射
+python -c "from social_xlstm.config import ParameterMapper; print(ParameterMapper().POOL_TYPE_TO_AGGREGATION_METHOD)"
 ```
-**解決**: 檢查座標文件路徑是否正確，相對於專案根目錄
 
-### 3. VD ID 不匹配
-```
-Selected VD 'XXX' not found in coordinate data
-```
-**解決**: 確保選擇的 VD ID 在座標文件中存在
+## 📚 參考資料
 
-### 4. 記憶體不足
-```
-CUDA out of memory
-```
-**解決**: 
-- 減少 `batch_size`
-- 減少 `max_neighbors`
-- 使用 `--mixed_precision`
-
-## 🔗 相關文件
-
-- **設計文檔**: `docs/explanation/social-pooling-design.md`
-- **數學規格**: `docs/reference/mathematical-specifications.md`
-- **基礎訓練**: `scripts/train/without_social_pooling/`
-- **數據預處理**: `scripts/dataset/`
-
-## 📈 性能預期
-
-與基礎 LSTM 相比，Post-Fusion Social Pooling 預期：
-- MAE/RMSE 改善 > 5%
-- 記憶體增長 < 50%
-- 訓練時間增長 < 30%
-
-## 🤝 支援
-
-如有問題，請：
-1. 檢查 `logs/` 目錄中的詳細日誌
-2. 運行 `test_integration.py` 進行診斷
-3. 參考相關文檔和 ADR 決策記錄
+- [數學規格](../concepts/mathematical-specifications.md)
+- [API 參考](../reference/api-reference.md)
+- [配置系統文檔](../concepts/configuration-system.md)

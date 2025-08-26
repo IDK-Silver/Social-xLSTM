@@ -48,9 +48,8 @@ $$h_t^i = f_{\text{xLSTM-IGI}}(x_t^i, \text{SocialPool}(\{h_{t-1}^j\}, \{\mathbf
 
 Where $f_{\text{xLSTM}}$ represents the xLSTM processing (sLSTM + mLSTM blocks) and $h_t^j$ are xLSTM hidden states from neighboring VDs.
 
-*For complete technical specifications of each strategy, see:*
-- [Post-Fusion Specification](post-fusion-specification.md)
-- [Internal Gate Injection Specification](internal-gate-injection-specification.md)
+*For complete technical specifications of spatial pooling implementation, see:*
+- [Social Pooling API Reference](../reference/api-reference.md#social-pooling-module)
 
 ### Distance Metrics
 

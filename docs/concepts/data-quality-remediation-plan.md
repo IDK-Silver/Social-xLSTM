@@ -15,7 +15,7 @@
 **目標**: 立即恢復模型訓練能力
 
 **實施步驟**:
-1. **創建數據清理模組** (`src/social_xlstm/data/data_cleaner.py`)
+1. **創建數據清理模組** (`src/social_xlstm/utils/data_cleaner.py`)
    ```python
    def emergency_cleanup(data_path):
        # 自動移除全 NaN 和常數特徵
@@ -23,7 +23,7 @@
        # 返回清理後數據
    ```
 
-2. **整合到訓練腳本** (`scripts/train_distributed_social_xlstm.py`)
+2. **整合到訓練腳本** (`scripts/train/with_social_pooling/train_distributed_social_xlstm.py`)
    - 在數據載入後立即調用清理函數
    - 添加基礎 assertions
    - 記錄清理統計
@@ -113,7 +113,7 @@ quality_thresholds = {
 
 **整合點**:
 ```python
-# train_distributed_social_xlstm.py 修改
+# scripts/train/with_social_pooling/train_distributed_social_xlstm.py 修改
 def setup_data_pipeline(args):
     # 建立數據管線
     pipeline = create_preprocessing_pipeline()

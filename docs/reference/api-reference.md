@@ -185,14 +185,16 @@ class SocialPoolingConfig:
     include_self: bool = True
 ```
 
-**Factory Function**
+**Current Architecture**
 ```python
-def create_social_traffic_model(
-    base_model_type: str,           # "lstm" or "xlstm"
-    strategy: str,                  # "post_fusion" or "internal_injection"  
-    base_config: Union[TrafficLSTMConfig, TrafficXLSTMConfig],
-    social_config: SocialPoolingConfig
-) -> SocialTrafficModel
+# Use DistributedSocialXLSTMModel directly
+from social_xlstm.models.distributed_social_xlstm import DistributedSocialXLSTMModel
+
+model = DistributedSocialXLSTMModel(
+    xlstm_config=xlstm_config,
+    num_features=num_features,
+    social_pool_type="weighted_mean"  # or "weighted_sum", "attention"
+)
 ```
 
 ### Evaluation Module (`evaluation/`)
@@ -326,12 +328,17 @@ from social_xlstm.models.lstm import TrafficLSTMConfig
 lstm_config = TrafficLSTMConfig(hidden_size=64)
 social_config = SocialPoolingConfig(pooling_radius=1000.0, max_neighbors=8)
 
-# Create integrated model
-model = create_social_traffic_model(
-    base_model_type="lstm",
-    strategy="post_fusion", 
-    base_config=lstm_config,
-    social_config=social_config
+# Create distributed Social-xLSTM model
+from social_xlstm.models.distributed_social_xlstm import DistributedSocialXLSTMModel
+from social_xlstm.models.xlstm import TrafficXLSTMConfig
+
+xlstm_config = TrafficXLSTMConfig(input_size=5, hidden_size=64)
+
+model = DistributedSocialXLSTMModel(
+    xlstm_config=xlstm_config,
+    num_features=5,
+    enable_spatial_pooling=True,
+    social_pool_type="weighted_mean"
 )
 ```
 
