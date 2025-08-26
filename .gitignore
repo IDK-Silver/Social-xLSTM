@@ -232,3 +232,8 @@ docs/technical/social_xlstm_comprehensive_report.pdf
 notebooks/
 
 .mcp.json
+
+*pemsbay_sensors*.json
+scripts/dataset/pre_process/PEMS_BAY/*.h5
+scripts/dataset/pre_process/PEMS_BAY/*.png
+docs/concepts/papers/*.pdf
