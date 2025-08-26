@@ -62,8 +62,8 @@ def add_common_arguments(parser):
         parser: ArgumentParser instance
     """
     # Data parameters
-    parser.add_argument("--data_path", type=str, default="/tmp/tmpdhc_pz_1.h5",
-                        help="HDF5 data file path")
+    parser.add_argument("--data_path", type=str, required=True,
+                        help="HDF5 data file path (required)")
     parser.add_argument("--sequence_length", type=int, default=12,
                         help="Time sequence length")
     
@@ -119,6 +119,14 @@ def add_common_arguments(parser):
                         help="Training device")
     parser.add_argument("--mixed_precision", action="store_true",
                         help="Enable mixed precision training")
+    
+    # Dataset split parameters
+    parser.add_argument("--train_ratio", type=float, default=0.7,
+                        help="Training data ratio")
+    parser.add_argument("--val_ratio", type=float, default=0.15,
+                        help="Validation data ratio")
+    parser.add_argument("--num_workers", type=int, default=4,
+                        help="Number of data loading workers")
     
     # Experiment parameters
     parser.add_argument("--experiment_name", type=str, default="lstm_without_social_pooling",
@@ -254,10 +262,10 @@ def create_data_module(args, logger):
             sequence_length=args.sequence_length,
             batch_size=args.batch_size,
             selected_vdids=selected_vdids,
-            train_ratio=0.7,
-            val_ratio=0.15,
-            test_ratio=0.15,
-            num_workers=4
+            train_ratio=getattr(args, 'train_ratio', 0.7),
+            val_ratio=getattr(args, 'val_ratio', 0.15),
+            test_ratio=1.0 - getattr(args, 'train_ratio', 0.7) - getattr(args, 'val_ratio', 0.15),
+            num_workers=getattr(args, 'num_workers', 4)
         )
         
         # Create data module

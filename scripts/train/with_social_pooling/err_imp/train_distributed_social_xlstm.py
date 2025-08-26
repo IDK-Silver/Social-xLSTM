@@ -10,9 +10,9 @@ pipeline with distributed architecture, spatial pooling, and backward compatibil
 
 Usage:
     conda activate social_xlstm
-    python scripts/train_distributed_social_xlstm.py
-    python scripts/train_distributed_social_xlstm.py --enable_spatial_pooling --spatial_radius 2.5
-    python scripts/train_distributed_social_xlstm.py --epochs 50 --batch_size 16
+    python scripts/train/with_social_pooling/train_distributed_social_xlstm.py
+    python scripts/train/with_social_pooling/train_distributed_social_xlstm.py --enable_spatial_pooling --spatial_radius 2.5
+    python scripts/train/with_social_pooling/train_distributed_social_xlstm.py --epochs 50 --batch_size 16
 
 Features:
 - Distributed per-VD xLSTM processing
@@ -37,11 +37,40 @@ from pathlib import Path
 from typing import Dict, Any
 import json
 
+# Add project root to path for imports
+sys.path.append(str(Path(__file__).parent.parent.parent.parent))
+
+# Import common utilities from the same directory
+from common import (
+    setup_logging,
+    check_conda_environment,
+    add_common_arguments,
+    print_training_start,
+    print_training_complete,
+    create_distributed_data_module,
+    create_social_xlstm_model,
+    get_social_pooling_warnings,
+    resolve_aggregation_method
+)
+
 from social_xlstm.models.xlstm import TrafficXLSTMConfig
 from social_xlstm.models.distributed_social_xlstm import DistributedSocialXLSTMModel
-from social_xlstm.data.distributed_datamodule import DistributedTrafficDataModule
+from social_xlstm.dataset.core.datamodule import TrafficDataModule
 from social_xlstm.dataset.config.base import TrafficDatasetConfig
 from social_xlstm.training.recorder import TrainingRecorder
+
+# Import new configuration system
+try:
+    from social_xlstm.config import (
+        DynamicModelConfigManager, 
+        ParameterMapper,
+        load_config_from_paths,
+        load_single_config_file
+    )
+    CONFIG_SYSTEM_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: New configuration system not available: {e}")
+    CONFIG_SYSTEM_AVAILABLE = False
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -105,6 +134,18 @@ def parse_args():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     
+    # Configuration file support (new layered configuration system)
+    parser.add_argument('--config-file', type=str, 
+                       help='Single merged YAML configuration file (alternative to individual config files)')
+    parser.add_argument('--model-config', type=str,
+                       help='Model architecture configuration file (e.g., cfgs/models/xlstm.yaml)')
+    parser.add_argument('--social-config', type=str,
+                       help='Social pooling configuration file (e.g., cfgs/social_pooling/attention.yaml)')
+    parser.add_argument('--vd-config', type=str,
+                       help='VD mode configuration file (e.g., cfgs/vd_modes/multi.yaml)')
+    parser.add_argument('--training-config', type=str,
+                       help='Training configuration file (e.g., cfgs/training/default.yaml)')
+    
     # Data parameters
     parser.add_argument('--data_path', type=str, 
                        default='blob/dataset/pre-processed/h5/traffic_features_dev.h5',
@@ -139,9 +180,12 @@ def parse_args():
                        help='Enable spatial social pooling (default: legacy mode)')
     parser.add_argument('--spatial_radius', type=float, default=2.0,
                        help='Spatial pooling radius in meters')
-    parser.add_argument('--pool_type', type=str, default='mean',
+    parser.add_argument('--pool_type', type=str, default='weighted_mean',
                        choices=['mean', 'max', 'weighted_mean'],
-                       help='Social pooling aggregation method')
+                       help='Legacy pool type (for backward compatibility)')
+    parser.add_argument('--aggregation_method', type=str, default='weighted_mean',
+                       choices=['weighted_mean', 'weighted_sum', 'attention'],
+                       help='Social pooling aggregation method (new system)')
     
     # Training parameters
     parser.add_argument('--epochs', type=int, default=20,
@@ -237,16 +281,42 @@ def create_dataset_config(args) -> TrafficDatasetConfig:
     return config
 
 
+def resolve_aggregation_method(args) -> str:
+    """Resolve the aggregation method from arguments using parameter mapping"""
+    if CONFIG_SYSTEM_AVAILABLE:
+        # Use new aggregation_method if explicitly provided
+        if hasattr(args, 'aggregation_method') and args.aggregation_method != 'weighted_mean':
+            return args.aggregation_method
+        
+        # Map legacy pool_type to aggregation_method
+        mapper = ParameterMapper()
+        aggregation_method = mapper.POOL_TYPE_TO_AGGREGATION_METHOD.get(
+            args.pool_type, 'weighted_mean'
+        )
+        
+        # Warn if mapping occurs
+        if args.pool_type != 'weighted_mean':
+            logger.warning(f"Mapping legacy pool_type '{args.pool_type}' to aggregation_method '{aggregation_method}'")
+        
+        return aggregation_method
+    else:
+        # Fallback to legacy pool_type
+        return getattr(args, 'aggregation_method', args.pool_type)
+
+
 def create_model(args, num_features: int) -> DistributedSocialXLSTMModel:
     """Create Distributed Social-xLSTM model"""
     xlstm_config = create_xlstm_config(args, num_features)
+    
+    # Resolve aggregation method for backward compatibility
+    aggregation_method = resolve_aggregation_method(args)
     
     model = DistributedSocialXLSTMModel(
         xlstm_config=xlstm_config,
         num_features=num_features,
         hidden_dim=args.embedding_dim,
         prediction_length=args.prediction_length,
-        social_pool_type=args.pool_type,
+        social_pool_type=aggregation_method,  # Use resolved method
         learning_rate=args.learning_rate,
         enable_gradient_checkpointing=args.enable_gradient_checkpointing,
         enable_spatial_pooling=args.enable_spatial_pooling,
@@ -260,7 +330,7 @@ def create_model(args, num_features: int) -> DistributedSocialXLSTMModel:
     logger.info(f"  Spatial pooling: {args.enable_spatial_pooling}")
     if args.enable_spatial_pooling:
         logger.info(f"  Spatial radius: {args.spatial_radius}")
-        logger.info(f"  Pool type: {args.pool_type}")
+        logger.info(f"  Aggregation method: {aggregation_method}")
     
     return model
 
@@ -409,7 +479,7 @@ def create_snakemake_outputs(args, trainer: pl.Trainer, experiment_dir: Path, re
     print(f"  • {training_history_path}")
 
 
-def print_training_summary(args, model: DistributedSocialXLSTMModel, datamodule: DistributedTrafficDataModule):
+def print_training_summary(args, model: DistributedSocialXLSTMModel, datamodule: TrafficDataModule):
     """Print comprehensive training summary"""
     print("=" * 80)
     print("🚀 DISTRIBUTED SOCIAL-xLSTM TRAINING STARTED")
@@ -423,15 +493,18 @@ def print_training_summary(args, model: DistributedSocialXLSTMModel, datamodule:
     print(f"  • Hidden Dimension: {model_info['hidden_dim']}")
     print(f"  • Prediction Length: {model_info['prediction_length']}")
     
+    # Resolve aggregation method for display
+    aggregation_method = resolve_aggregation_method(args)
+    
     # Social pooling information
     print(f"\\n🌐 Social Pooling Configuration:")
     if args.enable_spatial_pooling:
         print(f"  • Mode: Spatial-aware pooling")
         print(f"  • Spatial Radius: {args.spatial_radius} meters")
-        print(f"  • Aggregation: {args.pool_type}")
+        print(f"  • Aggregation: {aggregation_method}")
     else:
         print(f"  • Mode: Legacy neighbor-based pooling")
-        print(f"  • Aggregation: {args.pool_type}")
+        print(f"  • Aggregation: {aggregation_method}")
     
     # Data information
     data_info = datamodule.get_data_info()
@@ -453,12 +526,70 @@ def print_training_summary(args, model: DistributedSocialXLSTMModel, datamodule:
     print("=" * 80)
 
 
+def load_yaml_config(args):
+    """Load configuration from YAML files (simplified approach)."""
+    if not CONFIG_SYSTEM_AVAILABLE:
+        return None
+        
+    # Single merged config file takes priority
+    if hasattr(args, 'config_file') and args.config_file:
+        return load_single_config_file(args.config_file)
+    
+    # Multiple config files
+    config_files = []
+    for attr in ['model_config', 'social_config', 'vd_config', 'training_config']:
+        if hasattr(args, attr) and getattr(args, attr):
+            config_files.append(getattr(args, attr))
+    
+    if config_files:
+        return load_config_from_paths(config_files)
+    
+    return None
+
+
 def main():
     """Main training function"""
     args = parse_args()
     
     logger.info("Starting Distributed Social-xLSTM training")
-    logger.info(f"Arguments: {vars(args)}")
+    
+    # Try to load YAML configuration
+    yaml_config = load_yaml_config(args)
+    if yaml_config:
+        logger.info(f"Using YAML configuration with model: {yaml_config.model_name}")
+        # Use YAML configuration directly instead of CLI args
+        use_yaml_pipeline(yaml_config, args)
+    else:
+        logger.info("Using command-line arguments")
+        logger.info(f"Arguments: {vars(args)}")
+        use_legacy_pipeline(args)
+
+def use_yaml_pipeline(yaml_config, args):
+    """Training pipeline using YAML configuration."""
+    logger.info("=== YAML Configuration Pipeline ===")
+    
+    # Set up deterministic training  
+    pl.seed_everything(42, workers=True)
+    
+    # Extract configuration
+    model_config = yaml_config.model_config
+    social_config = yaml_config.social_config
+    vd_config = yaml_config.vd_config
+    training_config = yaml_config.training_config
+    
+    logger.info(f"Model: {yaml_config.model_name}")
+    logger.info(f"Social pooling: {social_config.get('enabled', False)}")
+    logger.info(f"VD mode: {vd_config.get('mode', 'single')}")
+    logger.info(f"Effective input size: {yaml_config.effective_input_size}")
+    
+    # TODO: Implement YAML-based model creation and training
+    # This will be completed after testing the basic configuration loading
+    logger.info("YAML pipeline implementation in progress...")
+
+
+def use_legacy_pipeline(args):
+    """Legacy training pipeline using command-line arguments."""
+    logger.info("=== Legacy CLI Arguments Pipeline ===")
     
     # Set up deterministic training
     pl.seed_everything(42, workers=True)
@@ -466,7 +597,9 @@ def main():
     # Create dataset configuration and data module
     logger.info("Setting up data module...")
     dataset_config = create_dataset_config(args)
-    datamodule = DistributedTrafficDataModule(dataset_config)
+    # Set distributed batch format for per-VD processing
+    dataset_config.batch_format = 'distributed'
+    datamodule = TrafficDataModule(dataset_config)
     datamodule.setup()
     
     # Get data information for model creation
@@ -479,6 +612,7 @@ def main():
     
     # Initialize TrainingRecorder for standard format compliance
     logger.info("Initializing TrainingRecorder...")
+    aggregation_method = resolve_aggregation_method(args)
     model_config = {
         'model_type': 'DistributedSocialXLSTM',
         'num_features': num_features,
@@ -488,7 +622,8 @@ def main():
         'slstm_at': args.slstm_at,
         'enable_spatial_pooling': args.enable_spatial_pooling,
         'spatial_radius': args.spatial_radius,
-        'pool_type': args.pool_type
+        'aggregation_method': aggregation_method,  # Use resolved method
+        'pool_type': args.pool_type  # Keep legacy for compatibility
     }
     
     training_config = {
