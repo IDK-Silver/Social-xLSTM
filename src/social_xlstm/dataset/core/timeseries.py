@@ -115,15 +115,14 @@ class TrafficTimeSeries(Dataset):
         # Normalize features
         if self.config.normalize:
             if self.split == 'train':
-                # Fit scaler on training data only
+                # FIXED: Fit scaler on training data and apply to entire dataset in ONE step
+                # Extract training portion for fitting
                 train_data = self.data[self.start_idx:self.end_idx]
+                
+                # Fit scaler on training data only, but apply to entire dataset
                 self.data, self.scaler = TrafficDataProcessor.normalize_features(
-                    train_data, method=self.config.normalization_method, fit_scaler=True
-                )
-                # Apply scaler to entire dataset
-                self.data, _ = TrafficDataProcessor.normalize_features(
                     self.data, method=self.config.normalization_method, 
-                    scaler=self.scaler, fit_scaler=False
+                    scaler=None, fit_scaler=True, fit_on_subset=(self.start_idx, self.end_idx)
                 )
             else:
                 # Use pre-fitted scaler from training dataset
@@ -135,6 +134,7 @@ class TrafficTimeSeries(Dataset):
                     )
                 else:
                     # Fallback: fit on available data (should be avoided)
+                    print(f"WARNING: No external scaler provided for {self.split} split. Fitting on current data.")
                     self.data, self.scaler = TrafficDataProcessor.normalize_features(
                         self.data, method=self.config.normalization_method, fit_scaler=True
                     )

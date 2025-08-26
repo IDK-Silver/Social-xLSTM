@@ -17,16 +17,39 @@ class TrafficDataProcessor:
     @staticmethod
     def normalize_features(data: np.ndarray, method: str = 'standard', 
                           scaler: Optional[Union[StandardScaler, MinMaxScaler]] = None,
-                          fit_scaler: bool = True) -> Tuple[np.ndarray, Union[StandardScaler, MinMaxScaler]]:
-        """Normalize features across time and space dimensions."""
+                          fit_scaler: bool = True, 
+                          fit_on_subset: Optional[Tuple[int, int]] = None) -> Tuple[np.ndarray, Union[StandardScaler, MinMaxScaler]]:
+        """
+        Normalize features across time and space dimensions.
+        
+        Args:
+            data: Input data with shape [T, N, F]
+            method: Normalization method ('standard' or 'minmax')
+            scaler: Pre-fitted scaler (if None, create new one)
+            fit_scaler: Whether to fit the scaler
+            fit_on_subset: Optional (start_idx, end_idx) to fit scaler only on subset
+        """
         original_shape = data.shape  # [T, N, F]
         
         # Reshape to [T*N, F] for fitting scaler
         data_reshaped = data.reshape(-1, data.shape[-1])
         
-        # Remove NaN values for fitting
-        valid_mask = ~np.isnan(data_reshaped).any(axis=1)
-        valid_data = data_reshaped[valid_mask]
+        # If fitting on subset, extract subset data for fitting
+        if fit_scaler and fit_on_subset is not None:
+            start_idx, end_idx = fit_on_subset
+            subset_data = data[start_idx:end_idx]  # [T_subset, N, F]
+            subset_reshaped = subset_data.reshape(-1, subset_data.shape[-1])  # [T_subset*N, F]
+            
+            # Remove NaN values from subset for fitting
+            subset_valid_mask = ~np.isnan(subset_reshaped).any(axis=1)
+            subset_valid_data = subset_reshaped[subset_valid_mask]
+            
+            fit_data = subset_valid_data
+        else:
+            # Remove NaN values for fitting (entire dataset)
+            valid_mask = ~np.isnan(data_reshaped).any(axis=1)
+            valid_data = data_reshaped[valid_mask]
+            fit_data = valid_data
         
         if scaler is None:
             if method == 'standard':
@@ -36,18 +59,22 @@ class TrafficDataProcessor:
             else:
                 raise ValueError(f"Unknown normalization method: {method}")
         
-        if fit_scaler and len(valid_data) > 0:
-            scaler.fit(valid_data)
-        elif fit_scaler and len(valid_data) == 0:
+        if fit_scaler and len(fit_data) > 0:
+            scaler.fit(fit_data)
+        elif fit_scaler and len(fit_data) == 0:
             # If no valid data for fitting, create a dummy scaler
             print("Warning: No valid data for fitting scaler. Using dummy scaler.")
             dummy_data = np.zeros((1, data.shape[-1]))
             scaler.fit(dummy_data)
         
         # Transform all data (including NaN)
+        # Need to get valid mask for entire dataset for transformation
+        all_valid_mask = ~np.isnan(data_reshaped).any(axis=1)
+        all_valid_data = data_reshaped[all_valid_mask]
+        
         normalized_data = np.full_like(data_reshaped, np.nan)
-        if len(valid_data) > 0:
-            normalized_data[valid_mask] = scaler.transform(valid_data)
+        if len(all_valid_data) > 0:
+            normalized_data[all_valid_mask] = scaler.transform(all_valid_data)
         
         # Reshape back to original shape
         normalized_data = normalized_data.reshape(original_shape)
