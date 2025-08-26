@@ -12,10 +12,10 @@ import json
 
 from social_xlstm.models.xlstm import TrafficXLSTMConfig
 from social_xlstm.models.distributed_social_xlstm import DistributedSocialXLSTMModel
-from social_xlstm.models.distributed_config import DistributedSocialXLSTMConfig, SocialPoolingConfig
+from social_xlstm.models.distributed_config import DistributedSocialXLSTMConfig, SocialPoolingConfig, OptimizerConfig
 from social_xlstm.dataset.core.datamodule import TrafficDataModule
 from social_xlstm.dataset.config.base import TrafficDatasetConfig
-from social_xlstm.training.recorder import TrainingRecorder
+from social_xlstm.metrics.writer import TrainingMetricsWriter
 
 
 from social_xlstm.utils.yaml import (
@@ -38,6 +38,10 @@ def parse_args():
     # Configuration file (unified configuration system)
     parser.add_argument('--config', type=str, 
                        help='YAML configuration file containing all training parameters')
+    
+    # Output directory for experiments
+    parser.add_argument('--output_dir', type=str, default='./lightning_logs',
+                       help='Directory to save training outputs (logs, metrics, checkpoints)')
     
     return parser.parse_args()
 
@@ -92,18 +96,62 @@ def main():
     datamodule.setup(stage="fit")
 
     logger.info("Creating model config and distributed model")
+    
+    # Create optimizer config if present
+    optimizer_config = None
+    if "optimizer" in config:
+        optimizer_config = OptimizerConfig(**config["optimizer"])
+    
     distributed_config = DistributedSocialXLSTMConfig(
         xlstm=TrafficXLSTMConfig(**config["model"]["xlstm"]),
         num_features=config["model"]["xlstm"]["input_size"],  # Derive from xlstm input_size
         prediction_length=config["data"]["prediction_length"],
         learning_rate=config["trainer"].get("learning_rate", 0.001),
         enable_gradient_checkpointing=config["trainer"].get("enable_gradient_checkpointing", False),
-        social_pooling=SocialPoolingConfig(**config["social_pooling"])
+        social_pooling=SocialPoolingConfig(**config["social_pooling"]),
+        optimizer=optimizer_config
     )
     model = DistributedSocialXLSTMModel(distributed_config)
 
-    logger.info("Initializing minimal PyTorch Lightning Trainer")
-    trainer = pl.Trainer(**config["trainer"])
+    logger.info("Setting up training callbacks")
+    callbacks = []
+    
+    # Basic Lightning callbacks (if specified in config)
+    trainer_config = config["trainer"].copy()
+    
+    # Extract callbacks configuration
+    callbacks_config = trainer_config.pop("callbacks", {})
+    
+    # Add ModelCheckpoint if specified
+    if "model_checkpoint" in callbacks_config:
+        checkpoint_config = callbacks_config["model_checkpoint"]
+        callbacks.append(ModelCheckpoint(**checkpoint_config))
+    
+    # Add LearningRateMonitor if specified
+    if "learning_rate_monitor" in callbacks_config:
+        lr_config = callbacks_config.get("learning_rate_monitor", {})
+        callbacks.append(LearningRateMonitor(**lr_config))
+    
+    # Add TrainingMetricsWriter for basic metrics recording
+    metrics_config = callbacks_config.get("training_metrics", {})
+    # Use metrics subdirectory under user-specified output directory
+    metrics_output_dir = metrics_config.get("output_dir", f"{args.output_dir}/metrics")
+    
+    metrics_writer = TrainingMetricsWriter(
+        output_dir=metrics_output_dir,
+        metrics=("mae", "mse", "rmse", "r2"),
+        splits=("train", "val"),
+    )
+    callbacks.append(metrics_writer)
+    
+    logger.info(f"Added {len(callbacks)} callbacks including TrainingMetricsWriter")
+
+    logger.info("Initializing PyTorch Lightning Trainer")
+    
+    # Set output directory for Lightning logs and checkpoints
+    trainer_config['default_root_dir'] = args.output_dir
+    
+    trainer = pl.Trainer(callbacks=callbacks, **trainer_config)
 
     logger.info("Starting training loop")
     trainer.fit(model, datamodule)
