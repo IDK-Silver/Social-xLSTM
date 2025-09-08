@@ -2,7 +2,7 @@ import argparse
 import json
 import matplotlib.pyplot as plt
 from social_xlstm.utils.convert_coords import mercator_projection
-from social_xlstm.dataset.json_utils import VDLiveList, VDInfo
+from social_xlstm.dataset.utils.json_utils import VDLiveList, VDInfo
 from social_xlstm.utils.graph import plot_vd_coordinates
 
 
@@ -22,6 +22,5 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 
 

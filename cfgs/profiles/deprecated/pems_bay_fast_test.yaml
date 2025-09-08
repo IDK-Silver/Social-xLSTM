@@ -1,0 +1,61 @@
+# PEMS-BAY Fast Test Profile
+# Small time-sliced dataset for rapid training validation
+
+configs:
+  - cfgs/data/dev.yaml
+  - cfgs/models/xlstm.yaml
+  - cfgs/social_pooling/spatial_basic.yaml
+  - cfgs/training/dev.yaml
+  - cfgs/datasets/pems_bay_fast_test.yaml  # Use fast test dataset
+
+# Profile-specific overrides for fast testing
+overrides:
+  data:
+    # Override to use fast test dataset
+    path: "blob/dataset/processed/pems_bay_fast_test.h5"
+    
+    # PEMS-BAY specific data parameters (from cfgs/datasets/pems_bay.yaml)
+    sequence_length: 12        # 1 hour at 5-min intervals
+    prediction_length: 3       # 15 minutes prediction
+    selected_features: ["avg_speed", "lanes", "length", "latitude", "longitude", "direction"]
+    normalization_method: "standard"  # PEMS-BAY works well with standard normalization
+    fill_missing: "zero"       # PEMS-BAY has minimal missing values, use zero filling
+    
+    # Use same batch size as dev profile to avoid CUDA OOM
+    loader:
+      batch_size: 16  # Same as dev profile to stay within GPU memory limits
+      
+  # Model parameter overrides for PEMS-BAY dataset (6 features)
+  model:
+    xlstm:
+      input_size: 6    # Matches selected_features length
+      output_size: 6   # Keep input/output symmetry
+  
+  # Trainer adjustments for fast testing
+  trainer:
+    max_epochs: 5   # Short runs for quick feedback
+    
+  # Experiment tracking for fast tests
+  experiment:
+    name: "pems_bay_fast_test"
+    
+# Metadata for this profile
+metadata:
+  description: "Fast test profile for PEMS-BAY dataset optimization validation"
+  purpose: "Rapid iteration on training optimizations using small time-sliced data"
+  expected_duration: "2-5 minutes per test run"
+  usage: |
+    Use this profile to quickly test training optimizations:
+    
+    1. Generate test data:
+       python scripts/utils/h5_time_slice.py \
+         --input blob/dataset/processed/pems_bay.h5 \
+         --output blob/dataset/processed/pems_bay_fast_test.h5 \
+         --start-index 0 --length 72 --progress --atomic
+    
+    2. Run fast test:
+       python scripts/train/with_social_pooling/train_multi_vd.py \
+         --config cfgs/profiles/pems_bay_fast_test.yaml \
+         --output_dir blob/experiments/fast_test
+    
+    3. Compare results and iterate on optimizations

@@ -24,8 +24,8 @@ from tqdm import tqdm
 python scripts/dataset/pre_process/metr_la/convert_metr_la_to_hdf5.py \
     --data-csv blob/dataset/raw/METR-LA/metr-la.csv \
     --meta-csv blob/dataset/raw/METR-LA/metr-la_sensor_locations.csv \
-    --output-h5 blob/dataset/processed/metr-la.h5 \
-    --validate
+    --output-h5 blob/dataset/processed/metr_la.h5 \
+    --validate 
 """
 def convert_metr_la_to_hdf5(data_csv_path, meta_csv_path, output_h5_path, 
                               compress_level=4, chunk_size=1024):
@@ -54,8 +54,24 @@ def convert_metr_la_to_hdf5(data_csv_path, meta_csv_path, output_h5_path,
     # avg_speed (Feature 0)
     print("Processing speed data (mph → km/h)...")
     speed_data = data_df.iloc[1:, 1:].values.astype(np.float32)
+    # 將 0 值去掉 (設為 NaN)
+    print("Before replace, zero count:", np.sum(speed_data == 0))
+    speed_data[speed_data == 0] = np.nan
+    #print("After replace, zero count:", np.sum(speed_data == 0))
+    #print("NaN count:", np.isnan(speed_data).sum())
+
+    # 計算每個 sensor 的平均速度（忽略 NaN）
+    col_means = np.nanmean(speed_data, axis=0)
+
+    # 將 NaN 補上對應 sensor 的平均值
+    inds = np.where(np.isnan(speed_data))
+    speed_data[inds] = np.take(col_means, inds[1])
+
+    # 單位轉換 mph → km/h
     features[:, :, 0] = speed_data * 1.609344
-    
+    #看看還有沒有NaN
+    print("NaN count after filling:", np.isnan(speed_data).sum())
+
     # metadata: latitude and longitude (Feature 1-2)
     print("Processing metadata features (latitude, longitude)...")
     meta_df_indexed = meta_df.set_index('sensor_id')
@@ -64,8 +80,8 @@ def convert_metr_la_to_hdf5(data_csv_path, meta_csv_path, output_h5_path,
             sensor_id = int(sensor_col)
             if sensor_id in meta_df_indexed.index:
                 meta_row = meta_df_indexed.loc[sensor_id]
-                features[:, j, 1] = float(meta_row.get('Latitude', np.nan))
-                features[:, j, 2] = float(meta_row.get('Longitude', np.nan))
+                features[:, j, 1] = float(meta_row.get('latitude', np.nan))
+                features[:, j, 2] = float(meta_row.get('longitude', np.nan))
             else:
                 print(f"WARNING: Sensor {sensor_id} not found in metadata")
         except (ValueError, TypeError) as e:

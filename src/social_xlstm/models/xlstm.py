@@ -242,25 +242,41 @@ class TrafficXLSTM(nn.Module):
         Extract hidden states from xLSTM stack.
         
         Args:
-            x: Input tensor of shape (batch_size, sequence_length, input_size)
+            x: Input tensor
+               - Single-VD: [B, T, F]
+               - Multi-VD: [B, T, N, F] or pre-flattened [B, T, N*F]
             
         Returns:
-            Hidden states tensor of shape (batch_size, sequence_length, embedding_dim)
+            Hidden states tensor: [B, T, embedding_dim]
         """
-        # Input validation and Multi-VD handling (reuse from forward)
+        # Input validation and Multi-VD handling (aligned with forward())
         batch_size = x.size(0)
-        
+
         if self.config.multi_vd_mode:
-            # Handle multi-VD input - accept both 4D and 3D (pre-flattened) formats
+            # Accept 4D [B, T, N, F] or pre-flattened 3D [B, T, N*F]
             if x.dim() == 4:
-                batch_size, num_vds, seq_len, input_size = x.shape
-                x = x.view(batch_size * num_vds, seq_len, input_size)
-            elif x.dim() == 3 and x.size(0) != batch_size:
-                # Assume it's already flattened from 4D
-                original_batch_size = x.size(0) // self.config.num_vds
-                if original_batch_size * self.config.num_vds != x.size(0):
-                    raise ValueError(f"Multi-VD input size mismatch: {x.size(0)} samples for {self.config.num_vds} VDs")
-        
+                # 4D input: [B, T, N, F] → flatten VD dimension into features
+                seq_len, num_vds, num_features = x.size(1), x.size(2), x.size(3)
+                x = x.view(batch_size, seq_len, num_vds * num_features)
+                logging.getLogger(__name__).debug(
+                    f"[get_hidden_states] Flattened 4D input to 3D: {num_vds} VDs x {num_features} features"
+                )
+            elif x.dim() == 3:
+                # Already flattened
+                pass
+            else:
+                raise ValueError(f"Multi-VD mode expects 4D or 3D input, got {x.dim()}D")
+        else:
+            # Single VD mode - expect 3D input
+            if x.dim() != 3:
+                raise ValueError(f"Single VD mode expects 3D input (batch, seq, features), got {x.dim()}D")
+
+        # Validate feature size against config
+        if x.size(-1) != self.config.input_size:
+            raise ValueError(
+                f"Expected input_size={self.config.input_size}, got {x.size(-1)} in get_hidden_states()"
+            )
+
         # Input embedding
         embedded = self.input_embedding(x)  # (batch, seq, embedding_dim)
         embedded = self.dropout(embedded)
@@ -283,7 +299,7 @@ class TrafficXLSTM(nn.Module):
             "total_parameters": total_params,
             "trainable_parameters": trainable_params,
             "multi_vd_mode": self.config.multi_vd_mode,
-            "device": self.config.device
+            "device": next(self.parameters()).device.type
         }
     
     def to_device(self, device: Optional[str] = None):

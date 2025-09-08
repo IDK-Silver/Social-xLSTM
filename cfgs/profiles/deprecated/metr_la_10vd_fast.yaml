@@ -1,0 +1,91 @@
+# METR-LA 10-VD Ultra Fast Test Profile
+# Uses only 10 representative high-quality VD sensors for ultra-fast training validation
+# Reduces 207 VDs → 10 VDs for ~95% memory reduction and massive speedup
+
+configs:
+  - cfgs/data/dev.yaml
+  - cfgs/models/xlstm.yaml
+  - cfgs/social_pooling/spatial_basic.yaml
+  - cfgs/training/dev.yaml
+  - cfgs/datasets/metr_la_fast_test.yaml  # Use fast test dataset
+
+# Profile-specific overrides for 10-VD ultra-fast testing
+overrides:
+  data:
+    # Override to use fast test dataset
+    # path: "blob/dataset/processed/metr_la.h5"
+    # mean
+    path: "blob/dataset/processed/metr_la_mean.h5"
+    
+    # CRITICAL: Select only 10 representative VDs for ultra-fast training
+    selected_vdids:
+      - "773869"
+      - "718499"
+      - "717573"
+      - "717572"
+      - "761003"
+      - "773904"
+      - "759772"
+      - "760987"
+      - "718204"
+      - "717576"
+    
+    # METR-LA specific data parameters
+    sequence_length: 12        # 1 hour at 5-min intervals
+    prediction_length: 3       # 15 minutes prediction
+    selected_features: ["avg_speed"]  # Only predict dynamic traffic feature
+    normalization_method: "standard"
+    fill_missing: "zero"
+    stride: 4
+    
+    loader:
+      batch_size: 128  # Increased for better GPU utilization
+      
+  # Model parameter overrides
+  model:
+    xlstm:
+      input_size: 1          # Single feature: speed
+      output_size: 1
+      embedding_dim: 128       # Reduced for faster testing
+      num_blocks: 6           # Simplified
+      slstm_at: [1, 3, 5]
+  
+  # Trainer adjustments for ultra-fast testing
+  trainer:
+    max_epochs: 100          # Reduced for ultra-fast validation
+    gradient_clip_val: 1.0
+    
+  optimizer:
+    name: "AdamW"
+    lr: 0.00005
+    weight_decay: 0.001
+    
+  experiment:
+    name: "metr_la_10vd_ultra_fast"
+    
+metadata:
+  description: "Ultra-fast 10-VD profile for rapid METR-LA algorithm validation and debugging"
+  purpose: "Massive speedup by using only 10 representative VD sensors instead of 207"
+  performance: "~95% memory reduction, ~30x speedup, ~30 second training cycles"
+  selected_strategy: "Geographic distribution + data quality analysis"
+  usage: |
+    1. Ensure fast test data exists:
+       python scripts/utils/h5_time_slice.py \
+         --input blob/dataset/processed/metr_la.h5 \
+         --output blob/dataset/processed/metr_la_fast_test.h5 \
+         --start-index 0 --length 150 --progress --atomic
+    
+    2. Run 10-VD ultra-fast training (< 1 minute):
+       python scripts/train/with_social_pooling/train_multi_vd.py \
+         --config cfgs/profiles/metr_la_10vd_fast.yaml \
+         --output_dir blob/experiments/metr_la_fast_10vd
+    
+    3. Generate plots and analyze:
+       python scripts/utils/generate_metrics_plots.py \
+         --experiment_dir blob/experiments/ultra_fast_10vd/metrics
+    
+  limitations: |
+    - Only for algorithm validation, not performance evaluation
+    - Results may not represent full dataset behavior
+    - Social pooling effects limited due to fewer neighbors
+    - Use metr_la_fast_test.yaml for more comprehensive testing

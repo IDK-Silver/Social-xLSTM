@@ -8,6 +8,7 @@ import logging
 from ..config import TrafficDatasetConfig
 from .timeseries import TrafficTimeSeries
 from .collators import create_collate_fn
+from social_xlstm.utils.convert_coords import mercator_projection
 
 logger = logging.getLogger(__name__)
 
@@ -71,13 +72,45 @@ class TrafficDataModule(pl.LightningDataModule):
         if not self.vd_ids or len(self.vd_ids) == 0:
             raise ValueError("No VD IDs found in dataset for distributed format")
         
-        # Create distributed collate function
+        # Build static XY positions per VD from metadata (if available)
+        vd_positions_ll = {}
+        for vd in self.vd_ids:
+            info = self.train_dataset.reader.get_vd_info(vd)
+            if info and 'position_lat' in info and 'position_lon' in info:
+                try:
+                    vd_positions_ll[vd] = (float(info['position_lat']), float(info['position_lon']))
+                except Exception:
+                    continue
+
+        vd_positions_xy = None
+        if vd_positions_ll:
+            # Use mean lat/lon as projection origin (distance invariant to origin offset)
+            lats = [v[0] for v in vd_positions_ll.values()]
+            lons = [v[1] for v in vd_positions_ll.values()]
+            lat_origin = sum(lats) / len(lats)
+            lon_origin = sum(lons) / len(lons)
+
+            vd_positions_xy = {}
+            for vd, (lat, lon) in vd_positions_ll.items():
+                try:
+                    x, y = mercator_projection(lat, lon, lat_origin, lon_origin)
+                    vd_positions_xy[vd] = (x, y)
+                except Exception:
+                    # Skip if conversion fails
+                    pass
+
+            logger.info(
+                f"Computed XY positions for {len(vd_positions_xy)}/{len(self.vd_ids)} VDs using Mercator projection"
+            )
+
+        # Create distributed collate function (with optional positions)
         self._collate_fn = create_collate_fn(
             batch_format='distributed',
             vd_ids=self.vd_ids,
             num_features=self.num_features,
             sequence_length=self.config.sequence_length,
-            prediction_length=self.config.prediction_length
+            prediction_length=self.config.prediction_length,
+            vd_positions_xy=vd_positions_xy
         )
         
         logger.info(

@@ -1,0 +1,23 @@
+# Profile for running development/training on the METR-LA dataset.
+# Inherits from base configurations and specifies the METR-LA dataset.
+
+configs:
+  # Base configurations
+  - cfgs/data/dev.yaml              # 加上 data 設定，避免缺少 split / normalize 參數
+  - cfgs/models/xlstm.yaml
+  - cfgs/social_pooling/spatial_basic.yaml
+  - cfgs/training/dev.yaml
+
+  # Dataset-specific configuration
+  - cfgs/datasets/metr_la.yaml
+
+# Profile-specific overrides
+overrides:
+  data:
+    # Use converted METR-LA HDF5 file
+    path: "blob/dataset/processed/metr_la.h5"
+
+    # METR-LA specific data parameters
+    selected_features: ["avg_speed", "latitude", "longitude"]  # METR-LA 基本只有速度 + geo
+    loader:
+      batch_size: 16   # 跟 pems-bay 對齊，避免太小批次

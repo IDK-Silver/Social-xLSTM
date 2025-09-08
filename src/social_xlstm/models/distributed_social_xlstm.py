@@ -160,8 +160,9 @@ class DistributedSocialXLSTMModel(pl.LightningModule):
     def training_step(self, batch: Dict[str, Any], batch_idx: int) -> torch.Tensor:
         vd_inputs = batch['features']
         vd_targets = batch['targets']
+        positions = batch.get('positions', None)
         
-        predictions = self(vd_inputs)
+        predictions = self(vd_inputs, positions=positions)
         
         total_loss = 0.0
         all_preds = []
@@ -207,8 +208,9 @@ class DistributedSocialXLSTMModel(pl.LightningModule):
     def validation_step(self, batch: Dict[str, Any], batch_idx: int) -> torch.Tensor:
         vd_inputs = batch['features']
         vd_targets = batch['targets']
+        positions = batch.get('positions', None)
         
-        predictions = self(vd_inputs)
+        predictions = self(vd_inputs, positions=positions)
         
         total_loss = 0.0
         all_preds = []

@@ -1,0 +1,19 @@
+# PEMS-BAY Development Profile
+# Combines modular configurations for PEMS-BAY dataset training
+
+configs:
+  - cfgs/data/standard.yaml
+  - cfgs/models/xlstm.yaml
+  - cfgs/social_pooling/spatial_basic.yaml
+  - cfgs/training/standard.yaml
+  - cfgs/datasets/pems_bay/standard.yaml
+
+# Profile-specific overrides
+overrides:
+  data:
+    # Use converted PEMS-BAY HDF5 file
+    path: "blob/dataset/processed/pems_bay.h5"
+    
+    # Adjust batch size for 6 features
+    loader:
+      batch_size: 16  # Reduced from 8 to handle larger feature set

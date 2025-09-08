@@ -40,7 +40,7 @@ class DistributedCollator:
     This class is designed to be pickle-safe for multi-process DataLoaders.
     """
     
-    def __init__(self, vd_ids: List[str], num_features: int, sequence_length: int, prediction_length: int):
+    def __init__(self, vd_ids: List[str], num_features: int, sequence_length: int, prediction_length: int, vd_positions_xy: Dict[str, tuple] | None = None):
         """
         Initialize the distributed collator.
         
@@ -55,6 +55,9 @@ class DistributedCollator:
         self.sequence_length = int(sequence_length)
         self.prediction_length = int(prediction_length)
         self.num_vds = len(self.vd_ids)
+        # Optional: precomputed static XY positions per VD (meters)
+        # Example: {"400201": (x, y), ...}
+        self.vd_positions_xy = vd_positions_xy or {}
         
         logger.debug(
             f"DistributedCollator initialized: "
@@ -110,6 +113,7 @@ class DistributedCollator:
         distributed_targets = OrderedDict()
         distributed_input_masks = OrderedDict()
         distributed_target_masks = OrderedDict()
+        distributed_positions = OrderedDict() if self.vd_positions_xy else None
         
         for i, vd_id in enumerate(self.vd_ids):
             # Extract per-VD tensors [B, T, F]
@@ -117,19 +121,28 @@ class DistributedCollator:
             distributed_targets[vd_id] = target_seqs[:, :, i, :]   # [B, T, F]
             distributed_input_masks[vd_id] = input_masks[:, :, i]  # [B, T]
             distributed_target_masks[vd_id] = target_masks[:, :, i] # [B, T]
+            # Build per-VD positions [B, T, 2] if XY available (static sensor positions)
+            if distributed_positions is not None and vd_id in self.vd_positions_xy:
+                x, y = self.vd_positions_xy[vd_id]
+                base = torch.tensor([x, y], dtype=torch.float32)
+                # shape: [B, T, 2]
+                pos = base.view(1, 1, 2).expand(batch_size, self.sequence_length, 2).clone()
+                distributed_positions[vd_id] = pos
         
         # Ensure deterministic ordering for multi-worker reproducibility
         distributed_features = ensure_deterministic_vd_order(distributed_features)
         distributed_targets = ensure_deterministic_vd_order(distributed_targets)
         distributed_input_masks = ensure_deterministic_vd_order(distributed_input_masks)
         distributed_target_masks = ensure_deterministic_vd_order(distributed_target_masks)
+        if distributed_positions is not None:
+            distributed_positions = ensure_deterministic_vd_order(distributed_positions)
         
         # Validate distributed format
         expected_vd_shape = (batch_size, self.sequence_length, self.num_features)
         expected_shapes = {vd_id: expected_vd_shape for vd_id in self.vd_ids}
         assert_dict_tensor_shapes(distributed_features, expected_shapes)
         
-        return {
+        result = {
             'features': distributed_features,
             'targets': distributed_targets,
             'input_time_feat': input_time_feats,   # [B, T, time_feat_dim]
@@ -140,6 +153,9 @@ class DistributedCollator:
             'batch_size': batch_size,
             'timestamps': [sample['timestamps'] for sample in batch]
         }
+        if distributed_positions is not None:
+            result['positions'] = distributed_positions
+        return result
 
 
 def create_collate_fn(batch_format: str, **kwargs) -> callable:

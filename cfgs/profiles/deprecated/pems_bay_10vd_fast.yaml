@@ -1,0 +1,95 @@
+# PEMS-BAY 10-VD Ultra Fast Test Profile
+# Uses only 10 representative high-quality VD sensors for ultra-fast training validation
+# Reduces 325 VDs → 10 VDs for ~97% memory reduction and massive speedup
+
+configs:
+  - cfgs/data/dev.yaml
+  - cfgs/models/xlstm.yaml
+  - cfgs/social_pooling/spatial_basic.yaml
+  - cfgs/training/dev.yaml
+  - cfgs/datasets/pems_bay_fast_test.yaml  # Use sliced fast-test dataset
+
+# Profile-specific overrides for 10-VD ultra-fast testing
+overrides:
+  data:
+    # Use fast-test sliced dataset for ultra-fast iterations
+    path: "blob/dataset/processed/pems_bay_fast_test.h5"
+    
+    # CRITICAL: Select only 10 representative VDs for ultra-fast training
+    selected_vdids:
+      - "400201"  # High quality, geographic distribution across Bay Area
+      - "400274"  # Selected based on data completeness and variance
+      - "400581" 
+      - "400687"
+      - "400794"
+      - "401351"
+      - "401891"
+      - "402365"
+      - "404586"
+      - "413845"  # Spans full VD ID range 400xxx-413xxx
+    
+    # PEMS-BAY specific data parameters (from cfgs/datasets/pems_bay.yaml)
+    sequence_length: 12        # 1 hour at 5-min intervals
+    prediction_length: 3       # 15 minutes prediction
+    selected_features: ["avg_speed"]  # Focus on dynamic traffic feature only
+    normalization_method: "standard"  # PEMS-BAY works well with standard normalization
+    fill_missing: "zero"       # PEMS-BAY has minimal missing values, use zero filling
+    stride: 4                   # Increase sample count with stride=1
+    
+    # Optimized batch size for better GPU utilization (few VDs + few features)
+    loader:
+      batch_size: 128
+      
+  # Model parameter overrides tuned for ultra-fast validation
+  model:
+    xlstm:
+      input_size: 1           # Single feature: avg_speed
+      output_size: 1          # Same as input for consistency
+      embedding_dim: 256
+      num_blocks: 6
+      slstm_at: [1, 3, 5]
+  
+  # Trainer adjustments for ultra-fast testing with regularization
+  trainer:
+    max_epochs: 25           # Keep short for quick iteration
+    gradient_clip_val: 1.0   # Add gradient clipping
+    
+  # Optimizer with weight decay for regularization
+  optimizer:
+    name: "AdamW"
+    lr: 0.00005
+    weight_decay: 0.001       # Add weight decay for regularization
+    
+  # Experiment tracking for 10-VD tests
+  experiment:
+    name: "pems_bay_10vd_ultra_fast"
+    
+# Metadata for this profile
+metadata:
+  description: "Ultra-fast 10-VD profile for rapid algorithm validation and debugging"
+  purpose: "Massive speedup by using only 10 representative VD sensors instead of 325"
+  performance: "~97% memory reduction, ~30x speedup, ~30 second training cycles"
+  selected_strategy: "Geographic distribution + data quality analysis"
+  usage: |
+    Use this profile for ultra-rapid algorithm development and debugging:
+    
+    1. Ensure fast test data exists:
+       python scripts/utils/h5_time_slice.py \
+         --input blob/dataset/processed/pems_bay.h5 \
+         --output blob/dataset/processed/pems_bay_fast_test.h5 \
+         --start-index 0 --length 150 --progress --atomic
+    
+    2. Run 10-VD ultra-fast training (< 1 minute):
+       python scripts/train/with_social_pooling/train_multi_vd.py \
+         --config cfgs/profiles/pems_bay_10vd_fast.yaml \
+         --output_dir blob/experiments/ultra_fast_10vd
+    
+    3. Generate plots and analyze:
+       python scripts/utils/generate_metrics_plots.py \
+         --experiment_dir blob/experiments/ultra_fast_10vd/metrics
+    
+  limitations: |
+    - Only for algorithm validation, not performance evaluation
+    - Results may not represent full dataset behavior
+    - Social pooling effects limited due to fewer neighbors
+    - Use pems_bay_fast_test.yaml for more comprehensive testing
