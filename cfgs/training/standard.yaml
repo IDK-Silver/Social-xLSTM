@@ -6,7 +6,7 @@ trainer:
   # Core training parameters - using PyTorch Lightning 2.x naming
   max_epochs: 50            # Number of training epochs (not 'epochs')
   accelerator: "auto"       # Let Lightning choose GPU/CPU automatically
-  precision: "32-true"      # Use PyTorch Lightning 2.x precision format
+  precision: "16-mixed"      # Mixed precision for better throughput/memory
   devices: 1                # Number of devices to use
   
   # Development settings - no complex features per CLAUDE.md principles

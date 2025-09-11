@@ -163,7 +163,46 @@ def convert_pems_bay_to_hdf5(data_csv_path, meta_csv_path, output_h5_path,
         units_json = '{"avg_speed": "km/h", "lanes": "count", "length": "miles", "latitude": "degrees", "longitude": "degrees", "direction": "degrees"}'
         metadata_group.create_dataset('units', data=units_json.encode('utf-8'))
         metadata_group.create_dataset('source', data=b'PEMS-BAY 2017-01 to 2017-06')
-    
+
+        # Unified spec: write per-VD info with lat/lon to metadata/vd_info/<vdid>
+        vd_info_group = metadata_group.create_group('vd_info')
+        meta_df_indexed = meta_df.set_index('sensor_id')
+        created_count = 0
+        for sensor_col in sensor_cols:
+            try:
+                sensor_id = int(sensor_col)
+                vdid = str(sensor_id)
+                vd_subgroup = vd_info_group.create_group(vdid)
+                if sensor_id in meta_df_indexed.index:
+                    meta_row = meta_df_indexed.loc[sensor_id]
+                    lat = float(meta_row.get('Latitude', np.nan))
+                    lon = float(meta_row.get('Longitude', np.nan))
+                    # store minimal required fields
+                    vd_subgroup.attrs['position_lat'] = lat
+                    vd_subgroup.attrs['position_lon'] = lon
+                    # optional extra context (best-effort)
+                    if 'Lanes' in meta_row:
+                        try:
+                            vd_subgroup.attrs['lanes'] = float(meta_row.get('Lanes', np.nan))
+                        except Exception:
+                            pass
+                    if 'Length' in meta_row:
+                        try:
+                            vd_subgroup.attrs['length'] = float(meta_row.get('Length', np.nan))
+                        except Exception:
+                            pass
+                    if 'Dir' in meta_row:
+                        try:
+                            vd_subgroup.attrs['direction'] = str(meta_row.get('Dir', '')).strip()
+                        except Exception:
+                            pass
+                created_count += 1
+            except Exception:
+                # Skip malformed id/row and continue
+                continue
+        # Optionally store CRS hint
+        vd_info_group.attrs['coord_crs'] = 'EPSG:4326'
+
     print("Conversion completed!")
     return output_h5_path
 

@@ -129,6 +129,25 @@ def convert_metr_la_to_hdf5(data_csv_path, meta_csv_path, output_h5_path,
         units_json = '{"avg_speed": "km/h", "latitude": "degrees", "longitude": "degrees"}'
         metadata_group.create_dataset('units', data=units_json.encode('utf-8'))
         metadata_group.create_dataset('source', data=b'METR-LA 2017-01 to 2017-06')
+
+        # Unified spec: write per-VD lat/lon to metadata/vd_info/<vdid>
+        vd_info_group = metadata_group.create_group('vd_info')
+        created_count = 0
+        for sensor_col in sensor_cols:
+            try:
+                sensor_id = int(sensor_col)
+                vdid = str(sensor_id)
+                vd_subgroup = vd_info_group.create_group(vdid)
+                if sensor_id in meta_df_indexed.index:
+                    meta_row = meta_df_indexed.loc[sensor_id]
+                    lat = float(meta_row.get('latitude', np.nan))
+                    lon = float(meta_row.get('longitude', np.nan))
+                    vd_subgroup.attrs['position_lat'] = lat
+                    vd_subgroup.attrs['position_lon'] = lon
+                created_count += 1
+            except Exception:
+                continue
+        vd_info_group.attrs['coord_crs'] = 'EPSG:4326'
     
     print("Conversion completed!")
     return output_h5_path

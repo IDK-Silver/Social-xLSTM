@@ -16,4 +16,4 @@ overrides:
     
     # Adjust batch size for 6 features
     loader:
-      batch_size: 16  # Reduced from 8 to handle larger feature set
+      batch_size: 32  # Reduced from 8 to handle larger feature set

@@ -1,13 +1,14 @@
 """
-Custom collate functions for distributed training.
+Custom collate functions for Social-xLSTM.
 
-This module provides collate functions that transform standard centralized
-[B, T, N, F] tensors into distributed format {"VD_ID": [B, T, F], ...}.
+Provides:
+- DistributedCollator: 將 centralized [B,T,N,F] 轉成 {vd_id: [B,T,F]}
+- CentralizedCollator: 保持 [B,T,N,F]，並附上 vd_ids 與 positions（若可得）
 """
 
 import torch
 from torch.utils.data import default_collate
-from typing import Dict, List, Any, Union
+from typing import Dict, List, Any, Union, Optional
 from collections import OrderedDict
 import logging
 
@@ -158,6 +159,61 @@ class DistributedCollator:
         return result
 
 
+class CentralizedCollator:
+    """
+    保持 centralized 格式，並附加 vd_ids 與 positions_xy（若可得）。
+    產出關鍵鍵值：
+    - 'features': Tensor[B, T, N, F]
+    - 'targets': Tensor[B, P, N, F]
+    - 'vd_ids': List[str]
+    - 'positions_xy': Tensor[N, 2]（若提供）
+    - 其他：時間特徵與遮罩按原樣返回
+    """
+
+    def __init__(
+        self,
+        vd_ids: List[str],
+        sequence_length: int,
+        prediction_length: int,
+        vd_positions_xy: Optional[Dict[str, tuple]] = None,
+    ):
+        self.vd_ids = list(vd_ids)
+        self.sequence_length = int(sequence_length)
+        self.prediction_length = int(prediction_length)
+        self.vd_positions_xy = vd_positions_xy or {}
+
+    def __call__(self, batch: List[Dict[str, Any]]) -> Dict[str, Any]:
+        if not batch:
+            raise ValueError("Empty batch provided to collate_fn")
+
+        batch_size = len(batch)
+        # Use default collate to stack tensors
+        stacked = default_collate(batch)
+
+        # Map canonical keys
+        features = stacked['input_seq']            # [B, T, N, F]
+        targets = stacked['target_seq']            # [B, P, N, F]
+
+        result: Dict[str, Any] = {
+            'features': features,
+            'targets': targets,
+            'input_time_feat': stacked.get('input_time_feat'),
+            'target_time_feat': stacked.get('target_time_feat'),
+            'input_mask': stacked.get('input_mask'),
+            'target_mask': stacked.get('target_mask'),
+            'vd_ids': self.vd_ids,
+            'batch_size': batch_size,
+            'timestamps': [sample['timestamps'] for sample in batch],
+        }
+
+        # Attach positions_xy as [N,2] tensor if available
+        if self.vd_positions_xy:
+            xy = [self.vd_positions_xy.get(vd, (float('nan'), float('nan'))) for vd in self.vd_ids]
+            result['positions_xy'] = torch.tensor(xy, dtype=torch.float32)
+
+        return result
+
+
 def create_collate_fn(batch_format: str, **kwargs) -> callable:
     """
     Factory function for creating appropriate collate function.
@@ -172,6 +228,12 @@ def create_collate_fn(batch_format: str, **kwargs) -> callable:
     if batch_format == 'distributed':
         return DistributedCollator(**kwargs)
     elif batch_format == 'centralized':
-        return None  # Use PyTorch default collate
+        # 一律回傳 centralized collator（是否附加 positions 取決於 vd_positions_xy 是否提供）
+        return CentralizedCollator(
+            vd_ids=kwargs['vd_ids'],
+            sequence_length=kwargs['sequence_length'],
+            prediction_length=kwargs['prediction_length'],
+            vd_positions_xy=kwargs.get('vd_positions_xy')
+        )
     else:
         raise ValueError(f"Unknown batch_format: {batch_format}")

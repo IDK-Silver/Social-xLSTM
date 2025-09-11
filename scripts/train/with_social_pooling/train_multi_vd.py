@@ -150,8 +150,18 @@ def main():
     
     # Set output directory for Lightning logs and checkpoints
     trainer_config['default_root_dir'] = args.output_dir
+    # Helpful logging: show configured precision and accelerator/devices
+    cfg_precision = trainer_config.get('precision', 'unset')
+    cfg_accelerator = trainer_config.get('accelerator', 'auto')
+    cfg_devices = trainer_config.get('devices', 'auto')
+    logger.info(f"Trainer config -> accelerator={cfg_accelerator}, devices={cfg_devices}, precision={cfg_precision}")
     
     trainer = pl.Trainer(callbacks=callbacks, **trainer_config)
+    # Log resolved trainer runtime settings
+    try:
+        logger.info(f"Trainer initialized -> accelerator={trainer.accelerator.__class__.__name__}, devices={trainer.num_devices}, precision={trainer.precision}")
+    except Exception:
+        pass
 
     logger.info("Starting training loop")
     trainer.fit(model, datamodule)

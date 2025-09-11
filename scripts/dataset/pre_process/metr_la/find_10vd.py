@@ -31,7 +31,8 @@ def find_nearest_sensors(csv_path, center_id, n=10):
     return nearest
 
 # 使用範例
-csv_file = "blob/dataset/raw/METR-LA/metr-la_sensor_locations.csv"  # 你的 CSV 檔案
+csv_file = "/home/GP/repo/Social-xLSTM/blob/dataset/raw/METR-LA/metr-la_sensor_locations.csv"  # 你的 CSV 檔案
 center_sensor = 773869
 nearest_10 = find_nearest_sensors(csv_file, center_sensor, n=10)
 print(nearest_10)
+

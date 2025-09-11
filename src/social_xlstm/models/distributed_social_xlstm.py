@@ -122,7 +122,31 @@ class DistributedSocialXLSTMModel(pl.LightningModule):
         individual_hidden_states = self.vd_manager(vd_inputs)
         
         # Social pooling - spatial-only or disabled
-        if self.social_pooling is not None and positions is not None:
+        if self.social_pooling is not None:
+            # Strict requirement: positions must be provided when social pooling is enabled
+            if positions is None:
+                raise RuntimeError(
+                    "Social pooling is enabled but 'positions' is missing. "
+                    "Ensure DataModule/collate provides positions for all VDs. "
+                    "HDF5 must contain metadata/vd_info with position_lat/position_lon."
+                )
+
+            # Validate positions cover all VDs and have correct shape [B,T,2]
+            for vd_id in vd_ids:
+                if vd_id not in positions:
+                    raise RuntimeError(
+                        f"Missing positions for VD '{vd_id}' while social pooling is enabled."
+                    )
+                pos = positions[vd_id]
+                if pos.dim() != 3 or pos.size(-1) != 2:
+                    raise RuntimeError(
+                        f"Positions for VD '{vd_id}' must be [B,T,2], got {tuple(pos.shape)}."
+                    )
+                if torch.isnan(pos).any():
+                    raise RuntimeError(
+                        f"Positions for VD '{vd_id}' contain NaNs while social pooling is enabled."
+                    )
+
             # Use spatial-aware pooling
             social_contexts = self.social_pooling(
                 agent_hidden_states=individual_hidden_states,

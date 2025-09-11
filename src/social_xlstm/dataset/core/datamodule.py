@@ -55,9 +55,12 @@ class TrafficDataModule(pl.LightningDataModule):
                 scaler=self.shared_scaler
             )
         
-        # Prepare distributed collate function if needed
-        if self.config.is_distributed and self._collate_fn is None:
-            self._prepare_distributed_collate()
+        # Prepare collate function if needed
+        if self._collate_fn is None:
+            if self.config.is_distributed:
+                self._prepare_distributed_collate()
+            else:
+                self._prepare_centralized_collate()
     
     def _prepare_distributed_collate(self):
         """Prepare distributed collate function with required metadata."""
@@ -108,6 +111,57 @@ class TrafficDataModule(pl.LightningDataModule):
             batch_format='distributed',
             vd_ids=self.vd_ids,
             num_features=self.num_features,
+            sequence_length=self.config.sequence_length,
+            prediction_length=self.config.prediction_length,
+            vd_positions_xy=vd_positions_xy
+        )
+
+    def _prepare_centralized_collate(self):
+        """Prepare centralized collate function and attach positions if available."""
+        if not self.train_dataset:
+            raise RuntimeError("Train dataset must be setup before preparing centralized collate")
+
+        # Extract metadata from dataset
+        data_info = self.get_data_info()
+        self.vd_ids = data_info['vdids']
+        self.num_features = data_info['num_features']
+
+        if not self.vd_ids or len(self.vd_ids) == 0:
+            raise ValueError("No VD IDs found in dataset for centralized format")
+
+        # Build static XY positions per VD from metadata (if available)
+        vd_positions_ll = {}
+        for vd in self.vd_ids:
+            info = self.train_dataset.reader.get_vd_info(vd)
+            if info and 'position_lat' in info and 'position_lon' in info:
+                try:
+                    vd_positions_ll[vd] = (float(info['position_lat']), float(info['position_lon']))
+                except Exception:
+                    continue
+
+        vd_positions_xy = None
+        if vd_positions_ll:
+            lats = [v[0] for v in vd_positions_ll.values()]
+            lons = [v[1] for v in vd_positions_ll.values()]
+            lat_origin = sum(lats) / len(lats)
+            lon_origin = sum(lons) / len(lons)
+
+            vd_positions_xy = {}
+            for vd, (lat, lon) in vd_positions_ll.items():
+                try:
+                    x, y = mercator_projection(lat, lon, lat_origin, lon_origin)
+                    vd_positions_xy[vd] = (x, y)
+                except Exception:
+                    pass
+
+            logger.info(
+                f"Computed XY positions for {len(vd_positions_xy)}/{len(self.vd_ids)} VDs (centralized)"
+            )
+
+        # Create centralized collate function (attach positions_xy if available)
+        self._collate_fn = create_collate_fn(
+            batch_format='centralized',
+            vd_ids=self.vd_ids,
             sequence_length=self.config.sequence_length,
             prediction_length=self.config.prediction_length,
             vd_positions_xy=vd_positions_xy

@@ -4,4 +4,4 @@
 social_pooling:
   enabled: true
   pool_type: "mean"             # 簡單平均聚合: mean | max | weighted_mean
-  radius: 2000.0                # 空間半徑2000米
+  radius: 100 # m 
