@@ -4,9 +4,6 @@ Basic Metrics Plotting Tool
 
 Generate simple training plots from metrics CSV files created by TrainingMetricsWriter.
 Focuses on MAE, MSE, RMSE, R² visualization without complex dashboards.
-
-Author: Social-xLSTM Project Team
-License: MIT
 """
 
 import argparse

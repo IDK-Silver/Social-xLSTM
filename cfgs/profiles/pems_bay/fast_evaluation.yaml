@@ -1,6 +1,3 @@
-# PEMS-BAY Development Profile
-# Combines modular configurations for PEMS-BAY dataset training
-
 configs:
   - cfgs/data/standard.yaml
   - cfgs/models/xlstm.yaml
@@ -12,7 +9,19 @@ configs:
 overrides:
   data:
     path: "blob/dataset/processed/pems_bay.h5"
-    
-    # Adjust batch size for 6 features
     loader:
-      batch_size: 32  # Reduced from 8 to handle larger feature set
+      batch_size: 32
+
+    selected_vdids:
+        - "400201"
+        - "400274"
+        - "400581" 
+        - "400687"
+        - "400794"
+        - "401351"
+        - "401891"
+        - "402365"
+        - "404586"
+        - "413845"
+  trainer:
+    max_epochs: 10

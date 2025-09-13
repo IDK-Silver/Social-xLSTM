@@ -40,15 +40,26 @@ class SharedSocialXLSTMModel(pl.LightningModule):
         self.encoder = TrafficXLSTM(config.xlstm)
         self.hidden_dim = config.xlstm.embedding_dim
 
-        # Metrics
-        self.train_mae = torchmetrics.MeanAbsoluteError()
-        self.val_mae = torchmetrics.MeanAbsoluteError()
-        self.train_mse = torchmetrics.MeanSquaredError()
-        self.val_mse = torchmetrics.MeanSquaredError()
-        self.train_rmse = torchmetrics.MeanSquaredError(squared=False)
-        self.val_rmse = torchmetrics.MeanSquaredError(squared=False)
-        self.train_r2 = torchmetrics.R2Score()
-        self.val_r2 = torchmetrics.R2Score()
+        # Metrics (track both normalized and real-scale)
+        # Normalized-scale metrics (used for optimization stability)
+        self.train_mae_norm = torchmetrics.MeanAbsoluteError()
+        self.val_mae_norm = torchmetrics.MeanAbsoluteError()
+        self.train_mse_norm = torchmetrics.MeanSquaredError()
+        self.val_mse_norm = torchmetrics.MeanSquaredError()
+        self.train_rmse_norm = torchmetrics.MeanSquaredError(squared=False)
+        self.val_rmse_norm = torchmetrics.MeanSquaredError(squared=False)
+        self.train_r2_norm = torchmetrics.R2Score()
+        self.val_r2_norm = torchmetrics.R2Score()
+
+        # Real-scale metrics (comparable to papers; require inverse-transform)
+        self.train_mae_real = torchmetrics.MeanAbsoluteError()
+        self.val_mae_real = torchmetrics.MeanAbsoluteError()
+        self.train_mse_real = torchmetrics.MeanSquaredError()
+        self.val_mse_real = torchmetrics.MeanSquaredError()
+        self.train_rmse_real = torchmetrics.MeanSquaredError(squared=False)
+        self.val_rmse_real = torchmetrics.MeanSquaredError(squared=False)
+        self.train_r2_real = torchmetrics.R2Score()
+        self.val_r2_real = torchmetrics.R2Score()
 
         # Social pooling layer (spatial)
         if config.social_pooling.enabled:
@@ -178,19 +189,71 @@ class SharedSocialXLSTMModel(pl.LightningModule):
         avg_loss = total_loss / num_vds if num_vds > 0 else total_loss
 
         if all_preds and all_targets:
-            preds_tensor = torch.cat(all_preds, dim=0)
-            targets_tensor = torch.cat(all_targets, dim=0)
+            preds_tensor = torch.cat(all_preds, dim=0)    # [B*N, P*F]
+            targets_tensor = torch.cat(all_targets, dim=0) # [B*N, P*F]
 
-            self.train_mae(preds_tensor, targets_tensor)
-            self.train_mse(preds_tensor, targets_tensor)
-            self.train_rmse(preds_tensor, targets_tensor)
-            self.train_r2(preds_tensor, targets_tensor)
+            # Update normalized-scale metrics
+            self.train_mae_norm(preds_tensor, targets_tensor)
+            self.train_mse_norm(preds_tensor, targets_tensor)
+            self.train_rmse_norm(preds_tensor, targets_tensor)
+            self.train_r2_norm(preds_tensor, targets_tensor)
 
+            # Try to compute real-scale metrics via inverse transform (if scaler is available)
+            preds_real = None
+            targets_real = None
+            scaler = None
+            try:
+                if hasattr(self, 'trainer') and getattr(self.trainer, 'datamodule', None) is not None:
+                    scaler = getattr(self.trainer.datamodule, 'shared_scaler', None)
+            except Exception:
+                scaler = None
+
+            if scaler is not None:
+                with torch.no_grad():
+                    BxN = preds_tensor.size(0)
+                    P = self.prediction_length
+                    F = self.num_features
+                    # Shape back to [BxN*P, F] for inverse_transform, then restore to [BxN, P*F]
+                    preds_np = preds_tensor.detach().cpu().view(BxN, P, F).reshape(-1, F).numpy()
+                    targs_np = targets_tensor.detach().cpu().view(BxN, P, F).reshape(-1, F).numpy()
+                    try:
+                        preds_inv = scaler.inverse_transform(preds_np)
+                        targs_inv = scaler.inverse_transform(targs_np)
+                        preds_real = torch.from_numpy(preds_inv).view(BxN, P * F)
+                        targets_real = torch.from_numpy(targs_inv).view(BxN, P * F)
+                        # Move to same device/dtype as predictions for metrics
+                        device = preds_tensor.device
+                        dtype = preds_tensor.dtype
+                        preds_real = preds_real.to(device=device, dtype=dtype)
+                        targets_real = targets_real.to(device=device, dtype=dtype)
+                    except Exception:
+                        preds_real = None
+                        targets_real = None
+
+            if preds_real is None or targets_real is None:
+                # Fallback to normalized values if inverse-transform not possible
+                preds_real = preds_tensor.detach()
+                targets_real = targets_tensor.detach()
+
+            # Update real-scale metrics
+            self.train_mae_real(preds_real, targets_real)
+            self.train_mse_real(preds_real, targets_real)
+            self.train_rmse_real(preds_real, targets_real)
+            self.train_r2_real(preds_real, targets_real)
+
+            # Log primary metrics on real scale for comparability
             self.log('train_loss', avg_loss, prog_bar=True)
-            self.log('train_mae', self.train_mae, prog_bar=False)
-            self.log('train_mse', self.train_mse, prog_bar=False)
-            self.log('train_rmse', self.train_rmse, prog_bar=False)
-            self.log('train_r2', self.train_r2, prog_bar=False)
+            self.log('train_mae', self.train_mae_real, prog_bar=False)
+            self.log('train_mse', self.train_mse_real, prog_bar=False)
+            self.log('train_rmse', self.train_rmse_real, prog_bar=False)
+            self.log('train_r2', self.train_r2_real, prog_bar=False)
+
+            # Also log normalized metrics for debugging/reference
+            self.log('train_mae_norm', self.train_mae_norm, prog_bar=False)
+            self.log('train_mse_norm', self.train_mse_norm, prog_bar=False)
+            self.log('train_rmse_norm', self.train_rmse_norm, prog_bar=False)
+            self.log('train_r2_norm', self.train_r2_norm, prog_bar=False)
+
             self.log('num_vds', float(num_vds), prog_bar=True)
             self.log('social_pooling_enabled', float(self.config.social_pooling.enabled), prog_bar=False)
 
@@ -222,19 +285,68 @@ class SharedSocialXLSTMModel(pl.LightningModule):
         avg_loss = total_loss / num_vds if num_vds > 0 else total_loss
 
         if all_preds and all_targets:
-            preds_tensor = torch.cat(all_preds, dim=0)
-            targets_tensor = torch.cat(all_targets, dim=0)
+            preds_tensor = torch.cat(all_preds, dim=0)    # [B*N, P*F]
+            targets_tensor = torch.cat(all_targets, dim=0) # [B*N, P*F]
 
-            self.val_mae(preds_tensor, targets_tensor)
-            self.val_mse(preds_tensor, targets_tensor)
-            self.val_rmse(preds_tensor, targets_tensor)
-            self.val_r2(preds_tensor, targets_tensor)
+            # Update normalized-scale metrics
+            self.val_mae_norm(preds_tensor, targets_tensor)
+            self.val_mse_norm(preds_tensor, targets_tensor)
+            self.val_rmse_norm(preds_tensor, targets_tensor)
+            self.val_r2_norm(preds_tensor, targets_tensor)
 
+            # Inverse-transform to real scale if scaler available
+            preds_real = None
+            targets_real = None
+            scaler = None
+            try:
+                if hasattr(self, 'trainer') and getattr(self.trainer, 'datamodule', None) is not None:
+                    scaler = getattr(self.trainer.datamodule, 'shared_scaler', None)
+            except Exception:
+                scaler = None
+
+            if scaler is not None:
+                with torch.no_grad():
+                    BxN = preds_tensor.size(0)
+                    P = self.prediction_length
+                    F = self.num_features
+                    preds_np = preds_tensor.detach().cpu().view(BxN, P, F).reshape(-1, F).numpy()
+                    targs_np = targets_tensor.detach().cpu().view(BxN, P, F).reshape(-1, F).numpy()
+                    try:
+                        preds_inv = scaler.inverse_transform(preds_np)
+                        targs_inv = scaler.inverse_transform(targs_np)
+                        preds_real = torch.from_numpy(preds_inv).view(BxN, P * F)
+                        targets_real = torch.from_numpy(targs_inv).view(BxN, P * F)
+                        # Move to same device/dtype as predictions for metrics
+                        device = preds_tensor.device
+                        dtype = preds_tensor.dtype
+                        preds_real = preds_real.to(device=device, dtype=dtype)
+                        targets_real = targets_real.to(device=device, dtype=dtype)
+                    except Exception:
+                        preds_real = None
+                        targets_real = None
+
+            if preds_real is None or targets_real is None:
+                preds_real = preds_tensor.detach()
+                targets_real = targets_tensor.detach()
+
+            # Update real-scale metrics
+            self.val_mae_real(preds_real, targets_real)
+            self.val_mse_real(preds_real, targets_real)
+            self.val_rmse_real(preds_real, targets_real)
+            self.val_r2_real(preds_real, targets_real)
+
+            # Log primary metrics on real scale for comparability
             self.log('val_loss', avg_loss, prog_bar=True)
-            self.log('val_mae', self.val_mae, prog_bar=False)
-            self.log('val_mse', self.val_mse, prog_bar=False)
-            self.log('val_rmse', self.val_rmse, prog_bar=False)
-            self.log('val_r2', self.val_r2, prog_bar=False)
+            self.log('val_mae', self.val_mae_real, prog_bar=False)
+            self.log('val_mse', self.val_mse_real, prog_bar=False)
+            self.log('val_rmse', self.val_rmse_real, prog_bar=False)
+            self.log('val_r2', self.val_r2_real, prog_bar=False)
+
+            # Also log normalized metrics for debugging/reference
+            self.log('val_mae_norm', self.val_mae_norm, prog_bar=False)
+            self.log('val_mse_norm', self.val_mse_norm, prog_bar=False)
+            self.log('val_rmse_norm', self.val_rmse_norm, prog_bar=False)
+            self.log('val_r2_norm', self.val_r2_norm, prog_bar=False)
 
         return avg_loss
 

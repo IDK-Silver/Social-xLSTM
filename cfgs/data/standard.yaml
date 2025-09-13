@@ -4,13 +4,13 @@
 
 data:
   # Dataset path - dev version for fast iteration
-  path: "blob/dataset/pre-processed/h5/traffic_features_dev.h5"
+  # path: "blob/dataset/pre-processed/h5/traffic_features.h5"
   
   # Data splitting ratios
   split:
     train: 0.7
-    val: 0.15
-    test: 0.15
+    val:   0.3
+    test:  0.0
   
   # DataLoader configuration  
   loader:
@@ -22,9 +22,3 @@ data:
   # Data preprocessing - common settings
   normalize: true
   stride: 1                         # Sliding window stride
-  
-  # Dataset-specific parameters moved to respective dataset configs:
-  # - sequence_length, prediction_length: now in cfgs/datasets/{dataset_name}.yaml
-  # - selected_features: now in cfgs/datasets/{dataset_name}.yaml  
-  # - normalization_method: now in cfgs/datasets/{dataset_name}.yaml
-  # - fill_missing: now in cfgs/datasets/{dataset_name}.yaml
