@@ -7,17 +7,28 @@
 - Data artifacts and results go under `blob/` (e.g., `blob/dataset/processed/*.h5`, `blob/experiments/...`).
 - Docs live in `docs/` (see references for configuration and testing guides).
 
-## Build, Test, and Development Commands
-- Create environment: `conda env create -f environment.yaml && conda activate social_xlstm`.
-- Editable install (src layout): `pip install -e .`.
-- Train (PEMS-BAY dev): `python scripts/train/with_social_pooling/train_multi_vd.py --config cfgs/profiles/pems_bay_dev.yaml`.
-- Quick test run: use `cfgs/profiles/pems_bay_10vd_fast.yaml` (≈20s on CPU/GPU) and generate plots with `scripts/utils/generate_metrics_plots.py`.
-- Tests (if present): `pytest -m "not slow"` or `pytest --cov=src` (see `docs/reference/testing-guide.md`).
+## Build, Test, and Development Commands (UV-only)
+- Execution: always run via `uv run` (no conda activation, no system Python).
+- Train (PEMS-BAY dev): `uv run python scripts/train/with_social_pooling/train_multi_vd.py --config cfgs/profiles/pems_bay_dev.yaml`.
+- Quick test run: use `cfgs/profiles/pems_bay_10vd_fast.yaml` and generate plots with `uv run python scripts/utils/generate_metrics_plots.py`.
+- Tests (if present): `uv run pytest -m "not slow"` or `uv run pytest --cov=src` (see `docs/reference/testing-guide.md`).
+- With approval only: editable install or deps changes (e.g., `uv run pip install -e .`).
 
-## Agent Runtime
-- Always run commands inside the conda env: `conda activate social_xlstm`.
-- Use the env’s Python and tooling (do not use system Python).
-- If dependencies change, run `pip install -e .` again after activation.
+## Agent Runtime (UV-only)
+- Use `uv run` for all commands; do not use conda or system Python.
+- No package changes by default. Only `uv run` is allowed without consent.
+- If a package change is needed, request explicit approval first, then use `uv run pip ...` or `uv add ...` as approved.
+
+## Environment Management (UV-only)
+- Tooling: `uv` is the sole environment tool in this repo.
+- Allowed by default: `uv run` only.
+- Requires explicit user consent before execution: `uv add ...`, `uv run pip ...` (or any command that changes packages).
+- The agent must not modify environments or install/upgrade/uninstall packages without prior approval.
+
+## Package Change Policy
+- No implicit changes. The agent must not install, uninstall, or upgrade packages without explicit user consent.
+- If a dependency is missing, report the missing module and propose an exact `uv run pip ...` or `uv add ...` command for approval.
+- After approval, use the approved command and record it in the conversation for traceability.
 
 ## Coding Style & Naming Conventions
 - Python 3.11+, PEP 8, 4-space indentation, type hints encouraged. Prefer docstrings for public APIs.
