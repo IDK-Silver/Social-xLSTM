@@ -6,10 +6,10 @@ Input:  PEMS-BAY.csv (52,117×326), PEMS-BAY-META.csv (325×18)
 Output: Hierarchical HDF5 with data/features [T,N,F] structure
 
 Features (F=6):
-- avg_speed: Speed data (mph→km/h conversion)  
+- avg_speed: Speed data in mph（不再做 mph→km/h 轉換，原樣保存）
 - lanes: Number of lanes (from META, broadcast over time)
 - length: Sensor length (from META, broadcast)
-- latitude: Latitude coordinate (from META, broadcast)  
+- latitude: Latitude coordinate (from META, broadcast)
 - longitude: Longitude coordinate (from META, broadcast)
 - direction: Traffic direction (N/S/E/W → degrees, broadcast)
 """
@@ -80,9 +80,9 @@ def convert_pems_bay_to_hdf5(data_csv_path, meta_csv_path, output_h5_path,
     ], dtype=np.int64)
     
     # Process speed data (Feature 0: avg_speed)
-    print("Processing speed data (mph → km/h)...")
+    print("Processing speed data (mph, saved as-is)...")
     speed_data = data_df.iloc[1:, 1:].values.astype(np.float32)  # Skip header and timestamp
-    features[:, :, 0] = speed_data * 1.609344  # mph to km/h conversion
+    features[:, :, 0] = speed_data  # keep mph
     
     # Create VD ID list matching column order
     vdids = [str(col).strip() for col in sensor_cols]
@@ -160,7 +160,7 @@ def convert_pems_bay_to_hdf5(data_csv_path, meta_csv_path, output_h5_path,
         metadata_group.create_dataset('frequency', data=b'5min')
         
         # Units information as JSON string
-        units_json = '{"avg_speed": "km/h", "lanes": "count", "length": "miles", "latitude": "degrees", "longitude": "degrees", "direction": "degrees"}'
+        units_json = '{"avg_speed": "mph", "lanes": "count", "length": "miles", "latitude": "degrees", "longitude": "degrees", "direction": "degrees"}'
         metadata_group.create_dataset('units', data=units_json.encode('utf-8'))
         metadata_group.create_dataset('source', data=b'PEMS-BAY 2017-01 to 2017-06')
 
@@ -247,7 +247,7 @@ def validate_hdf5_structure(hdf5_path):
         valid_speeds = speed_data[~np.isnan(speed_data)]
         if len(valid_speeds) > 0:
             assert valid_speeds.min() >= 0, "Speed cannot be negative"
-            assert valid_speeds.max() <= 200, "Speed seems unreasonably high (>200 km/h)"
+            assert valid_speeds.max() <= 200, "Speed seems unreasonably high (>200 mph)"
         
         # Report statistics
         feature_names = [s.decode('utf-8') for s in f['metadata/feature_names'][:]]

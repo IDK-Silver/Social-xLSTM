@@ -163,17 +163,23 @@ class TrafficTimeSeries(Dataset):
         input_mask = ~np.isnan(input_seq).any(axis=-1)  # [seq_len, num_vds]
         target_mask = ~np.isnan(target_seq).any(axis=-1)  # [pred_len, num_vds]
         
-        # Replace any remaining NaN with 0
+        # Replace any remaining NaN with 0 and ensure contiguous float32 buffers
         input_seq = np.nan_to_num(input_seq, nan=0.0)
         target_seq = np.nan_to_num(target_seq, nan=0.0)
+        input_seq = np.ascontiguousarray(input_seq, dtype=np.float32)
+        target_seq = np.ascontiguousarray(target_seq, dtype=np.float32)
+        input_time_feat = np.ascontiguousarray(input_time_feat, dtype=np.float32)
+        target_time_feat = np.ascontiguousarray(target_time_feat, dtype=np.float32)
+        input_mask = np.ascontiguousarray(input_mask)
+        target_mask = np.ascontiguousarray(target_mask)
         
         return {
-            'input_seq': torch.FloatTensor(input_seq),
-            'target_seq': torch.FloatTensor(target_seq),
-            'input_time_feat': torch.FloatTensor(input_time_feat),
-            'target_time_feat': torch.FloatTensor(target_time_feat),
-            'input_mask': torch.BoolTensor(input_mask),
-            'target_mask': torch.BoolTensor(target_mask),
+            'input_seq': torch.from_numpy(input_seq),
+            'target_seq': torch.from_numpy(target_seq),
+            'input_time_feat': torch.from_numpy(input_time_feat),
+            'target_time_feat': torch.from_numpy(target_time_feat),
+            'input_mask': torch.from_numpy(input_mask).to(torch.bool),
+            'target_mask': torch.from_numpy(target_mask).to(torch.bool),
             'timestamps': self.timestamps[start_idx:target_end],
             'vdids': self.selected_vdids
         }

@@ -102,6 +102,8 @@ class TrainingMetricsWriter(Callback):
     
     def on_validation_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         """Record validation metrics at end of validation epoch."""
+        if getattr(trainer, 'sanity_checking', False):
+            return
         if "val" in self.splits:
             self._record_epoch_metrics(trainer, pl_module, "val")
     

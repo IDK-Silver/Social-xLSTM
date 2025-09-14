@@ -168,7 +168,7 @@ class TrafficDataModule(pl.LightningDataModule):
         )
         
         logger.info(
-            f"Prepared distributed collate function for {len(self.vd_ids)} VDs, "
+            f"Prepared centralized collate function for {len(self.vd_ids)} VDs, "
             f"{self.num_features} features"
         )
     
@@ -185,8 +185,8 @@ class TrafficDataModule(pl.LightningDataModule):
         Returns:
             Configured DataLoader
         """
-        return DataLoader(
-            dataset,
+        loader_kwargs = dict(
+            dataset=dataset,
             batch_size=batch_size,
             shuffle=shuffle,
             num_workers=self.config.num_workers,
@@ -195,6 +195,11 @@ class TrafficDataModule(pl.LightningDataModule):
             collate_fn=self._collate_fn,  # None for centralized, DistributedCollator for distributed
             persistent_workers=self.config.num_workers > 0  # Improve multi-worker performance
         )
+        # Prefetch a few batches per worker to keep GPU fed (only valid when workers > 0)
+        if self.config.num_workers and self.config.num_workers > 0:
+            loader_kwargs['prefetch_factor'] = 2
+
+        return DataLoader(**loader_kwargs)
     
     def train_dataloader(self) -> DataLoader:
         """Create training dataloader with appropriate batch format."""

@@ -13,7 +13,8 @@ data:
   prediction_length: 3          
   selected_features: ["avg_speed"]
   normalization_method: "standard"
-  fill_missing: "zero" 
+  # fill_missing: "zero" 
+  fill_missing: interpolate
 
 # Model parameter overrides for PEMS-BAY dataset
 model:

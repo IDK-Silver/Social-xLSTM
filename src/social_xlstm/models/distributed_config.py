@@ -32,14 +32,27 @@ class OptimizerConfig:
 @dataclass
 class SocialPoolingConfig:
     """
-    Configuration for spatial-only social pooling.
-    
-    Only contains social pooling specific parameters.
-    Other parameters are derived from xlstm/dataset/training configs.
+    Configuration for social pooling.
+
+    Legacy (distance-based) and ST-Attention variants are supported.
     """
-    enabled: bool                    # Whether to enable social pooling
-    radius: float                   # Spatial radius in meters
-    pool_type: str                  # Aggregation method: mean, max, weighted_mean
+    enabled: bool                              # Whether to enable social pooling
+
+    # Variant type: 'legacy' (distance-based), 'st_attention'
+    type: str = 'legacy'
+
+    # Legacy options (kept for backward compatibility)
+    radius: float = 100.0                      # Spatial radius in meters
+    pool_type: str = 'mean'                    # Aggregation: mean|max|weighted_mean
+
+    # ST-Attention options
+    knn_k: int = 16                            # kNN neighbors per VD
+    time_window: int = 4                       # Timesteps for neighbor temporal repr
+    heads: int = 4                             # Attention heads
+    learnable_tau: bool = True                 # Learnable temperature for distance kernel
+    tau_init: float = 1.0                      # Initial temperature
+    dropout: float = 0.1                       # Attention dropout
+    use_radius_mask: bool = False              # Optionally mask neighbors beyond radius
     
 
 
@@ -64,6 +77,5 @@ class DistributedSocialXLSTMConfig:
     social_pooling: SocialPoolingConfig
     optimizer: Optional[OptimizerConfig] = None
     
-
 
 

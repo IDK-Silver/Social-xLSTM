@@ -9,23 +9,23 @@ configs:
 overrides:
   data:
     stride: 3  
-    path: "blob/dataset/processed/pems_bay.h5"
+    path: "blob/dataset/processed/metr_la.h5"
     fill_missing: interpolate
     loader:
       batch_size: 64
       num_workers: 8
 
     selected_vdids:
-        - "400201"
-        - "400274"
-        - "400581" 
-        - "400687"
-        - "400794"
-        - "401351"
-        - "401891"
-        - "402365"
-        - "404586"
-        - "413845"
+        - "773869"
+        - "718499"
+        - "717573" 
+        - "717572"
+        - "761003"
+        - "773904"
+        - "760987"
+        - "718204"
+        - "717576"
+        - "759772"
   trainer:
     max_epochs: 20
     num_sanity_val_steps: 0

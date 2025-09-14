@@ -1,6 +1,7 @@
 import argparse
 from pathlib import Path
 import logging
+import torch
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
 
@@ -27,11 +28,21 @@ def parse_args():
     )
     parser.add_argument('--config', type=str, required=True, help='YAML profile or regular config')
     parser.add_argument('--output_dir', type=str, default='./lightning_logs', help='Output directory')
+    parser.add_argument('--eval_test', action='store_true', help='Run test evaluation after training')
+    parser.add_argument('--test_ckpt_mode', type=str, choices=['best', 'last', 'none'], default='best',
+                        help='Checkpoint to use for test evaluation (requires ModelCheckpoint for best/last)')
+    parser.add_argument('--test_ckpt_path', type=str, default=None,
+                        help='Explicit checkpoint path for test evaluation (overrides --test_ckpt_mode)')
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
+    # Enable Tensor Cores-friendly matmul precision on supported GPUs
+    try:
+        torch.set_float32_matmul_precision('medium')
+    except Exception:
+        pass
 
     # Load config (profile or regular)
     config_path = Path(args.config)
@@ -97,10 +108,26 @@ def main():
 
     metrics_config = callbacks_config.get("training_metrics", {})
     metrics_output_dir = metrics_config.get("output_dir", f"{args.output_dir}/metrics")
+    # Allow configuring which metrics to record; optionally include normalized versions
+    base_metrics = tuple(metrics_config.get("metrics", ("mae", "mse", "rmse", "r2")))
+    splits = tuple(metrics_config.get("splits", ("train", "val")))
+    # If test evaluation is requested but not tracked, include 'test' split for writer
+    if args.eval_test and 'test' not in splits:
+        splits = tuple(list(splits) + ['test'])
+    include_norm = bool(metrics_config.get("include_normalized", False))
+    if include_norm:
+        norm_ext = tuple(m + "_norm" for m in ("mae", "mse", "rmse", "r2"))
+        metrics_tuple = tuple(dict.fromkeys(list(base_metrics) + list(norm_ext)))  # dedupe, keep order
+    else:
+        metrics_tuple = base_metrics
+
     metrics_writer = TrainingMetricsWriter(
         output_dir=metrics_output_dir,
-        metrics=("mae", "mse", "rmse", "r2"),
-        splits=("train", "val"),
+        metrics=metrics_tuple,
+        splits=splits,
+        csv_filename=metrics_config.get("csv_filename", "metrics.csv"),
+        json_filename=metrics_config.get("json_filename", "metrics_summary.json"),
+        append_mode=bool(metrics_config.get("append_mode", True)),
     )
     callbacks.append(metrics_writer)
 
@@ -119,6 +146,20 @@ def main():
 
     logger.info("Starting training (Shared-Encoder)")
     trainer.fit(model, datamodule)
+
+    # Optional: run test evaluation and record metrics
+    if args.eval_test:
+        ckpt_path = None
+        if args.test_ckpt_path:
+            ckpt_path = args.test_ckpt_path
+        else:
+            if args.test_ckpt_mode in ('best', 'last'):
+                ckpt_path = args.test_ckpt_mode
+        logger.info(f"Running test evaluation (ckpt_path={ckpt_path})")
+        try:
+            trainer.test(model=model, datamodule=datamodule, ckpt_path=ckpt_path)
+        except Exception as e:
+            logger.warning(f"Test evaluation failed: {e}")
 
 
 if __name__ == "__main__":

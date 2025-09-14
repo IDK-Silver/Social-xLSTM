@@ -20,6 +20,7 @@ import torchmetrics
 from .xlstm import TrafficXLSTM, TrafficXLSTMConfig
 from .distributed_config import DistributedSocialXLSTMConfig
 from ..pooling.xlstm_pooling import XLSTMSocialPoolingLayer
+from ..pooling.st_attention_pooling import STAttentionPooling
 
 
 class SharedSocialXLSTMModel(pl.LightningModule):
@@ -61,16 +62,29 @@ class SharedSocialXLSTMModel(pl.LightningModule):
         self.train_r2_real = torchmetrics.R2Score()
         self.val_r2_real = torchmetrics.R2Score()
 
-        # Social pooling layer (spatial)
+        # Social pooling layer selection
+        self.social_pooling = None
         if config.social_pooling.enabled:
-            self.social_pooling = XLSTMSocialPoolingLayer(
-                hidden_dim=self.hidden_dim,
-                radius=config.social_pooling.radius,
-                pool_type=config.social_pooling.pool_type,
-                learnable_radius=False
-            )
-        else:
-            self.social_pooling = None
+            sp_cfg = config.social_pooling
+            if getattr(sp_cfg, 'type', 'legacy') == 'st_attention':
+                self.social_pooling = STAttentionPooling(
+                    hidden_dim=self.hidden_dim,
+                    knn_k=sp_cfg.knn_k,
+                    time_window=sp_cfg.time_window,
+                    heads=sp_cfg.heads,
+                    learnable_tau=sp_cfg.learnable_tau,
+                    tau_init=sp_cfg.tau_init,
+                    dropout=sp_cfg.dropout,
+                    use_radius_mask=sp_cfg.use_radius_mask,
+                    radius=sp_cfg.radius,
+                )
+            else:
+                self.social_pooling = XLSTMSocialPoolingLayer(
+                    hidden_dim=self.hidden_dim,
+                    radius=sp_cfg.radius,
+                    pool_type=sp_cfg.pool_type,
+                    learnable_radius=False
+                )
 
         # Fusion and prediction
         self.fusion_layer = nn.Sequential(
@@ -86,6 +100,14 @@ class SharedSocialXLSTMModel(pl.LightningModule):
         )
 
         self.criterion = nn.MSELoss()
+
+        # Normalization buffers (set in on_fit_start)
+        self.norm_kind: Optional[str] = None  # 'standard' | 'minmax' | None
+        # Registered at runtime if scaler available
+        # self.register_buffer('feature_mean', ...)
+        # self.register_buffer('feature_scale', ...)
+        # self.register_buffer('data_min', ...)
+        # self.register_buffer('data_range', ...)
 
     def forward(
         self,
@@ -105,19 +127,14 @@ class SharedSocialXLSTMModel(pl.LightningModule):
         h_flat = self.encoder.get_hidden_states(x_flat)             # [B*N,T,E]
         H = h_flat.view(B, N, T, self.hidden_dim)                   # [B,N,T,E]
 
-        # Prepare dict-of-VD hidden states for pooling/fusion
-        # Keep VD order deterministic using vd_ids if provided; else use index
+        # Prepare VD ids
         if vd_ids is None:
             vd_ids = [str(i) for i in range(N)]
-
         if len(vd_ids) != N:
             raise ValueError("vd_ids length does not match N")
 
-        hidden_states_dict: Dict[str, torch.Tensor] = OrderedDict()
-        for i, vd in enumerate(vd_ids):
-            hidden_states_dict[vd] = H[:, i, :, :]  # [B,T,E]
-
-        # Social contexts (strict requirement if enabled)
+        # Social contexts
+        social_context_tensor: Optional[torch.Tensor] = None  # [B,N,E]
         if self.social_pooling is not None:
             if positions_xy is None:
                 raise RuntimeError(
@@ -131,32 +148,38 @@ class SharedSocialXLSTMModel(pl.LightningModule):
             if torch.isnan(positions_xy).any():
                 raise RuntimeError("positions_xy contains NaNs while social pooling is enabled.")
 
-            # Build positions dict per VD as [B,T,2] by repeating static XY
-            positions_dict: Dict[str, torch.Tensor] = OrderedDict()
-            for i, vd in enumerate(vd_ids):
-                xy = positions_xy[i]  # [2]
-                base = xy.view(1, 1, 2).to(H.device)
-                positions_dict[vd] = base.expand(B, T, 2)
+            # Branch by pooling implementation
+            if isinstance(self.social_pooling, STAttentionPooling):
+                # Vectorized ST-Attention pooling
+                social_context_tensor = self.social_pooling(H, positions_xy.to(H.device))  # [B,N,E]
+            else:
+                # Legacy pooling expects dict-of-VD with [B,T,E] and [B,T,2]
+                hidden_states_dict: Dict[str, torch.Tensor] = OrderedDict()
+                positions_dict: Dict[str, torch.Tensor] = OrderedDict()
+                for i, vd in enumerate(vd_ids):
+                    hidden_states_dict[vd] = H[:, i, :, :]  # [B,T,E]
+                    base = positions_xy[i].view(1, 1, 2).to(H.device)
+                    positions_dict[vd] = base.expand(B, T, 2)
 
-            social_contexts = self.social_pooling(
-                agent_hidden_states=hidden_states_dict,
-                agent_positions=positions_dict,
-                target_agent_ids=vd_ids,
-            )
+                social_contexts = self.social_pooling(
+                    agent_hidden_states=hidden_states_dict,
+                    agent_positions=positions_dict,
+                    target_agent_ids=vd_ids,
+                )
+                # Stack to tensor [B,N,E]
+                social_context_tensor = torch.stack([social_contexts[vd] for vd in vd_ids], dim=1)
         else:
-            social_contexts = OrderedDict()
-            for vd in vd_ids:
-                social_contexts[vd] = torch.zeros(B, self.hidden_dim, device=H.device)
+            social_context_tensor = torch.zeros(B, N, self.hidden_dim, device=H.device)
 
-        # Fusion + prediction per VD
+        # Fusion + prediction per VD (vectorized over N)
+        individual_hidden = H[:, :, -1, :]                # [B,N,E]
+        fused = torch.cat([individual_hidden, social_context_tensor], dim=-1)  # [B,N,2E]
+        fused = self.fusion_layer(fused.view(B * N, -1))  # [B*N,E]
+        pred = self.prediction_head(fused).view(B, N, -1) # [B,N,P*F]
+
         predictions: Dict[str, torch.Tensor] = OrderedDict()
         for i, vd in enumerate(vd_ids):
-            individual_hidden = H[:, i, -1, :]           # [B,E]
-            social_context = social_contexts[vd]         # [B,E]
-            fused = torch.cat([individual_hidden, social_context], dim=-1)
-            fused = self.fusion_layer(fused)
-            pred = self.prediction_head(fused)           # [B, P*F]
-            predictions[vd] = pred
+            predictions[vd] = pred[:, i, :]
 
         return predictions
 
@@ -198,42 +221,10 @@ class SharedSocialXLSTMModel(pl.LightningModule):
             self.train_rmse_norm(preds_tensor, targets_tensor)
             self.train_r2_norm(preds_tensor, targets_tensor)
 
-            # Try to compute real-scale metrics via inverse transform (if scaler is available)
-            preds_real = None
-            targets_real = None
-            scaler = None
-            try:
-                if hasattr(self, 'trainer') and getattr(self.trainer, 'datamodule', None) is not None:
-                    scaler = getattr(self.trainer.datamodule, 'shared_scaler', None)
-            except Exception:
-                scaler = None
-
-            if scaler is not None:
-                with torch.no_grad():
-                    BxN = preds_tensor.size(0)
-                    P = self.prediction_length
-                    F = self.num_features
-                    # Shape back to [BxN*P, F] for inverse_transform, then restore to [BxN, P*F]
-                    preds_np = preds_tensor.detach().cpu().view(BxN, P, F).reshape(-1, F).numpy()
-                    targs_np = targets_tensor.detach().cpu().view(BxN, P, F).reshape(-1, F).numpy()
-                    try:
-                        preds_inv = scaler.inverse_transform(preds_np)
-                        targs_inv = scaler.inverse_transform(targs_np)
-                        preds_real = torch.from_numpy(preds_inv).view(BxN, P * F)
-                        targets_real = torch.from_numpy(targs_inv).view(BxN, P * F)
-                        # Move to same device/dtype as predictions for metrics
-                        device = preds_tensor.device
-                        dtype = preds_tensor.dtype
-                        preds_real = preds_real.to(device=device, dtype=dtype)
-                        targets_real = targets_real.to(device=device, dtype=dtype)
-                    except Exception:
-                        preds_real = None
-                        targets_real = None
-
-            if preds_real is None or targets_real is None:
-                # Fallback to normalized values if inverse-transform not possible
-                preds_real = preds_tensor.detach()
-                targets_real = targets_tensor.detach()
+            # Compute real-scale tensors using registered buffers (pure torch)
+            preds_real, targets_real = self._prepare_real_scale(
+                preds_tensor, targets_tensor, self.prediction_length, self.num_features
+            )
 
             # Update real-scale metrics
             self.train_mae_real(preds_real, targets_real)
@@ -242,20 +233,20 @@ class SharedSocialXLSTMModel(pl.LightningModule):
             self.train_r2_real(preds_real, targets_real)
 
             # Log primary metrics on real scale for comparability
-            self.log('train_loss', avg_loss, prog_bar=True)
-            self.log('train_mae', self.train_mae_real, prog_bar=False)
-            self.log('train_mse', self.train_mse_real, prog_bar=False)
-            self.log('train_rmse', self.train_rmse_real, prog_bar=False)
-            self.log('train_r2', self.train_r2_real, prog_bar=False)
+            self.log('train_loss', avg_loss, prog_bar=True, on_step=False, on_epoch=True, batch_size=B)
+            self.log('train_mae', self.train_mae_real, prog_bar=False, on_step=False, on_epoch=True, batch_size=B)
+            self.log('train_mse', self.train_mse_real, prog_bar=False, on_step=False, on_epoch=True, batch_size=B)
+            self.log('train_rmse', self.train_rmse_real, prog_bar=False, on_step=False, on_epoch=True, batch_size=B)
+            self.log('train_r2', self.train_r2_real, prog_bar=False, on_step=False, on_epoch=True, batch_size=B)
 
             # Also log normalized metrics for debugging/reference
-            self.log('train_mae_norm', self.train_mae_norm, prog_bar=False)
-            self.log('train_mse_norm', self.train_mse_norm, prog_bar=False)
-            self.log('train_rmse_norm', self.train_rmse_norm, prog_bar=False)
-            self.log('train_r2_norm', self.train_r2_norm, prog_bar=False)
+            self.log('train_mae_norm', self.train_mae_norm, prog_bar=False, on_step=False, on_epoch=True, batch_size=B)
+            self.log('train_mse_norm', self.train_mse_norm, prog_bar=False, on_step=False, on_epoch=True, batch_size=B)
+            self.log('train_rmse_norm', self.train_rmse_norm, prog_bar=False, on_step=False, on_epoch=True, batch_size=B)
+            self.log('train_r2_norm', self.train_r2_norm, prog_bar=False, on_step=False, on_epoch=True, batch_size=B)
 
-            self.log('num_vds', float(num_vds), prog_bar=True)
-            self.log('social_pooling_enabled', float(self.config.social_pooling.enabled), prog_bar=False)
+            self.log('num_vds', float(num_vds), prog_bar=True, on_step=False, on_epoch=True, batch_size=B)
+            self.log('social_pooling_enabled', float(self.config.social_pooling.enabled), prog_bar=False, on_step=False, on_epoch=True, batch_size=B)
 
         return avg_loss
 
@@ -294,40 +285,10 @@ class SharedSocialXLSTMModel(pl.LightningModule):
             self.val_rmse_norm(preds_tensor, targets_tensor)
             self.val_r2_norm(preds_tensor, targets_tensor)
 
-            # Inverse-transform to real scale if scaler available
-            preds_real = None
-            targets_real = None
-            scaler = None
-            try:
-                if hasattr(self, 'trainer') and getattr(self.trainer, 'datamodule', None) is not None:
-                    scaler = getattr(self.trainer.datamodule, 'shared_scaler', None)
-            except Exception:
-                scaler = None
-
-            if scaler is not None:
-                with torch.no_grad():
-                    BxN = preds_tensor.size(0)
-                    P = self.prediction_length
-                    F = self.num_features
-                    preds_np = preds_tensor.detach().cpu().view(BxN, P, F).reshape(-1, F).numpy()
-                    targs_np = targets_tensor.detach().cpu().view(BxN, P, F).reshape(-1, F).numpy()
-                    try:
-                        preds_inv = scaler.inverse_transform(preds_np)
-                        targs_inv = scaler.inverse_transform(targs_np)
-                        preds_real = torch.from_numpy(preds_inv).view(BxN, P * F)
-                        targets_real = torch.from_numpy(targs_inv).view(BxN, P * F)
-                        # Move to same device/dtype as predictions for metrics
-                        device = preds_tensor.device
-                        dtype = preds_tensor.dtype
-                        preds_real = preds_real.to(device=device, dtype=dtype)
-                        targets_real = targets_real.to(device=device, dtype=dtype)
-                    except Exception:
-                        preds_real = None
-                        targets_real = None
-
-            if preds_real is None or targets_real is None:
-                preds_real = preds_tensor.detach()
-                targets_real = targets_tensor.detach()
+            # Compute real-scale tensors using registered buffers (pure torch)
+            preds_real, targets_real = self._prepare_real_scale(
+                preds_tensor, targets_tensor, self.prediction_length, self.num_features
+            )
 
             # Update real-scale metrics
             self.val_mae_real(preds_real, targets_real)
@@ -336,17 +297,17 @@ class SharedSocialXLSTMModel(pl.LightningModule):
             self.val_r2_real(preds_real, targets_real)
 
             # Log primary metrics on real scale for comparability
-            self.log('val_loss', avg_loss, prog_bar=True)
-            self.log('val_mae', self.val_mae_real, prog_bar=False)
-            self.log('val_mse', self.val_mse_real, prog_bar=False)
-            self.log('val_rmse', self.val_rmse_real, prog_bar=False)
-            self.log('val_r2', self.val_r2_real, prog_bar=False)
+            self.log('val_loss', avg_loss, prog_bar=True, on_step=False, on_epoch=True, batch_size=B)
+            self.log('val_mae', self.val_mae_real, prog_bar=False, on_step=False, on_epoch=True, batch_size=B)
+            self.log('val_mse', self.val_mse_real, prog_bar=False, on_step=False, on_epoch=True, batch_size=B)
+            self.log('val_rmse', self.val_rmse_real, prog_bar=False, on_step=False, on_epoch=True, batch_size=B)
+            self.log('val_r2', self.val_r2_real, prog_bar=False, on_step=False, on_epoch=True, batch_size=B)
 
             # Also log normalized metrics for debugging/reference
-            self.log('val_mae_norm', self.val_mae_norm, prog_bar=False)
-            self.log('val_mse_norm', self.val_mse_norm, prog_bar=False)
-            self.log('val_rmse_norm', self.val_rmse_norm, prog_bar=False)
-            self.log('val_r2_norm', self.val_r2_norm, prog_bar=False)
+            self.log('val_mae_norm', self.val_mae_norm, prog_bar=False, on_step=False, on_epoch=True, batch_size=B)
+            self.log('val_mse_norm', self.val_mse_norm, prog_bar=False, on_step=False, on_epoch=True, batch_size=B)
+            self.log('val_rmse_norm', self.val_rmse_norm, prog_bar=False, on_step=False, on_epoch=True, batch_size=B)
+            self.log('val_r2_norm', self.val_r2_norm, prog_bar=False, on_step=False, on_epoch=True, batch_size=B)
 
         return avg_loss
 
@@ -389,3 +350,69 @@ class SharedSocialXLSTMModel(pl.LightningModule):
                 'monitor': 'val_loss'
             }
         }
+
+    # ----------------------
+    # Normalization utilities
+    # ----------------------
+    def on_fit_start(self) -> None:
+        """Extract scaler stats from datamodule and register as buffers for torch-only inverse-transform."""
+        try:
+            dm = getattr(self.trainer, 'datamodule', None)
+            scaler = getattr(dm, 'shared_scaler', None) if dm is not None else None
+        except Exception:
+            scaler = None
+
+        if scaler is None:
+            self.norm_kind = None
+            return
+
+        # Detect scaler type by attributes; register buffers on CPU, Lightning moves them to device
+        if hasattr(scaler, 'mean_') and hasattr(scaler, 'scale_'):
+            # StandardScaler
+            mean = torch.tensor(scaler.mean_, dtype=torch.float32)
+            scale = torch.tensor(scaler.scale_, dtype=torch.float32)
+            # Avoid degenerate scale
+            eps = torch.finfo(torch.float32).eps
+            scale = torch.clamp(scale, min=eps)
+            self.register_buffer('feature_mean', mean)
+            self.register_buffer('feature_scale', scale)
+            self.norm_kind = 'standard'
+        elif hasattr(scaler, 'data_min_') and hasattr(scaler, 'data_range_'):
+            # MinMaxScaler
+            data_min = torch.tensor(scaler.data_min_, dtype=torch.float32)
+            data_range = torch.tensor(scaler.data_range_, dtype=torch.float32)
+            eps = torch.finfo(torch.float32).eps
+            data_range = torch.clamp(data_range, min=eps)
+            self.register_buffer('data_min', data_min)
+            self.register_buffer('data_range', data_range)
+            self.norm_kind = 'minmax'
+        else:
+            # Unknown scaler type
+            self.norm_kind = None
+
+    def _inverse_transform(self, x: torch.Tensor, P: int, F: int) -> torch.Tensor:
+        """Inverse-transform last-dimension features using registered buffers; x shape [*, P*F]."""
+        if self.norm_kind is None:
+            return x
+        orig_shape = x.shape
+        x_view = x.view(-1, P, F)
+        if self.norm_kind == 'standard' and hasattr(self, 'feature_mean') and hasattr(self, 'feature_scale'):
+            mean = self.feature_mean.to(device=x_view.device, dtype=x_view.dtype)
+            scale = self.feature_scale.to(device=x_view.device, dtype=x_view.dtype)
+            x_real = x_view * scale + mean
+        elif self.norm_kind == 'minmax' and hasattr(self, 'data_min') and hasattr(self, 'data_range'):
+            data_min = self.data_min.to(device=x_view.device, dtype=x_view.dtype)
+            data_range = self.data_range.to(device=x_view.device, dtype=x_view.dtype)
+            x_real = x_view * data_range + data_min
+        else:
+            return x
+        return x_real.view(orig_shape)
+
+    def _prepare_real_scale(self, preds: torch.Tensor, targets: torch.Tensor, P: int, F: int) -> tuple[torch.Tensor, torch.Tensor]:
+        """Return real-scale tensors using pure-torch inverse-transform when possible; otherwise return inputs."""
+        try:
+            preds_real = self._inverse_transform(preds, P, F)
+            targets_real = self._inverse_transform(targets, P, F)
+            return preds_real, targets_real
+        except Exception:
+            return preds.detach(), targets.detach()

@@ -1,0 +1,20 @@
+# ST-Attention Social Pooling (kNN + learnable tau)
+# 可學習的距離衰減 + 近窗時序注意力 + kNN 稀疏化
+
+social_pooling:
+  enabled: true
+  type: "st_attention"     # 使用 ST-Attention 分支（非 legacy）
+
+  # kNN 與時序聚合（穩健起跑值）
+  knn_k: 8                  # 每個節點取 k 個最近鄰（減少噪音）
+  time_window: 3            # 近窗長度，降低序列壓縮噪音
+  heads: 1                  # 先用單頭，穩定後再增大
+
+  # 距離核 w(d) = exp(-d / tau)
+  learnable_tau: false      # 先固定以避免不穩
+  tau_init: 10000.0         # 以公尺為單位，避免 log(w) 壓制 QK
+  dropout: 0.1              # 注意力 dropout
+
+  # 半徑遮罩：過遠鄰居置零（以公尺為單位）
+  use_radius_mask: true
+  radius: 5000              # 5 公里鄰域
