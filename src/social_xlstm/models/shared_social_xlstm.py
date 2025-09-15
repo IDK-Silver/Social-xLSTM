@@ -77,6 +77,7 @@ class SharedSocialXLSTMModel(pl.LightningModule):
                     dropout=sp_cfg.dropout,
                     use_radius_mask=sp_cfg.use_radius_mask,
                     radius=sp_cfg.radius,
+                    bias_scale=getattr(sp_cfg, 'bias_scale', 1.0),
                 )
             else:
                 self.social_pooling = XLSTMSocialPoolingLayer(
@@ -91,6 +92,12 @@ class SharedSocialXLSTMModel(pl.LightningModule):
             nn.Linear(self.hidden_dim * 2, self.hidden_dim),
             nn.ReLU(),
             nn.Dropout(0.1),
+        )
+        # Gate for social context (learned per-VD, per-feature)
+        # Takes [h_t, context] and outputs sigmoid gate in [0,1] for context
+        self.gate_layer = nn.Sequential(
+            nn.Linear(self.hidden_dim * 2, self.hidden_dim),
+            nn.Sigmoid(),
         )
         self.prediction_head = nn.Sequential(
             nn.Linear(self.hidden_dim, self.hidden_dim // 2),
@@ -173,6 +180,11 @@ class SharedSocialXLSTMModel(pl.LightningModule):
 
         # Fusion + prediction per VD (vectorized over N)
         individual_hidden = H[:, :, -1, :]                # [B,N,E]
+        # Apply learned gate on social context when pooling is enabled
+        if self.social_pooling is not None:
+            gate_in = torch.cat([individual_hidden, social_context_tensor], dim=-1)  # [B,N,2E]
+            gate = self.gate_layer(gate_in)  # [B,N,E]
+            social_context_tensor = gate * social_context_tensor
         fused = torch.cat([individual_hidden, social_context_tensor], dim=-1)  # [B,N,2E]
         fused = self.fusion_layer(fused.view(B * N, -1))  # [B*N,E]
         pred = self.prediction_head(fused).view(B, N, -1) # [B,N,P*F]

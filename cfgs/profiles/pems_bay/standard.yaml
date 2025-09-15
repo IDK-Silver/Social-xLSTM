@@ -4,16 +4,32 @@
 configs:
   - cfgs/data/standard.yaml
   - cfgs/models/xlstm.yaml
-  - cfgs/social_pooling/st_attention_basic.yaml
+  - cfgs/social_pooling/st_attention_stronger.yaml
   - cfgs/training/standard.yaml
   - cfgs/datasets/pems_bay/standard.yaml
 
 # Profile-specific overrides
 overrides:
   data:
-    stride: 10 
+    stride: 10
     path: "blob/dataset/processed/pems_bay.h5"
-    
-    # Adjust batch size for 6 features
     loader:
-      batch_size: 32  # Reduced from 8 to handle larger feature set
+      batch_size: 8
+      num_workers: 8
+      pin_memory: true
+
+  trainer:
+    # MAE-focused, full validation each epoch
+    max_epochs: 30
+    precision: "16-mixed"
+    num_sanity_val_steps: 0
+    check_val_every_n_epoch: 1
+    callbacks:
+      training_metrics:
+        include_normalized: true
+        splits: [train, val]
+      model_checkpoint:
+        monitor: "val_mae"
+        mode: "min"
+        save_top_k: 1
+        filename: "epoch={epoch}-val_mae={val_mae:.4f}"

@@ -53,6 +53,7 @@ class SocialPoolingConfig:
     tau_init: float = 1.0                      # Initial temperature
     dropout: float = 0.1                       # Attention dropout
     use_radius_mask: bool = False              # Optionally mask neighbors beyond radius
+    bias_scale: float = 1.0                    # Scale factor for distance bias added to logits
     
 
 
@@ -77,5 +78,4 @@ class DistributedSocialXLSTMConfig:
     social_pooling: SocialPoolingConfig
     optimizer: Optional[OptimizerConfig] = None
     
-
 

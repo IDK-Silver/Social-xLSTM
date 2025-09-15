@@ -55,22 +55,30 @@ def convert_metr_la_to_hdf5(data_csv_path, meta_csv_path, output_h5_path,
     ], dtype=np.int64)
 
     # Process avg_speed (mph, saved as-is)
-    print("Processing speed data (mph, saved as-is)...")
+    print("Processing speed data (mph, with filtering + interpolation)...")
     speed_data = data_df.iloc[1:, 1:].values.astype(np.float32)
 
-    # 計算每一 row 的零值比例
-    zero_ratio = (speed_data == 0).sum(axis=1) / speed_data.shape[1]
+    # 把 0 視為缺失值
+    speed_data[speed_data == 0] = np.nan
 
-    # 設定閾值，例如 0.5 → 超過 50% sensor 為 0 才刪掉
+    # 計算每一 row 的 NaN 比例
+    nan_ratio = np.isnan(speed_data).sum(axis=1) / speed_data.shape[1]
+
+    # 設定閾值，例如 0.5 → 超過 50% sensor 為 NaN，就整 row 當成 NaN
     threshold = 0.5
-    mask = zero_ratio < threshold
+    speed_data[nan_ratio > threshold, :] = np.nan
 
-    # 過濾資料
-    speed_data = speed_data[mask]
-    timestamps = timestamps[mask]
-    T = len(speed_data)
+    print(f"原始筆數: {data_df.shape[0] - 1}, 保留筆數: {T}, 全部變 NaN 的筆數: {(nan_ratio > threshold).sum()} (threshold={threshold})")
 
-    print(f"原始筆數: {data_df.shape[0] - 1}, 保留筆數: {T}, 刪掉筆數: {(~mask).sum()} (threshold={threshold})")
+    # 對每一列做線性插值（只處理剩下的 0）
+    speed_data[speed_data == 0] = np.nan  # 把 0 視為缺失值
+    speed_df = pd.DataFrame(speed_data)
+    speed_df = speed_df.interpolate(
+        method="linear", 
+        limit_direction="both",  # 兩端也補
+        axis=0                   # 沿時間軸補值
+    )
+    speed_data = speed_df.values.astype(np.float32)
 
     # 初始化 features tensor（因為 T 更新了）
     features = np.full((T, N, F), np.nan, dtype=np.float32)
