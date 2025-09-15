@@ -27,7 +27,6 @@ def parse_args():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument('--config', type=str, required=True, help='YAML profile or regular config')
-    parser.add_argument('--output_dir', type=str, default='./lightning_logs', help='Output directory')
     parser.add_argument('--eval_test', action='store_true', help='Run test evaluation after training')
     parser.add_argument('--test_ckpt_mode', type=str, choices=['best', 'last', 'none'], default='best',
                         help='Checkpoint to use for test evaluation (requires ModelCheckpoint for best/last)')
@@ -98,47 +97,70 @@ def main():
 
     # Callbacks & trainer
     callbacks = []
-    trainer_config = config["trainer"].copy()
-    callbacks_config = trainer_config.pop("callbacks", {})
-
-    if "model_checkpoint" in callbacks_config:
-        callbacks.append(ModelCheckpoint(**callbacks_config["model_checkpoint"]))
-    if "learning_rate_monitor" in callbacks_config:
-        callbacks.append(LearningRateMonitor(**callbacks_config["learning_rate_monitor"]))
-
-    metrics_config = callbacks_config.get("training_metrics", {})
-    metrics_output_dir = metrics_config.get("output_dir", f"{args.output_dir}/metrics")
+    
+    if "model_checkpoint" in config["trainer"].get("callbacks", {}):
+        callbacks.append(
+            ModelCheckpoint(**config["trainer"]["callbacks"]["model_checkpoint"]) 
+        )
+    
+    output_dir = (
+        config["trainer"]
+        .get("callbacks", {})
+        .get("output_dir", None)
+    )
+    
+    if output_dir is None:
+        logger.warning("output_dir is not set in config; using default './output_metrics_is_not_set'")
+        output_dir = "./output_dir_is_not_set"
+        
+    output_dir = Path(output_dir)
+    
     # Allow configuring which metrics to record; optionally include normalized versions
-    base_metrics = tuple(metrics_config.get("metrics", ("mae", "mse", "rmse", "r2")))
-    splits = tuple(metrics_config.get("splits", ("train", "val")))
-    # If test evaluation is requested but not tracked, include 'test' split for writer
-    if args.eval_test and 'test' not in splits:
-        splits = tuple(list(splits) + ['test'])
-    include_norm = bool(metrics_config.get("include_normalized", False))
-    if include_norm:
-        norm_ext = tuple(m + "_norm" for m in ("mae", "mse", "rmse", "r2"))
-        metrics_tuple = tuple(dict.fromkeys(list(base_metrics) + list(norm_ext)))  # dedupe, keep order
-    else:
-        metrics_tuple = base_metrics
+    base_metrics = tuple(
+        config["trainer"].get("callbacks", {})
+        .get("training_metrics", {})
+        .get("metrics", ("mae", "rmse", "mape"))
+    )
+    splits = tuple(
+        config["trainer"].get("callbacks", {})
+        .get("training_metrics", {})
+        .get("splits", ("train", "val"))
+    )
 
     metrics_writer = TrainingMetricsWriter(
-        output_dir=metrics_output_dir,
-        metrics=metrics_tuple,
+        output_dir=output_dir / 'metrics',
+        metrics=base_metrics,
         splits=splits,
-        csv_filename=metrics_config.get("csv_filename", "metrics.csv"),
-        json_filename=metrics_config.get("json_filename", "metrics_summary.json"),
-        append_mode=bool(metrics_config.get("append_mode", True)),
+        csv_filename=(
+            config["trainer"].get("callbacks", {})
+            .get("training_metrics", {})
+            .get("csv_filename", "metrics.csv")
+        ),
+        json_filename=(
+            config["trainer"].get("callbacks", {})
+            .get("training_metrics", {})
+            .get("json_filename", "metrics_summary.json")
+        ),
+        append_mode=bool(
+            config["trainer"].get("callbacks", {})
+            .get("training_metrics", {})
+            .get("append_mode", True)
+        ),
     )
     callbacks.append(metrics_writer)
 
-    trainer_config['default_root_dir'] = args.output_dir
-    # Log configured trainer settings before init
-    cfg_precision = trainer_config.get('precision', 'unset')
-    cfg_accelerator = trainer_config.get('accelerator', 'auto')
-    cfg_devices = trainer_config.get('devices', 'auto')
-    logger.info(f"Trainer config -> accelerator={cfg_accelerator}, devices={cfg_devices}, precision={cfg_precision}")
+    logger.info(
+        "Trainer config -> accelerator=%s, devices=%s, precision=%s",
+        config["trainer"].get("accelerator", "auto"),
+        config["trainer"].get("devices", "auto"),
+        config["trainer"].get("precision", "unset"),
+    )
 
-    trainer = pl.Trainer(callbacks=callbacks, **trainer_config)
+    trainer = pl.Trainer(
+        callbacks=callbacks,
+        default_root_dir=output_dir,
+        **{k: v for k, v in config["trainer"].items() if k != "callbacks"},
+    )
     try:
         logger.info(f"Trainer initialized -> accelerator={trainer.accelerator.__class__.__name__}, devices={trainer.num_devices}, precision={trainer.precision}")
     except Exception:

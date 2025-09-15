@@ -3,22 +3,23 @@
 # Decoupled from model architecture and training parameters
 
 data:
-  # Dataset path - dev version for fast iteration
-  # path: "blob/dataset/pre-processed/h5/traffic_features.h5"
-  
-  # Data splitting ratios
+  # dataset file path
+  path: "blob/dataset/processed/pems_bay.h5"
+
+  # data splitting ratios
   split:
     train: 0.7
     val:   0.3
     test:  0.0
   
-  # DataLoader configuration  
+  # dataLoader configuration  
   loader:
-    batch_size: 8
-    num_workers: 12
+    batch_size: 16
+    num_workers: 8
     pin_memory: true
     shuffle: true
   
-  # Data preprocessing - common settings
+  # data preprocessing - common settings
   normalize: true
-  stride: 1                         # Sliding window stride
+  # sliding window stride
+  stride: 10                         

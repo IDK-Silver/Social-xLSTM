@@ -3,16 +3,29 @@
 # Decoupled from model architecture and data parameters
 
 trainer:
-  # Core training parameters - using PyTorch Lightning 2.x naming
-  max_epochs: 50            # Number of training epochs (not 'epochs')
-  accelerator: "auto"       # Let Lightning choose GPU/CPU automatically
-  precision: "16-mixed"      # Mixed precision for better throughput/memory
-  devices: 1                # Number of devices to use
+  max_epochs: 50
+
+  # Let Lightning choose GPU/CPU automatically
+  accelerator: "auto" 
+
+  precision: "16-mixed"      
+  devices: 1                
   
-  # Development settings - no complex features per CLAUDE.md principles
   enable_progress_bar: true
   log_every_n_steps: 10
+  num_sanity_val_steps: 0
   check_val_every_n_epoch: 1
+
+  callbacks:
+    output_dir: change_cfgs_training_config_yaml_to_your_desired_path
+    training_metrics:
+      splits: [train, val]
+      metrics: [mae, rmse, mape]
+    model_checkpoint:
+      monitor: "val_mae"
+      mode: "min"
+      save_top_k: 1
+      filename: "epoch={epoch}-val_mae={val_mae:.4f}"
 
 optimizer:
   # Adam optimizer configuration
@@ -22,16 +35,11 @@ optimizer:
   betas: [0.9, 0.999]
   eps: 1.0e-08
 
-# No scheduler for simplicity - following extreme minimalism principle
-# scheduler: null
-
+  
 experiment:
   # Experiment tracking configuration
   name: "dev_multi_vd"
   save_dir: "logs"
   seed: 42                  # Reproducibility seed
 
-# No callbacks for now - following CLAUDE.md development principles
-# - No EarlyStopping
-# - No complex monitoring
-# - Core functionality first
+

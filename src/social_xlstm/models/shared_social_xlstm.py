@@ -51,6 +51,9 @@ class SharedSocialXLSTMModel(pl.LightningModule):
         self.val_rmse_norm = torchmetrics.MeanSquaredError(squared=False)
         self.train_r2_norm = torchmetrics.R2Score()
         self.val_r2_norm = torchmetrics.R2Score()
+        # Add MAPE (normalized-scale)
+        self.train_mape_norm = torchmetrics.MeanAbsolutePercentageError()
+        self.val_mape_norm = torchmetrics.MeanAbsolutePercentageError()
 
         # Real-scale metrics (comparable to papers; require inverse-transform)
         self.train_mae_real = torchmetrics.MeanAbsoluteError()
@@ -61,6 +64,9 @@ class SharedSocialXLSTMModel(pl.LightningModule):
         self.val_rmse_real = torchmetrics.MeanSquaredError(squared=False)
         self.train_r2_real = torchmetrics.R2Score()
         self.val_r2_real = torchmetrics.R2Score()
+        # Add MAPE (real-scale)
+        self.train_mape_real = torchmetrics.MeanAbsolutePercentageError()
+        self.val_mape_real = torchmetrics.MeanAbsolutePercentageError()
 
         # Social pooling layer selection
         self.social_pooling = None
@@ -108,20 +114,32 @@ class SharedSocialXLSTMModel(pl.LightningModule):
 
         self.criterion = nn.MSELoss()
 
-        # Normalization buffers (set in on_fit_start)
+        # Normalization buffers
+        # - Pre-register empty buffers so checkpoints always have consistent keys.
+        # - Values are injected at fit-start from DataModule.shared_scaler.
         self.norm_kind: Optional[str] = None  # 'standard' | 'minmax' | None
-        # Registered at runtime if scaler available
-        # self.register_buffer('feature_mean', ...)
-        # self.register_buffer('feature_scale', ...)
-        # self.register_buffer('data_min', ...)
-        # self.register_buffer('data_range', ...)
+        self.register_buffer('feature_mean', torch.empty(0))
+        self.register_buffer('feature_scale', torch.empty(0))
+        self.register_buffer('data_min', torch.empty(0))
+        self.register_buffer('data_range', torch.empty(0))
 
     def forward(
         self,
-        features: torch.Tensor,  # [B, T, N, F]
+        # [B, T, N, F]
+        features: torch.Tensor,  
         vd_ids: Optional[List[str]] = None,
-        positions_xy: Optional[torch.Tensor] = None,  # [N, 2] or None
+        # [N, 2] or None
+        positions_xy: Optional[torch.Tensor] = None,  
+        *,
+        # If True, normalize features using stored scaler buffers
+        expect_raw_inputs: bool = False,  
     ) -> Dict[str, torch.Tensor]:
+        # Optionally normalize raw inputs for deployment-time inference
+        if expect_raw_inputs:
+            try:
+                features = self.normalize_inputs(features)
+            except Exception:
+                pass
         if features.dim() != 4:
             raise ValueError(f"Expected features [B,T,N,F], got {features.shape}")
 
@@ -232,6 +250,7 @@ class SharedSocialXLSTMModel(pl.LightningModule):
             self.train_mse_norm(preds_tensor, targets_tensor)
             self.train_rmse_norm(preds_tensor, targets_tensor)
             self.train_r2_norm(preds_tensor, targets_tensor)
+            self.train_mape_norm(preds_tensor, targets_tensor)
 
             # Compute real-scale tensors using registered buffers (pure torch)
             preds_real, targets_real = self._prepare_real_scale(
@@ -243,6 +262,7 @@ class SharedSocialXLSTMModel(pl.LightningModule):
             self.train_mse_real(preds_real, targets_real)
             self.train_rmse_real(preds_real, targets_real)
             self.train_r2_real(preds_real, targets_real)
+            self.train_mape_real(preds_real, targets_real)
 
             # Log primary metrics on real scale for comparability
             self.log('train_loss', avg_loss, prog_bar=True, on_step=False, on_epoch=True, batch_size=B)
@@ -250,12 +270,14 @@ class SharedSocialXLSTMModel(pl.LightningModule):
             self.log('train_mse', self.train_mse_real, prog_bar=False, on_step=False, on_epoch=True, batch_size=B)
             self.log('train_rmse', self.train_rmse_real, prog_bar=False, on_step=False, on_epoch=True, batch_size=B)
             self.log('train_r2', self.train_r2_real, prog_bar=False, on_step=False, on_epoch=True, batch_size=B)
+            self.log('train_mape', self.train_mape_real, prog_bar=False, on_step=False, on_epoch=True, batch_size=B)
 
             # Also log normalized metrics for debugging/reference
             self.log('train_mae_norm', self.train_mae_norm, prog_bar=False, on_step=False, on_epoch=True, batch_size=B)
             self.log('train_mse_norm', self.train_mse_norm, prog_bar=False, on_step=False, on_epoch=True, batch_size=B)
             self.log('train_rmse_norm', self.train_rmse_norm, prog_bar=False, on_step=False, on_epoch=True, batch_size=B)
             self.log('train_r2_norm', self.train_r2_norm, prog_bar=False, on_step=False, on_epoch=True, batch_size=B)
+            self.log('train_mape_norm', self.train_mape_norm, prog_bar=False, on_step=False, on_epoch=True, batch_size=B)
 
             self.log('num_vds', float(num_vds), prog_bar=True, on_step=False, on_epoch=True, batch_size=B)
             self.log('social_pooling_enabled', float(self.config.social_pooling.enabled), prog_bar=False, on_step=False, on_epoch=True, batch_size=B)
@@ -296,6 +318,7 @@ class SharedSocialXLSTMModel(pl.LightningModule):
             self.val_mse_norm(preds_tensor, targets_tensor)
             self.val_rmse_norm(preds_tensor, targets_tensor)
             self.val_r2_norm(preds_tensor, targets_tensor)
+            self.val_mape_norm(preds_tensor, targets_tensor)
 
             # Compute real-scale tensors using registered buffers (pure torch)
             preds_real, targets_real = self._prepare_real_scale(
@@ -307,6 +330,7 @@ class SharedSocialXLSTMModel(pl.LightningModule):
             self.val_mse_real(preds_real, targets_real)
             self.val_rmse_real(preds_real, targets_real)
             self.val_r2_real(preds_real, targets_real)
+            self.val_mape_real(preds_real, targets_real)
 
             # Log primary metrics on real scale for comparability
             self.log('val_loss', avg_loss, prog_bar=True, on_step=False, on_epoch=True, batch_size=B)
@@ -314,12 +338,14 @@ class SharedSocialXLSTMModel(pl.LightningModule):
             self.log('val_mse', self.val_mse_real, prog_bar=False, on_step=False, on_epoch=True, batch_size=B)
             self.log('val_rmse', self.val_rmse_real, prog_bar=False, on_step=False, on_epoch=True, batch_size=B)
             self.log('val_r2', self.val_r2_real, prog_bar=False, on_step=False, on_epoch=True, batch_size=B)
+            self.log('val_mape', self.val_mape_real, prog_bar=False, on_step=False, on_epoch=True, batch_size=B)
 
             # Also log normalized metrics for debugging/reference
             self.log('val_mae_norm', self.val_mae_norm, prog_bar=False, on_step=False, on_epoch=True, batch_size=B)
             self.log('val_mse_norm', self.val_mse_norm, prog_bar=False, on_step=False, on_epoch=True, batch_size=B)
             self.log('val_rmse_norm', self.val_rmse_norm, prog_bar=False, on_step=False, on_epoch=True, batch_size=B)
             self.log('val_r2_norm', self.val_r2_norm, prog_bar=False, on_step=False, on_epoch=True, batch_size=B)
+            self.log('val_mape_norm', self.val_mape_norm, prog_bar=False, on_step=False, on_epoch=True, batch_size=B)
 
         return avg_loss
 
@@ -367,40 +393,10 @@ class SharedSocialXLSTMModel(pl.LightningModule):
     # Normalization utilities
     # ----------------------
     def on_fit_start(self) -> None:
-        """Extract scaler stats from datamodule and register as buffers for torch-only inverse-transform."""
-        try:
-            dm = getattr(self.trainer, 'datamodule', None)
-            scaler = getattr(dm, 'shared_scaler', None) if dm is not None else None
-        except Exception:
-            scaler = None
-
-        if scaler is None:
-            self.norm_kind = None
-            return
-
-        # Detect scaler type by attributes; register buffers on CPU, Lightning moves them to device
-        if hasattr(scaler, 'mean_') and hasattr(scaler, 'scale_'):
-            # StandardScaler
-            mean = torch.tensor(scaler.mean_, dtype=torch.float32)
-            scale = torch.tensor(scaler.scale_, dtype=torch.float32)
-            # Avoid degenerate scale
-            eps = torch.finfo(torch.float32).eps
-            scale = torch.clamp(scale, min=eps)
-            self.register_buffer('feature_mean', mean)
-            self.register_buffer('feature_scale', scale)
-            self.norm_kind = 'standard'
-        elif hasattr(scaler, 'data_min_') and hasattr(scaler, 'data_range_'):
-            # MinMaxScaler
-            data_min = torch.tensor(scaler.data_min_, dtype=torch.float32)
-            data_range = torch.tensor(scaler.data_range_, dtype=torch.float32)
-            eps = torch.finfo(torch.float32).eps
-            data_range = torch.clamp(data_range, min=eps)
-            self.register_buffer('data_min', data_min)
-            self.register_buffer('data_range', data_range)
-            self.norm_kind = 'minmax'
-        else:
-            # Unknown scaler type
-            self.norm_kind = None
+        """Inject scaler stats from DataModule into pre-registered buffers (no fitting here)."""
+        dm = getattr(self.trainer, 'datamodule', None)
+        scaler = getattr(dm, 'shared_scaler', None) if dm is not None else None
+        self.set_scaler_from_sklearn(scaler)
 
     def _inverse_transform(self, x: torch.Tensor, P: int, F: int) -> torch.Tensor:
         """Inverse-transform last-dimension features using registered buffers; x shape [*, P*F]."""
@@ -408,13 +404,25 @@ class SharedSocialXLSTMModel(pl.LightningModule):
             return x
         orig_shape = x.shape
         x_view = x.view(-1, P, F)
-        if self.norm_kind == 'standard' and hasattr(self, 'feature_mean') and hasattr(self, 'feature_scale'):
-            mean = self.feature_mean.to(device=x_view.device, dtype=x_view.dtype)
-            scale = self.feature_scale.to(device=x_view.device, dtype=x_view.dtype)
+        if (
+            self.norm_kind == 'standard'
+            and isinstance(self.feature_mean, torch.Tensor)
+            and isinstance(self.feature_scale, torch.Tensor)
+            and self.feature_mean.numel() > 0
+            and self.feature_scale.numel() > 0
+        ):
+            mean = self.feature_mean.to(device=x_view.device, dtype=x_view.dtype).view(1, 1, -1)
+            scale = self.feature_scale.to(device=x_view.device, dtype=x_view.dtype).view(1, 1, -1)
             x_real = x_view * scale + mean
-        elif self.norm_kind == 'minmax' and hasattr(self, 'data_min') and hasattr(self, 'data_range'):
-            data_min = self.data_min.to(device=x_view.device, dtype=x_view.dtype)
-            data_range = self.data_range.to(device=x_view.device, dtype=x_view.dtype)
+        elif (
+            self.norm_kind == 'minmax'
+            and isinstance(self.data_min, torch.Tensor)
+            and isinstance(self.data_range, torch.Tensor)
+            and self.data_min.numel() > 0
+            and self.data_range.numel() > 0
+        ):
+            data_min = self.data_min.to(device=x_view.device, dtype=x_view.dtype).view(1, 1, -1)
+            data_range = self.data_range.to(device=x_view.device, dtype=x_view.dtype).view(1, 1, -1)
             x_real = x_view * data_range + data_min
         else:
             return x
@@ -428,3 +436,92 @@ class SharedSocialXLSTMModel(pl.LightningModule):
             return preds_real, targets_real
         except Exception:
             return preds.detach(), targets.detach()
+
+    # ----------------------
+    # Scaler injection and input normalization helpers
+    # ----------------------
+    def _set_buffer(self, name: str, value: torch.Tensor) -> None:
+        """Set a registered buffer's value in-place, preserving registration."""
+        buf = getattr(self, name, None)
+        if isinstance(buf, torch.Tensor):
+            with torch.no_grad():
+                buf.resize_(value.shape)
+                buf.copy_(value)
+        else:
+            self.register_buffer(name, value)
+
+    def set_scaler_from_sklearn(self, scaler: object) -> None:
+        """Copy stats from a fitted sklearn StandardScaler/MinMaxScaler into buffers.
+
+        This enforces the single source of truth: scaler is fit in the DataModule (train split),
+        while the model only stores a snapshot for inverse-transform and optional deployment-time normalization.
+        """
+        if scaler is None:
+            self.norm_kind = None
+            return
+
+        if hasattr(scaler, 'mean_') and hasattr(scaler, 'scale_'):
+            mean = torch.tensor(getattr(scaler, 'mean_'), dtype=torch.float32)
+            scale = torch.tensor(getattr(scaler, 'scale_'), dtype=torch.float32)
+            eps = torch.finfo(torch.float32).eps
+            scale = torch.clamp(scale, min=eps)
+            self._set_buffer('feature_mean', mean)
+            self._set_buffer('feature_scale', scale)
+            # Clear MinMax buffers
+            self._set_buffer('data_min', torch.empty(0, dtype=torch.float32))
+            self._set_buffer('data_range', torch.empty(0, dtype=torch.float32))
+            self.norm_kind = 'standard'
+            return
+
+        if hasattr(scaler, 'data_min_') and hasattr(scaler, 'data_range_'):
+            data_min = torch.tensor(getattr(scaler, 'data_min_'), dtype=torch.float32)
+            data_range = torch.tensor(getattr(scaler, 'data_range_'), dtype=torch.float32)
+            eps = torch.finfo(torch.float32).eps
+            data_range = torch.clamp(data_range, min=eps)
+            self._set_buffer('data_min', data_min)
+            self._set_buffer('data_range', data_range)
+            # Clear Standard buffers
+            self._set_buffer('feature_mean', torch.empty(0, dtype=torch.float32))
+            self._set_buffer('feature_scale', torch.empty(0, dtype=torch.float32))
+            self.norm_kind = 'minmax'
+            return
+
+        # Unknown scaler type
+        self.norm_kind = None
+
+    def normalize_inputs(self, x: torch.Tensor) -> torch.Tensor:
+        """Normalize raw inputs [B,T,N,F] using stored scaler buffers. No-op if unavailable.
+
+        Training/validation already pass normalized inputs via DataModule; this helper is for
+        deployment-time inference that feeds raw features to the model.
+        """
+        if self.norm_kind is None or x.dim() != 4:
+            return x
+        B, T, N, F = x.shape
+        eps = torch.finfo(torch.float32).eps
+
+        if (
+            self.norm_kind == 'standard'
+            and isinstance(self.feature_mean, torch.Tensor)
+            and isinstance(self.feature_scale, torch.Tensor)
+            and self.feature_mean.numel() == F
+            and self.feature_scale.numel() == F
+        ):
+            mean = self.feature_mean.to(device=x.device, dtype=x.dtype).view(1, 1, 1, F)
+            scale = self.feature_scale.to(device=x.device, dtype=x.dtype).view(1, 1, 1, F)
+            scale = torch.clamp(scale, min=eps)
+            return (x - mean) / scale
+
+        if (
+            self.norm_kind == 'minmax'
+            and isinstance(self.data_min, torch.Tensor)
+            and isinstance(self.data_range, torch.Tensor)
+            and self.data_min.numel() == F
+            and self.data_range.numel() == F
+        ):
+            data_min = self.data_min.to(device=x.device, dtype=x.dtype).view(1, 1, 1, F)
+            data_range = self.data_range.to(device=x.device, dtype=x.dtype).view(1, 1, 1, F)
+            data_range = torch.clamp(data_range, min=eps)
+            return (x - data_min) / data_range
+
+        return x

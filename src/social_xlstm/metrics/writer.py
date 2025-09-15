@@ -11,21 +11,9 @@ import time
 import warnings
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
-
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
-
-# Handle different PyTorch Lightning versions
-try:
-    from pytorch_lightning.utilities.distributed import rank_zero_only
-except ImportError:
-    try:
-        from pytorch_lightning.utilities.rank_zero import rank_zero_only
-    except ImportError:
-        # Fallback for very old versions or if not available
-        def rank_zero_only(func):
-            """Fallback decorator that always executes the function"""
-            return func
+from pytorch_lightning.utilities.rank_zero import rank_zero_only
 
 
 class TrainingMetricsWriter(Callback):
@@ -39,7 +27,7 @@ class TrainingMetricsWriter(Callback):
     def __init__(
         self,
         output_dir: Union[str, Path],
-        metrics: Tuple[str, ...] = ("mae", "mse", "rmse", "r2"),
+        metrics: Tuple[str, ...] = ("mae", "rmse", "mape"),
         splits: Tuple[str, ...] = ("train", "val"),
         csv_filename: str = "metrics.csv",
         json_filename: str = "metrics_summary.json",
@@ -266,10 +254,18 @@ class TrainingMetricsWriter(Callback):
         try:
             # Read final metrics from CSV
             final_metrics = {}
+            best_metrics = {}
+            max_epoch_index: Optional[int] = None
             if self._csv_path.exists():
                 with open(self._csv_path, 'r') as f:
                     reader = csv.DictReader(f)
                     rows = list(reader)
+                    # Derive total epochs from CSV for robustness (max epoch index + 1)
+                    try:
+                        if rows:
+                            max_epoch_index = max(int(r['epoch']) for r in rows if 'epoch' in r)
+                    except Exception:
+                        max_epoch_index = None
                     
                     # Group by split and get final epoch metrics
                     for split in self.splits:
@@ -281,16 +277,57 @@ class TrainingMetricsWriter(Callback):
                                 metric: float(last_row[metric]) if last_row[metric] != 'nan' else None
                                 for metric in self.metrics
                             }
+
+                            # Compute best metrics (min for most, max for r2)
+                            best_metrics[split] = {}
+                            for metric in self.metrics:
+                                # Determine direction: maximize for r2, otherwise minimize
+                                maximize = 'r2' in metric.lower()
+                                best_val = None
+                                best_epoch_idx = None
+                                for r in split_rows:
+                                    try:
+                                        val_str = r.get(metric, 'nan')
+                                        if val_str == 'nan':
+                                            continue
+                                        val = float(val_str)
+                                    except Exception:
+                                        continue
+                                    ep = int(r.get('epoch', 0))
+                                    if best_val is None:
+                                        best_val, best_epoch_idx = val, ep
+                                    else:
+                                        if maximize and val > best_val:
+                                            best_val, best_epoch_idx = val, ep
+                                        if not maximize and val < best_val:
+                                            best_val, best_epoch_idx = val, ep
+                                if best_val is not None and best_epoch_idx is not None:
+                                    best_metrics[split][metric] = {
+                                        'value': best_val,
+                                        'epoch': int(best_epoch_idx) + 1,      # 1-based for readability
+                                        'epoch_index': int(best_epoch_idx),     # 0-based as in CSV
+                                    }
             
             # Create summary
+            total_epochs = None
+            if max_epoch_index is not None:
+                total_epochs = int(max_epoch_index) + 1
+            else:
+                # Fallback to trainer semantics (+1 for human-friendly count)
+                try:
+                    total_epochs = int(trainer.current_epoch) + 1
+                except Exception:
+                    total_epochs = None
+
             summary = {
                 'experiment_info': {
-                    'total_epochs': trainer.current_epoch + 1,
+                    'total_epochs': total_epochs,
                     'metrics_tracked': list(self.metrics),
                     'splits_tracked': list(self.splits),
                     'completed_at': time.time(),
                 },
                 'final_metrics': final_metrics,
+                'best_metrics': best_metrics,
                 'files': {
                     'csv_path': str(self._csv_path),
                     'json_path': str(self._json_path),

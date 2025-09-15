@@ -130,7 +130,7 @@ class TrainingMetricsPlotter:
             if not self._epochs[split]:
                 continue
             
-            epochs = np.array(self._epochs[split])
+            epochs = np.array(self._epochs[split], dtype=int)
             values = np.array(self._data[split][metric])
             
             # Filter out NaN values for plotting
@@ -140,18 +140,43 @@ class TrainingMetricsPlotter:
                 continue
             
             ax.plot(
-                epochs[valid_mask], 
+                epochs[valid_mask] + 1, 
                 values[valid_mask], 
                 label=f"{split.title()}",
                 marker='o',
                 markersize=4,
                 linewidth=2
             )
-        
+
+        # Force x-axis to start at 1 and end at last epoch shown
+        try:
+            max_epoch_disp = 1
+            for split in self.splits:
+                if not self._epochs[split]:
+                    continue
+                epochs = np.array(self._epochs[split], dtype=int)
+                values = np.array(self._data[split][metric])
+                valid_mask = ~np.isnan(values)
+                if np.any(valid_mask):
+                    max_epoch_disp = max(max_epoch_disp, int(epochs[valid_mask].max()) + 1)
+            ax.set_xlim(left=1, right=max_epoch_disp)
+            # Set integer ticks that always include 1
+            span = max_epoch_disp - 1
+            max_ticks = 10
+            step = int(np.ceil(span / max_ticks)) if span > 0 else 1
+            step = max(step, 1)
+            ticks = list(range(1, max_epoch_disp + 1, step))
+            if ticks[-1] != max_epoch_disp:
+                ticks.append(max_epoch_disp)
+            ax.set_xticks(ticks)
+        except Exception:
+            ax.set_xlim(left=1)
+
         # Styling
+        disp = "MAP" if metric.lower() == "mape" else metric.upper()
         ax.set_xlabel("Epoch")
-        ax.set_ylabel(metric.upper())
-        ax.set_title(f"Training Progress: {metric.upper()}")
+        ax.set_ylabel(disp)
+        ax.set_title(f"Training Progress: {disp}")
         ax.legend()
         ax.grid(True, alpha=0.3)
         
@@ -201,13 +226,13 @@ class TrainingMetricsPlotter:
         # Plot each metric
         for i, metric in enumerate(self.metrics):
             ax = axes[i]
-            
+
             # Plot each split for this metric
             for split in self.splits:
                 if not self._epochs[split]:
                     continue
                 
-                epochs = np.array(self._epochs[split])
+                epochs = np.array(self._epochs[split], dtype=int)
                 values = np.array(self._data[split][metric])
                 
                 # Filter out NaN values
@@ -216,20 +241,72 @@ class TrainingMetricsPlotter:
                     continue
                 
                 ax.plot(
-                    epochs[valid_mask], 
-                    values[valid_mask], 
+                    epochs[valid_mask] + 1,
+                    values[valid_mask],
                     label=f"{split.title()}",
                     marker='o',
                     markersize=3,
                     linewidth=1.5
                 )
-            
-            # Styling
+
+            # Annotate best points per split (min for most, max for r2)
+            for split in self.splits:
+                if not self._epochs[split]:
+                    continue
+                epochs = np.array(self._epochs[split], dtype=int)
+                values = np.array(self._data[split][metric], dtype=float)
+                valid_mask = ~np.isnan(values)
+                if not np.any(valid_mask):
+                    continue
+                if metric.lower() == 'r2':
+                    best_idx = np.nanargmax(values)
+                else:
+                    best_idx = np.nanargmin(values)
+                ex = epochs[best_idx]
+                ey = values[best_idx]
+                ex_disp = int(ex) + 1
+                ax.scatter([ex_disp], [ey], s=30, zorder=5)
+                ax.annotate(
+                    f"{split}:{ey:.4f}\n(ep {ex_disp})",
+                    (ex_disp, ey),
+                    textcoords="offset points",
+                    xytext=(6, 6),
+                    ha='left',
+                    fontsize=8,
+                    bbox=dict(boxstyle='round,pad=0.2', fc='white', ec='gray', alpha=0.6)
+                )
+
+            # Styling for this subplot
+            disp = "MAP" if metric.lower() == "mape" else metric.upper()
             ax.set_xlabel("Epoch")
-            ax.set_ylabel(metric.upper())
-            ax.set_title(f"{metric.upper()}")
+            ax.set_ylabel(disp)
+            ax.set_title(f"{disp}")
             ax.legend()
             ax.grid(True, alpha=0.3)
+
+            # Force x-axis to start at 1 and end at last epoch shown
+            try:
+                max_epoch_disp = 1
+                for split in self.splits:
+                    if not self._epochs[split]:
+                        continue
+                    epochs = np.array(self._epochs[split], dtype=int)
+                    values = np.array(self._data[split][metric])
+                    valid_mask = ~np.isnan(values)
+                    if np.any(valid_mask):
+                        max_epoch_disp = max(max_epoch_disp, int(epochs[valid_mask].max()) + 1)
+                ax.set_xlim(left=1, right=max_epoch_disp)
+                # Set integer ticks that always include 1
+                span = max_epoch_disp - 1
+                max_ticks = 8
+                step = int(np.ceil(span / max_ticks)) if span > 0 else 1
+                step = max(step, 1)
+                ticks = list(range(1, max_epoch_disp + 1, step))
+                if ticks[-1] != max_epoch_disp:
+                    ticks.append(max_epoch_disp)
+                ax.set_xticks(ticks)
+            except Exception:
+                ax.set_xlim(left=1)
         
         # Hide unused subplots
         for i in range(n_metrics, len(axes)):

@@ -38,8 +38,8 @@ def generate_plots_from_csv(
     output_dir.mkdir(parents=True, exist_ok=True)
     
     try:
-        # Create plotter
-        plotter = TrainingMetricsPlotter(csv_path)
+        # Create plotter with only the desired metrics
+        plotter = TrainingMetricsPlotter(csv_path, metrics=("mae", "rmse", "mape"))
         logger.info(f"Loaded metrics from {csv_path}")
         
         # Print summary
