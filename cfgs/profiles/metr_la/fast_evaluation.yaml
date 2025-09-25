@@ -1,9 +1,9 @@
 configs:
   - cfgs/data/standard.yaml
   - cfgs/models/xlstm.yaml
-  - cfgs/social_pooling/st_attention_basic.yaml
+  - cfgs/social_pooling/st_attention.yaml
   - cfgs/training/standard.yaml
-  - cfgs/datasets/pems_bay/standard.yaml
+  - cfgs/datasets/metr_la/standard.yaml
 
 # Profile-specific overrides
 overrides:
@@ -12,22 +12,15 @@ overrides:
     path: "blob/dataset/processed/metr_la.h5"
     fill_missing: interpolate
     loader:
-      batch_size: 64
+      batch_size: 32
       num_workers: 8
 
-    selected_vdids:
-        - "773869"
-        - "718499"
-        - "717573" 
-        - "717572"
-        - "761003"
-        - "773904"
-        - "760987"
-        - "718204"
-        - "717576"
-        - "759772"
+    selected_vdids: null
+    
   trainer:
     max_epochs: 20
     num_sanity_val_steps: 0
+    callbacks:
+      output_dir: blob/experiments/metr_la/standard_03 
   optimizer:
     lr: 0.001

@@ -3,11 +3,11 @@ social_pooling:
   type: "st_attention"
 
   # Stronger spatial prior (validated in quick A/B)
-  knn_k: 4
+  knn_k: 12
   time_window: 3
   heads: 1
   learnable_tau: true
-  tau_init: 300.0
+  tau_init: 150.0
   dropout: 0.1
 
   use_radius_mask: true

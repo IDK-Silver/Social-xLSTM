@@ -13,7 +13,12 @@ overrides:
   data:
     stride: 10 
     path: "blob/dataset/processed/metr_la.h5"
+    selected_features: ["avg_speed"]
     
-    # Adjust batch size for 6 features
+    # Adjust batch size for 3 features
     loader:
       batch_size: 32  # Reduced from 8 to handle larger feature set
+
+  trainer:
+      callbacks:
+        output_dir: blob/experiments/metr_la/standard

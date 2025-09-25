@@ -9,6 +9,21 @@ configs:
 
 # profile specific overrides
 overrides:
+  data:
+    selected_features: ["avg_speed"]
+
   trainer:
+    max_epochs: 10
     callbacks:
       output_dir: blob/experiments/pems_bay/standard
+  social_pooling:
+    knn_k: 6
+    time_window: 6
+    heads: 2
+    learnable_tau: true
+    tau_init: 100.0
+    dropout: 0.2
+
+    use_radius_mask: true
+    radius: 2000  # meters
+    bias_scale: 1.5

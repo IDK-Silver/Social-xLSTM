@@ -1,7 +1,7 @@
 configs:
   - cfgs/data/standard.yaml
   - cfgs/models/xlstm.yaml
-  - cfgs/social_pooling/st_attention_basic.yaml
+  - cfgs/social_pooling/st_attention.yaml
   - cfgs/training/standard.yaml
   - cfgs/datasets/pems_bay/standard.yaml
 
